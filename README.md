@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SaaS Foundations Demo
+
+A Next.js App Router demo application showcasing SaaS foundations and best practices.
+
+## Prerequisites
+
+- Node.js (see `.nvmrc` for version)
+- pnpm
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+# Install dependencies
+pnpm install
+
+# Start development server
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Available Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Script              | Description                              |
+| ------------------- | ---------------------------------------- |
+| `pnpm dev`          | Start development server                 |
+| `pnpm build`        | Build for production                     |
+| `pnpm start`        | Start production server                  |
+| `pnpm lint`         | Run ESLint                               |
+| `pnpm format`       | Format code with Prettier                |
+| `pnpm format:check` | Check code formatting                    |
+| `pnpm typecheck`    | Run TypeScript type checking             |
+| `pnpm test`         | Run unit tests with Vitest               |
+| `pnpm test:e2e`     | Run E2E tests with Playwright (chromium) |
 
-## Learn More
+## Environment Variables
 
-To learn more about Next.js, take a look at the following resources:
+Create a `.env.local` file in the project root for local development:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+# Example environment variables (no secrets in this file)
+# NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+See `.env.example` for all available environment variables (when available).
 
-## Deploy on Vercel
+## Project Structure
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+├── app/              # Next.js App Router pages and layouts
+├── src/
+│   ├── components/   # Reusable React components
+│   └── test/         # Test utilities and setup
+├── e2e/              # Playwright E2E tests
+├── docs/             # Project documentation
+└── public/           # Static assets
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Documentation
+
+- [PRD](./docs/PRD.md) - Product Requirements Document
+- [Architecture](./docs/architecture.md) - System architecture overview
+- [Decisions](./docs/decisions.md) - Architecture Decision Records (ADRs)
+
+## Contributing
+
+1. Create a feature branch from `main`
+2. Make changes following the existing code style
+3. Ensure all checks pass: `pnpm format:check && pnpm lint && pnpm typecheck && pnpm test`
+4. Open a pull request
+
+## License
+
+Private - All rights reserved.
