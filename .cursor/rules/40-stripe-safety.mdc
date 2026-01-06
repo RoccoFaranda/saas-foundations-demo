@@ -1,0 +1,52 @@
+---
+description: USE WHEN touching billing/Stripe/webhooks. Enforce idempotency + no-secret logging.
+alwaysApply: false
+---
+
+# Stripe & Billing Safety Rules
+
+## Access Control
+- **Verified users only**: Billing features are only available to verified/authenticated users
+- **Guest mode exclusion**: Guest users cannot access billing features
+- **Authorization checks**: Always verify user authentication and authorization before processing billing operations
+
+## Billing Kill Switch
+- **BILLING_ENABLED environment variable**: Acts as a kill switch for all billing features
+- **Graceful degradation**: When `BILLING_ENABLED=false`:
+  - Billing UI should show appropriate message (e.g., "Billing is currently unavailable")
+  - No billing routes should be accessible
+  - Webhook handlers should return early with appropriate status
+- **Feature flags**: Use this flag to enable/disable billing without code changes
+
+## Webhook Idempotency
+- **Deduplication by event.id**: All webhook handlers must be idempotent
+- **Unique constraint**: Use database unique constraint on `stripe_event_id` or similar
+- **Idempotency check**: Before processing any webhook:
+  1. Check if `event.id` has been processed
+  2. If yes, return success without reprocessing
+  3. If no, process and record `event.id`
+- **Database schema**: Ensure webhook events table has unique constraint on Stripe event ID
+
+## Webhook Security
+- **Verify signature**: Always verify Stripe webhook signature in handler
+- **Signature verification**: Use `stripe.webhooks.constructEvent()` or equivalent
+- **Test coverage**: Tests should cover signature verification logic where practical
+- **Error handling**: Invalid signatures should return 401/403, not 500
+
+## Logging Safety
+**CRITICAL**: Never log sensitive Stripe data:
+- ❌ Stripe API keys (secret keys, publishable keys)
+- ❌ Webhook signatures
+- ❌ Raw webhook bodies or full payload dumps
+- ❌ Customer payment method details (full card numbers, etc.)
+- ✅ Safe to log: Event types, event IDs, customer IDs (non-sensitive), timestamps
+
+## Error Handling
+- **Stripe API errors**: Handle gracefully with user-friendly messages
+- **Webhook failures**: Log errors appropriately (without secrets), retry logic if needed
+- **Idempotency errors**: Handle duplicate event gracefully (return success, don't error)
+
+## Testing
+- **Mock Stripe**: Use Stripe test mode and mocks in tests
+- **Webhook tests**: Test idempotency, signature verification, error cases
+- **Billing toggle tests**: Test behavior when `BILLING_ENABLED=false`

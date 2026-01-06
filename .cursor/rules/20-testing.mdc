@@ -1,0 +1,48 @@
+---
+description: USE WHEN adding/changing behavior. Ensure tests match MVP locked requirements.
+alwaysApply: false
+---
+
+# Testing Standards
+
+## Test Framework Stack
+- **Vitest**: For unit tests and integration tests
+- **React Testing Library**: For component tests (light, focused on user behavior)
+- **Playwright**: For E2E smoke tests and critical user flows
+
+## Test Coverage Expectations
+- Add tests when changing behavior or adding new features
+- Unit tests for utility functions, services, and business logic
+- Integration tests for API routes and server actions
+- Component tests for complex UI interactions
+- E2E tests for critical user flows (see locked MVP flows below)
+
+## Locked MVP E2E Flows
+These flows must be covered by Playwright E2E tests and should not regress:
+
+### 1. Guest Mode Reset Flow
+- Guest user can edit/create business data
+- Page refresh resets all business data to seeded demo state
+- Theme preference persists across refreshes (localStorage)
+
+### 2. Authentication Flow
+- Signup → verify email → login → dashboard
+- All steps must work end-to-end
+- Error states handled gracefully
+
+### 3. Billing Toggle Flow
+- Billing enabled/disabled UI reflects `BILLING_ENABLED` environment variable
+- When disabled, billing UI shows appropriate message
+- Webhook deduplication works correctly (no duplicate processing)
+
+## Test Organization
+- Unit/integration: `__tests__/` or `*.test.ts` files co-located with source
+- E2E: `e2e/` directory with Playwright specs
+- Test utilities: Shared helpers in `test-utils/` or similar
+
+## Test Best Practices
+- Test user behavior, not implementation details
+- Use data-testid sparingly (prefer accessible queries)
+- Mock external services (Stripe, email, etc.)
+- Keep tests fast and independent
+- Clean up test data after each test

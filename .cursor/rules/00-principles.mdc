@@ -1,0 +1,50 @@
+---
+description: USE ALWAYS. Core project standards for the SaaS Foundations Demo App.
+alwaysApply: true
+---
+
+# Core Project Principles
+
+## Public Demo Safety + Polished UX Intent
+- This is a public-facing demo application. Prioritize polished, professional UX.
+- All features should work smoothly and provide clear feedback to users.
+- Error states should be user-friendly, not exposing internal details.
+
+## Security: No Secrets/Tokens in Logs
+**CRITICAL**: Never log sensitive information including:
+- Auth tokens (JWT, session tokens, refresh tokens)
+- Password reset links
+- Stripe secrets, API keys, or webhook signatures
+- Bot tokens or API credentials
+- Any PII that shouldn't be exposed
+
+Use structured logging with sanitization for any user-generated or external data.
+
+## Development Workflow
+- **Small incremental changes**: Prefer small, reviewable PR-sized diffs
+- **No repo-wide refactors**: Avoid large-scale refactors unless explicitly requested
+- **Tests-first/alongside**: Add or update tests when changing behavior
+- **Type safety**: Keep TypeScript strict; use explicit types at boundaries
+
+## Next.js Server/Client Boundary Guidance
+- Understand and respect the server/client component boundary
+- Server Components are the default; use "use client" only when necessary
+- Don't import server-only modules (database, auth helpers) into client components
+- Keep route handlers thin: validate → call service → return response
+
+## Standard API Error Shape
+All API errors should follow this consistent format:
+```typescript
+{
+  error: {
+    code: string,    // e.g., "VALIDATION_ERROR", "UNAUTHORIZED", "NOT_FOUND"
+    message: string  // User-friendly error message
+  }
+}
+```
+
+## Guest Mode Behavior
+- **No DB writes**: Guest users cannot write to the database
+- **Refresh resets**: Page refresh resets all business data to seeded demo state
+- **Theme persistence**: Only theme preference is allowed in localStorage
+- **In-memory state**: Guest mode uses seeded demo data + in-memory state only

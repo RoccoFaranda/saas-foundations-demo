@@ -1,0 +1,42 @@
+---
+description: USE WHEN working on guest mode/dashboard CRUD-like UX. Prevent any DB writes.
+alwaysApply: false
+---
+
+# Guest Mode Implementation Rules
+
+## Core Constraints
+- **No database writes**: Guest users must never write to the database
+- **In-memory state only**: All guest mode changes exist only in memory
+- **Refresh resets**: Page refresh must reset all business data to seeded demo state
+- **Theme exception**: Only theme preference is allowed to persist in localStorage
+
+## Data Flow
+1. **Initial load**: Guest users receive seeded demo data
+2. **User interactions**: All CRUD operations happen in-memory (React state, Zustand, etc.)
+3. **Page refresh**: State resets to original seeded data
+4. **Theme**: Persists in localStorage and survives refresh
+
+## Implementation Patterns
+- Use client-side state management for guest mode (useState, Zustand, etc.)
+- Seed data should be consistent and deterministic
+- Clear separation between guest and authenticated user code paths
+- Guest mode should feel fully functional despite no persistence
+
+## Testing Requirements
+- **Playwright test required**: Must maintain an E2E test that proves:
+  - Guest can edit/create data
+  - Refresh resets business data
+  - Theme persists across refresh
+- Unit tests should verify no database calls are made in guest mode
+
+## UI/UX Considerations
+- Guest mode should provide clear indication that data won't persist
+- Consider a banner or indicator that this is a demo/guest session
+- Make it easy to sign up to save work (if applicable)
+- Ensure guest mode feels polished and functional, not like a limitation
+
+## Code Organization
+- Clear separation: `lib/guest-mode/` or similar for guest-specific logic
+- Type guards: `isGuestUser()` helper to check user type
+- Service layer: Guest services that operate on in-memory data only

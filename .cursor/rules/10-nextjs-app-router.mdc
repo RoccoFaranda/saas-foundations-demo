@@ -1,0 +1,55 @@
+---
+description: USE WHEN editing Next.js routes/components. Enforce server/client boundaries and patterns.
+globs: app/**,components/**,src/**
+alwaysApply: false
+---
+
+# Next.js App Router Patterns
+
+## Server Components by Default
+- **Default to Server Components**: All components are Server Components unless they need interactivity
+- **"use client" only when needed**: Use client components only for:
+  - Event handlers (onClick, onChange, etc.)
+  - Browser-only APIs (localStorage, window, etc.)
+  - React hooks (useState, useEffect, useContext, etc.)
+  - Third-party libraries that require client-side rendering
+
+## Server/Client Boundary Rules
+- **Don't import server-only modules into client components**:
+  - Database clients (Prisma, Drizzle, etc.)
+  - Server-side auth helpers
+  - File system operations
+  - Environment variables that shouldn't be exposed
+- **Pass data down**: Fetch data in Server Components, pass as props to Client Components
+- **Use Server Actions**: For mutations, prefer Server Actions over API routes when possible
+
+## Route Handler Patterns
+Keep route handlers thin and focused:
+1. **Validate** input (request body, query params, headers)
+2. **Call service** layer (business logic, database operations)
+3. **Return** standardized response
+
+Example structure:
+```typescript
+export async function POST(request: Request) {
+  // 1. Validate
+  const body = await request.json();
+  const validated = schema.parse(body);
+  
+  // 2. Service call
+  const result = await serviceMethod(validated);
+  
+  // 3. Return
+  return Response.json(result);
+}
+```
+
+## Theme & Hydration Care
+- **No-flash theme**: Use proper SSR theme handling to prevent flash of wrong theme
+- **Hydration safety**: Ensure client/server HTML matches to avoid hydration errors
+- **localStorage access**: Only access localStorage in useEffect or client-side code, never during SSR
+
+## File Organization
+- `app/` directory for routes and layouts
+- `components/` for reusable components (can be server or client)
+- Keep route-specific components co-located with routes when possible
