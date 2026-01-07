@@ -30,7 +30,8 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 | `pnpm format`       | Format code with Prettier                |
 | `pnpm format:check` | Check code formatting                    |
 | `pnpm typecheck`    | Run TypeScript type checking             |
-| `pnpm test`         | Run unit tests with Vitest               |
+| `pnpm test`         | Run unit tests (one-shot)                |
+| `pnpm test:watch`   | Run unit tests in watch mode             |
 | `pnpm test:e2e`     | Run E2E tests with Playwright (chromium) |
 
 ## Environment Variables

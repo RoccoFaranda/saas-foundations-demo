@@ -10,7 +10,8 @@
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:e2e": "playwright test --project=chromium"
   },
   "dependencies": {
