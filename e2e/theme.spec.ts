@@ -1,9 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Theme toggle", () => {
-  test("switches to dark theme and adds dark class to html", async ({
-    page,
-  }) => {
+  test("switches to dark theme and adds dark class to html", async ({ page }) => {
     await page.goto("/");
 
     const themeToggle = page.getByTestId("theme-toggle");
@@ -16,9 +14,7 @@ test.describe("Theme toggle", () => {
     await expect(page.locator("html")).toHaveClass(/dark/);
   });
 
-  test("switches to light theme and removes dark class from html", async ({
-    page,
-  }) => {
+  test("switches to light theme and removes dark class from html", async ({ page }) => {
     await page.goto("/");
 
     const themeToggle = page.getByTestId("theme-toggle");
@@ -83,4 +79,3 @@ test.describe("Theme toggle", () => {
     await expect(page.locator("html")).not.toHaveClass(/dark/);
   });
 });
-

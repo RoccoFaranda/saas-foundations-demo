@@ -54,13 +54,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Panel({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="rounded-lg border border-foreground/10 bg-background">
       <div className="border-b border-foreground/10 px-4 py-3">
