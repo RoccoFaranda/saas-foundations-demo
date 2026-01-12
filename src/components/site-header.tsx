@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ThemeToggle } from "./theme-toggle";
 
 export function SiteHeader() {
   return (
@@ -26,6 +27,7 @@ export function SiteHeader() {
           >
             Login
           </Link>
+          <ThemeToggle />
         </nav>
       </div>
     </header>
