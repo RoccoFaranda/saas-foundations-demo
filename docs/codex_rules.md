@@ -24,3 +24,12 @@ This file defines how Codex should operate in this repo.
 ## Encoding / Mojibake Note
 
 - If CLI output shows garbled punctuation (mojibake) but the editor and browser render correctly, treat it as a terminal encoding artifact and do not flag it as a product issue.
+
+## Cursor Rules Maintenance
+
+- Keep `.cursor/rules/*.mdc` globs aligned with the repo structure and upcoming work.
+- Before starting a milestone (and when scope shifts), check whether rule globs still target the correct paths (e.g., Stripe/billing routes) and update them if needed so Cursor applies the right rules.
+
+## Repo Discovery
+
+- Explore the repo structure before (or while) planning a milestone so task prompts reference the correct files and patterns.
