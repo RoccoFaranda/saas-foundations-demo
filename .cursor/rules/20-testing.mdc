@@ -47,6 +47,7 @@ These flows must be covered by Playwright E2E tests and should not regress:
 - Mock external services (Stripe, email, etc.)
 - Keep tests fast and independent
 - Clean up test data after each test
+- Avoid asserting exact punctuation/symbols in UI strings (e.g., arrow characters); prefer stable substrings or semantics.
 
 ## Post-change Checks (Run After Modifications)
 - Always: `pnpm format:check`, `pnpm lint`
