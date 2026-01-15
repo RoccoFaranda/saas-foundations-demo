@@ -39,10 +39,6 @@ After completion, provide:
 2. **Commands run + results**: Output from lint, typecheck, and test commands
 3. **Manual test notes**: Steps to manually verify the changes work as expected
 
-## Operator Note (do not paste into Cursor)
-
-At the end of the prompt, add a one-line **model recommendation** (Auto or a specific model) with a brief reason.
-
 ## Example Usage
 
 ### Objective
