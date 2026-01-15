@@ -46,3 +46,15 @@ These flows must be covered by Playwright E2E tests and should not regress:
 - Mock external services (Stripe, email, etc.)
 - Keep tests fast and independent
 - Clean up test data after each test
+
+## Post-change Checks (Run After Modifications)
+- Always: `pnpm format:check`, `pnpm lint`
+- If TS/logic changes: `pnpm typecheck`
+- If behavior changes: `pnpm test`
+- If user flows changed: `pnpm test:e2e`
+- If you skip any, say why.
+
+## Playwright MCP Usage
+- If the task changes UI or user flows, use Playwright MCP to validate key interactions and DOM state.
+- If MCP is unavailable, state that and fall back to running tests or manual verification steps.
+- Limit to 1–2 verify loops.

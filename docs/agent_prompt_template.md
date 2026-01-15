@@ -31,22 +31,6 @@ Use this template when requesting AI agent assistance for feature development or
 - [ ] Integration test: `__tests__/api/route-name.test.ts` - Test API endpoint
 - [ ] E2E test: `e2e/feature-name.spec.ts` - Test user flow (if applicable)
 
-## Commands to Run
-
-```bash
-# Linting
-pnpm lint
-
-# Type checking
-pnpm typecheck  # or tsc --noEmit
-
-# Tests
-pnpm test
-
-# E2E tests (if applicable)
-pnpm test:e2e
-```
-
 ## Output Format
 
 After completion, provide:
@@ -54,6 +38,10 @@ After completion, provide:
 1. **Files changed**: List of all files created/modified
 2. **Commands run + results**: Output from lint, typecheck, and test commands
 3. **Manual test notes**: Steps to manually verify the changes work as expected
+
+## Operator Note (do not paste into Cursor)
+
+At the end of the prompt, add a one-line **model recommendation** (Auto or a specific model) with a brief reason.
 
 ## Example Usage
 
@@ -85,12 +73,3 @@ Add a "Delete Item" button to the dashboard that removes items from the list.
 - [ ] Unit test: `__tests__/item-service.test.ts` - Test delete method
 - [ ] Integration test: `__tests__/api/items.test.ts` - Test DELETE endpoint
 - [ ] E2E test: `e2e/dashboard.spec.ts` - Test delete flow
-
-### Commands to Run
-
-```bash
-pnpm lint
-pnpm typecheck
-pnpm test
-pnpm test:e2e
-```
