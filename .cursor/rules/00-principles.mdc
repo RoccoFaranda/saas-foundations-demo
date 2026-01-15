@@ -26,6 +26,28 @@ Use structured logging with sanitization for any user-generated or external data
 - **Tests-first/alongside**: Add or update tests when changing behavior
 - **Type safety**: Keep TypeScript strict; use explicit types at boundaries
 
+## Testing & Verification (Always)
+- Post-change checks:
+  - Always: `pnpm format:check`, `pnpm lint`
+  - If TS/logic changes: `pnpm typecheck`
+  - If behavior changes: `pnpm test`
+  - If user flows changed: `pnpm test:e2e`
+  - If you skip any, say why.
+- Playwright MCP usage:
+  - If the task changes UI or user flows, use Playwright MCP to validate key interactions and DOM state.
+  - If MCP is unavailable, state that and fall back to running tests or manual verification steps.
+  - Limit to 1-2 verify loops.
+
+## Decision Logging (Always)
+- When finishing a task, explicitly call out any important decisions in the summary.
+- Important decisions include:
+  - Changing approach due to lint/test failures or performance concerns
+  - Swapping an implementation pattern (e.g., effect-based state sync -> event handlers)
+  - Skipping or deferring a requirement and why
+  - Choosing between multiple reasonable options (and why one was selected)
+  - Deviations from the prompt or repo conventions
+- Add a short **Decisions** section in the final response when any of the above happened.
+
 ## Next.js Server/Client Boundary Guidance
 - Understand and respect the server/client component boundary
 - Server Components are the default; use "use client" only when necessary
