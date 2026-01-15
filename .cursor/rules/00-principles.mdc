@@ -26,6 +26,9 @@ Use structured logging with sanitization for any user-generated or external data
 - **Tests-first/alongside**: Add or update tests when changing behavior
 - **Type safety**: Keep TypeScript strict; use explicit types at boundaries
 
+## Framework-Idiomatic Patterns
+- Prefer idiomatic patterns of the primary framework/library in use (e.g., React controlled inputs + custom validation) unless the prompt explicitly requests native browser behavior.
+
 ## Testing & Verification (Always)
 - Post-change checks:
   - Always: `pnpm format:check`, `pnpm lint`
