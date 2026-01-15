@@ -20,3 +20,7 @@ This file defines how Codex should operate in this repo.
 - Keep tasks small enough for a single Cursor run.
 - Include objectives, acceptance criteria, explicit non-goals, focused files, tests, and commands.
 - Avoid refactors unless required by the milestone.
+
+## Encoding / Mojibake Note
+
+- If CLI output shows garbled punctuation (mojibake) but the editor and browser render correctly, treat it as a terminal encoding artifact and do not flag it as a product issue.
