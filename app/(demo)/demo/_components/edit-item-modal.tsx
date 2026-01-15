@@ -14,6 +14,9 @@ const statusOptions: DemoItemStatus[] = ["active", "pending", "completed", "arch
 const tagOptions: DemoItemTag[] = ["feature", "bugfix", "docs", "infra", "design"];
 
 export function EditItemModal({ item, isOpen, onSave, onCancel }: EditItemModalProps) {
+  // Track if mousedown started on backdrop (for proper click-to-close behavior)
+  const mouseDownOnBackdrop = useRef(false);
+
   // Only render when open and item exists
   if (!isOpen || !item) return null;
 
@@ -21,8 +24,16 @@ export function EditItemModal({ item, isOpen, onSave, onCancel }: EditItemModalP
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       data-testid="edit-modal-backdrop"
+      onMouseDown={(e) => {
+        // Only set true if mousedown is directly on backdrop, not on modal content
+        mouseDownOnBackdrop.current = e.target === e.currentTarget;
+      }}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onCancel();
+        // Only close if both mousedown and mouseup (click) happened on backdrop
+        if (e.target === e.currentTarget && mouseDownOnBackdrop.current) {
+          onCancel();
+        }
+        mouseDownOnBackdrop.current = false;
       }}
     >
       {/* Inner form component - remounts when item changes, initializing state from props */}
