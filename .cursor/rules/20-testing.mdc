@@ -26,7 +26,7 @@ These flows must be covered by Playwright E2E tests and should not regress:
 - Theme preference persists across refreshes (localStorage)
 
 ### 2. Authentication Flow
-- Signup → verify email → login → dashboard
+- Signup -> verify email -> login -> dashboard
 - All steps must work end-to-end
 - Error states handled gracefully
 
@@ -57,4 +57,5 @@ These flows must be covered by Playwright E2E tests and should not regress:
 ## Playwright MCP Usage
 - If the task changes UI or user flows, use Playwright MCP to validate key interactions and DOM state.
 - If MCP is unavailable, state that and fall back to running tests or manual verification steps.
-- Limit to 1–2 verify loops.
+- Limit to 1-2 verify loops.
+
