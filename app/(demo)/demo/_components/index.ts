@@ -5,3 +5,4 @@ export { GuestModeBanner } from "./guest-mode-banner";
 export { TableFilters } from "./table-filters";
 export { TablePagination } from "./table-pagination";
 export { TableSkeleton } from "./table-skeleton";
+export { EditItemModal } from "./edit-item-modal";

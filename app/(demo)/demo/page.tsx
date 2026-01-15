@@ -7,10 +7,14 @@ import {
   filterItems,
   sortItems,
   paginateItems,
+  cloneItems,
+  describeChanges,
+  type DemoItem,
   type DemoItemStatus,
   type DemoItemTag,
   type SortField,
   type SortDirection,
+  type ActivityEntry,
 } from "./demo-items";
 import {
   KpiCard,
@@ -20,6 +24,7 @@ import {
   TableFilters,
   TablePagination,
   TableSkeleton,
+  EditItemModal,
 } from "./_components";
 
 const PAGE_SIZE = 5;
@@ -27,6 +32,14 @@ const PAGE_SIZE = 5;
 export default function DemoPage() {
   // Loading state (simulated)
   const [isLoading, setIsLoading] = useState(true);
+
+  // Local mutable data (resets on refresh)
+  const [items, setItems] = useState<DemoItem[]>(() => cloneItems(demoItems));
+  const [activities, setActivities] = useState<ActivityEntry[]>([]);
+
+  // Edit modal state
+  const [editingItem, setEditingItem] = useState<DemoItem | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Filter state
   const [search, setSearch] = useState("");
@@ -70,18 +83,55 @@ export default function DemoPage() {
     setCurrentPage(1);
   }, []);
 
-  // Compute filtered & sorted data
+  // Edit handlers
+  const handleEditClick = useCallback((item: DemoItem) => {
+    setEditingItem(item);
+    setIsModalOpen(true);
+  }, []);
+
+  const handleEditCancel = useCallback(() => {
+    setIsModalOpen(false);
+    setEditingItem(null);
+  }, []);
+
+  const handleEditSave = useCallback(
+    (updatedItem: DemoItem) => {
+      const oldItem = items.find((i) => i.id === updatedItem.id);
+      if (!oldItem) return;
+
+      // Update items
+      setItems((prev) => prev.map((item) => (item.id === updatedItem.id ? updatedItem : item)));
+
+      // Generate activity entry
+      const changeDesc = describeChanges(oldItem, updatedItem);
+      if (changeDesc) {
+        const newActivity: ActivityEntry = {
+          id: `activity-${Date.now()}`,
+          message: `Updated "${updatedItem.name}" (${changeDesc})`,
+          timestamp: new Date().toISOString(),
+        };
+        setActivities((prev) => [newActivity, ...prev]);
+      }
+
+      // Close modal
+      setIsModalOpen(false);
+      setEditingItem(null);
+    },
+    [items]
+  );
+
+  // Compute filtered & sorted data from local items
   const filteredItems = useMemo(() => {
-    const filtered = filterItems(demoItems, {
+    const filtered = filterItems(items, {
       search,
       status: statusFilter,
       tag: tagFilter,
     });
     return sortItems(filtered, { field: sortField, direction: sortDirection });
-  }, [search, statusFilter, tagFilter, sortField, sortDirection]);
+  }, [items, search, statusFilter, tagFilter, sortField, sortDirection]);
 
-  // KPIs computed from full dataset
-  const kpis = useMemo(() => getDemoKpis(demoItems), []);
+  // KPIs computed from full local dataset
+  const kpis = useMemo(() => getDemoKpis(items), [items]);
 
   // Clamp page to avoid out-of-range when filters change outside handlers
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
@@ -94,7 +144,7 @@ export default function DemoPage() {
   );
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-8">
+    <div className="mx-auto w-full max-w-6xl px-4 py-8" data-testid="demo-page">
       {/* Page Header with Guest Mode Banner */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -106,7 +156,7 @@ export default function DemoPage() {
         <GuestModeBanner />
       </div>
 
-      {/* KPI Cards - computed from full dataset */}
+      {/* KPI Cards - computed from full local dataset */}
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard
           label="Total Projects"
@@ -151,6 +201,7 @@ export default function DemoPage() {
                 <ItemsTable
                   items={paginatedItems}
                   emptyMessage="No projects match your filters. Try adjusting your search or filters."
+                  onEdit={handleEditClick}
                 />
               )}
             </div>
@@ -169,7 +220,7 @@ export default function DemoPage() {
 
         {/* Side Panel - Activity & Quick Actions */}
         <div className="space-y-6">
-          <ActivityFeed />
+          <ActivityFeed activities={activities} />
 
           {/* Quick Actions Panel */}
           <div className="rounded-lg border border-foreground/10 bg-background">
@@ -184,6 +235,14 @@ export default function DemoPage() {
           </div>
         </div>
       </div>
+
+      {/* Edit Modal */}
+      <EditItemModal
+        item={editingItem}
+        isOpen={isModalOpen}
+        onSave={handleEditSave}
+        onCancel={handleEditCancel}
+      />
     </div>
   );
 }

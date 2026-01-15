@@ -216,3 +216,39 @@ export const sortOptions: Array<{
   { value: "name-asc", label: "Name A-Z", field: "name", direction: "asc" },
   { value: "name-desc", label: "Name Z-A", field: "name", direction: "desc" },
 ];
+
+/** Activity entry for the activity feed */
+export interface ActivityEntry {
+  id: string;
+  message: string;
+  timestamp: string;
+}
+
+/** Deep clone items array for local state initialization */
+export function cloneItems(items: DemoItem[]): DemoItem[] {
+  return items.map((item) => ({ ...item }));
+}
+
+/** Generate a change description for the activity feed */
+export function describeChanges(oldItem: DemoItem, newItem: DemoItem): string | null {
+  const changes: string[] = [];
+
+  if (oldItem.status !== newItem.status) {
+    changes.push(`status: ${oldItem.status} → ${newItem.status}`);
+  }
+  if (oldItem.tag !== newItem.tag) {
+    changes.push(`tag: ${oldItem.tag} → ${newItem.tag}`);
+  }
+  if (oldItem.metric !== newItem.metric) {
+    changes.push(`progress: ${oldItem.metric}% → ${newItem.metric}%`);
+  }
+  if (oldItem.name !== newItem.name) {
+    changes.push(`renamed`);
+  }
+  if (oldItem.summary !== newItem.summary) {
+    changes.push(`summary updated`);
+  }
+
+  if (changes.length === 0) return null;
+  return changes.join(", ");
+}

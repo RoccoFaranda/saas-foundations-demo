@@ -3,6 +3,7 @@ import type { DemoItem, DemoItemStatus, DemoItemTag } from "../demo-items";
 interface ItemsTableProps {
   items: DemoItem[];
   emptyMessage?: string;
+  onEdit?: (item: DemoItem) => void;
 }
 
 const statusColors: Record<DemoItemStatus, string> = {
@@ -28,17 +29,20 @@ function formatDate(isoString: string): string {
   });
 }
 
-export function ItemsTable({ items, emptyMessage = "No items found" }: ItemsTableProps) {
+export function ItemsTable({ items, emptyMessage = "No items found", onEdit }: ItemsTableProps) {
   if (items.length === 0) {
     return (
-      <div className="flex h-40 items-center justify-center text-sm text-foreground/40">
+      <div
+        className="flex h-40 items-center justify-center text-sm text-foreground/40"
+        data-testid="items-table-empty"
+      >
         {emptyMessage}
       </div>
     );
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto" data-testid="items-table">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-foreground/10 text-left text-foreground/60">
@@ -47,11 +51,16 @@ export function ItemsTable({ items, emptyMessage = "No items found" }: ItemsTabl
             <th className="pb-3 pr-4 font-medium">Tag</th>
             <th className="pb-3 pr-4 font-medium">Progress</th>
             <th className="pb-3 pr-4 font-medium">Updated</th>
+            {onEdit && <th className="pb-3 pr-4 font-medium">Actions</th>}
           </tr>
         </thead>
         <tbody>
           {items.map((item) => (
-            <tr key={item.id} className="border-b border-foreground/5 last:border-0">
+            <tr
+              key={item.id}
+              className="border-b border-foreground/5 last:border-0"
+              data-testid={`table-row-${item.id}`}
+            >
               <td className="py-3 pr-4">
                 <div>
                   <p className="font-medium">{item.name}</p>
@@ -84,6 +93,18 @@ export function ItemsTable({ items, emptyMessage = "No items found" }: ItemsTabl
                 </div>
               </td>
               <td className="py-3 pr-4 text-foreground/60">{formatDate(item.updatedAt)}</td>
+              {onEdit && (
+                <td className="py-3 pr-4">
+                  <button
+                    type="button"
+                    onClick={() => onEdit(item)}
+                    className="rounded-md px-2 py-1 text-xs font-medium text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                    data-testid={`edit-btn-${item.id}`}
+                  >
+                    Edit
+                  </button>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
