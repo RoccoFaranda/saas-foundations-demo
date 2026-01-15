@@ -1,5 +1,6 @@
 ---
 description: USE WHEN touching billing/Stripe/webhooks. Enforce idempotency + no-secret logging.
+globs: app/**/billing/**,app/**/stripe/**,app/**/webhook/**,app/**/webhooks/**,app/api/**/stripe/**,app/api/**/webhook/**,app/api/**/webhooks/**,lib/**/billing/**,lib/**/stripe/**
 alwaysApply: false
 ---
 

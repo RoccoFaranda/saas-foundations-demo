@@ -1,5 +1,6 @@
 ---
 description: USE WHEN adding/changing behavior. Ensure tests match MVP locked requirements.
+globs: e2e/**,**/*.spec.ts,**/*.spec.tsx,**/*.test.ts,**/*.test.tsx,test-utils/**
 alwaysApply: false
 ---
 
@@ -58,4 +59,3 @@ These flows must be covered by Playwright E2E tests and should not regress:
 - If the task changes UI or user flows, use Playwright MCP to validate key interactions and DOM state.
 - If MCP is unavailable, state that and fall back to running tests or manual verification steps.
 - Limit to 1-2 verify loops.
-

@@ -1,5 +1,6 @@
 ---
 description: USE WHEN working on guest mode/dashboard CRUD-like UX. Prevent any DB writes.
+globs: app/(demo)/**,app/**/demo/**,e2e/**/demo*.spec.ts,e2e/**/demo*.spec.tsx
 alwaysApply: false
 ---
 
