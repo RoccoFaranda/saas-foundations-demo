@@ -6,6 +6,7 @@ A Next.js App Router demo application showcasing SaaS foundations and best pract
 
 - Node.js (see `.nvmrc` for version)
 - pnpm
+- Docker and Docker Compose (for local Postgres database)
 
 ## Getting Started
 
@@ -13,11 +14,19 @@ A Next.js App Router demo application showcasing SaaS foundations and best pract
 # Install dependencies
 pnpm install
 
+# Start Postgres database (required for app and integration tests)
+docker compose up -d
+
+# Copy environment variables
+cp .env.example .env.local
+
 # Start development server
 pnpm dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+For detailed database setup instructions, see [Architecture Documentation](./docs/architecture.md#local-development-setup).
 
 ## Available Scripts
 

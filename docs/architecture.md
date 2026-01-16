@@ -142,6 +142,90 @@ Baseline security posture for this public demo:
 
 ---
 
+## Local Development Setup
+
+### Database (Postgres)
+
+The application uses Postgres via Docker Compose for local development.
+
+**Start Postgres:**
+
+```bash
+docker compose up -d
+```
+
+This starts a Postgres 16 container with:
+
+- Database: `saas_foundations_dev`
+- User: `postgres`
+- Password: `postgres`
+- Port: `5432`
+- Named volume: `postgres_data` (persists data across container restarts)
+
+**Check Postgres status:**
+
+```bash
+docker compose ps
+```
+
+**Stop Postgres:**
+
+```bash
+docker compose down
+```
+
+**Stop and remove data:**
+
+```bash
+docker compose down -v
+```
+
+### Environment Variables
+
+Copy `.env.example` to `.env.local` and update as needed:
+
+```bash
+cp .env.example .env.local
+```
+
+The `DATABASE_URL` in `.env.example` is configured for the local Docker Postgres instance.
+
+### Database Migrations
+
+Once Prisma is set up, run migrations with:
+
+```bash
+# Placeholder: pnpm prisma migrate dev
+```
+
+### Database Seeding
+
+Once seed scripts are added, run with:
+
+```bash
+# Placeholder: pnpm prisma db seed
+```
+
+### Running Tests
+
+**Unit/Integration Tests:**
+
+Integration tests that require database access will use the local Postgres instance. Ensure Postgres is running before running tests:
+
+```bash
+# Start Postgres if not already running
+docker compose up -d
+
+# Run tests
+pnpm test
+```
+
+**E2E Tests:**
+
+E2E tests (Playwright) do not require database access and can run independently.
+
+---
+
 ## Deployment
 
 Target deployment shape (MVP):
