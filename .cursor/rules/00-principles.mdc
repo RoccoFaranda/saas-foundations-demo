@@ -26,6 +26,12 @@ Use structured logging with sanitization for any user-generated or external data
 - **Tests-first/alongside**: Add or update tests when changing behavior
 - **Type safety**: Keep TypeScript strict; use explicit types at boundaries
 
+## Dependency Currency (Always)
+- Follow the prompt’s package/version guidance when it is explicit and current.
+- If the prompt lacks specific versions or setup details, verify the **latest stable version** and **recommended setup** using official sources (docs, release notes, changelogs).
+- Call out breaking changes or new configuration requirements in your response.
+- Do not suggest downgrades unless there is a documented compatibility issue; explain why.
+
 ## Framework-Idiomatic Patterns
 - Prefer idiomatic patterns of the primary framework/library in use (e.g., React controlled inputs + custom validation) unless the prompt explicitly requests native browser behavior.
 

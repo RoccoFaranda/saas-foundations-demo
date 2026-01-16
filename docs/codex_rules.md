@@ -21,6 +21,12 @@ This file defines how Codex should operate in this repo.
 - Include objectives, acceptance criteria, explicit non-goals, focused files, tests, and commands.
 - Avoid refactors unless required by the milestone.
 
+## Dependency Currency (Always)
+
+- When planning to add or upgrade packages, verify the **latest stable version** and the **recommended setup** for that version using web research.
+- Prefer official sources (package docs, release notes, changelogs) and note any breaking changes or new configuration requirements in the prompt.
+- Do not suggest downgrades unless there is a documented compatibility issue; call out the reason explicitly.
+
 ## Encoding / Mojibake Note
 
 - If CLI output shows garbled punctuation (mojibake) but the editor and browser render correctly, treat it as a terminal encoding artifact and do not flag it as a product issue.
