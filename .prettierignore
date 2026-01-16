@@ -21,3 +21,4 @@ next-env.d.ts
 # Lock files
 pnpm-lock.yaml
 
+src/generated/**
