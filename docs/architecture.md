@@ -20,6 +20,7 @@ High-level components:
 - **Database:** Postgres via Prisma (users, items, tokens, logs, billing state)
 - **External Services:**
   - transactional email provider (verification, reset, change email)
+  - rate limiting store (Redis)
   - Stripe (test mode billing + webhooks)
   - bot protection provider
 
@@ -31,9 +32,11 @@ High-level components:
 - **Language:** TypeScript
 - **Styling:** Tailwind CSS (and a small component library if used)
 - **Database:** Postgres + Prisma (migrations)
-- **Auth:** Email + password + verification + account lifecycle flows
+- **Auth:** Auth.js (NextAuth) with Credentials + email verification + account lifecycle flows
+- **Password Hashing:** Argon2id
 - **Billing:** Stripe (test mode only)
-- **Bot Protection:** enabled at least on signup
+- **Rate Limiting:** Redis-backed (Upstash)
+- **Bot Protection:** Cloudflare Turnstile (signup at minimum)
 - **Testing:** Vitest (unit/integration), Playwright (E2E)
 - **Package Manager:** pnpm
 
@@ -71,6 +74,7 @@ Intended structure (may evolve slightly as features land):
 ### Authenticated mode (per-user)
 
 - The current user is derived from the session.
+- Sessions use Auth.js database-backed strategy for server-side revocation.
 - All business data access is scoped to the user:
   - queries always include `WHERE userId = session.userId`.
 - Mutations follow a standard pattern:
@@ -95,8 +99,13 @@ Used for:
 Demo-safe behavior:
 
 - Local/dev can use a console or dev mailbox adapter.
-- Production uses a transactional provider with domain authentication.
+- Production uses a transactional provider with domain authentication (Resend).
 - Never log tokens or full email links.
+
+### Rate limiting (Redis)
+
+- Backed by Redis (Upstash) for shared limits across instances.
+- Used on auth endpoints and billing endpoints to mitigate abuse.
 
 ### Stripe (test mode only)
 
@@ -111,7 +120,7 @@ Demo-safe behavior:
 
 ### Bot protection
 
-- Enabled at minimum on signup.
+- Enabled at minimum on signup (Cloudflare Turnstile).
 - Used alongside rate limiting to protect auth and billing surfaces and keep costs predictable.
 
 ---
@@ -122,10 +131,11 @@ Baseline security posture for this public demo:
 
 - **Passwords**
   - stored only as strong hashes (never plaintext)
+  - Argon2id is the password hashing algorithm
   - never logged
 - **Tokens**
   - verification/reset/email-change tokens are short-lived and single-use
-  - tokens should be stored hashed server-side where possible
+  - tokens are stored as HMAC-SHA-256 hashes with a server-side secret
 - **Rate limiting**
   - applied to signup/login/reset/resend verification/billing endpoints
   - consider per-IP + per-user + global caps
@@ -239,8 +249,11 @@ E2E tests (Playwright) do not require database access and can run independently.
 
 Target deployment shape (MVP):
 
-- host: Vercel (or equivalent Next.js hosting)
-- DB: hosted Postgres (e.g. Neon/Supabase DB/Railway)
+- host: Vercel (Hobby)
+- DB: Neon Postgres (via Vercel Marketplace)
+- rate limiting: Upstash Redis (free tier)
+- email: Resend (free tier)
+- bot protection: Cloudflare Turnstile (free tier)
 - secrets: environment variables only (never committed)
 - provide `.env.example` listing required environment variables
 - provide `/api/health` for a basic health check (and to expose flags like billing enabled)

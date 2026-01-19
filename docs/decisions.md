@@ -166,3 +166,112 @@ Use this structure for new ADRs:
   - Requires Docker for local DB and a CI database bootstrap step.
   - Migrations and seeds are standardized via `pnpm db:migrate` and `pnpm db:seed`.
   - Tests can run against isolated data with predictable cleanup.
+
+---
+
+## ADR-012: Use Auth.js (NextAuth) for authentication
+
+- **Status:** Accepted
+- **Context:** We need a production-grade auth framework that fits Next.js App Router and supports email/password credentials with verification and account flows.
+- **Decision:** Use **Auth.js (NextAuth)** with a Credentials-based flow for email/password, plus custom verification and reset flows.
+- **Consequences:**
+  - Aligns with common Next.js ecosystem patterns and docs.
+  - Requires Auth.js configuration and adapter integration for persistence.
+  - Credentials flow remains custom for verification gating and lifecycle flows.
+  - Session strategy is documented separately in ADR-013.
+
+---
+
+## ADR-013: Use Auth.js database sessions via Prisma adapter
+
+- **Status:** Accepted
+- **Context:** We need immediate session invalidation for password reset/change, and a professional demo should model real-world revocation patterns.
+- **Decision:** Use **database-backed sessions** with the Prisma adapter. Session cookies store only a session token; session state is in the database.
+- **Consequences:**
+  - Enables server-side session revocation (e.g., after password reset).
+  - Adds database tables for sessions/accounts required by Auth.js.
+  - Introduces DB lookups for session validation.
+
+---
+
+## ADR-014: Password hashing uses Argon2id
+
+- **Status:** Accepted
+- **Context:** We need a modern, secure password hashing algorithm.
+- **Decision:** Use **Argon2id** for password hashing and verification.
+- **Consequences:**
+  - Stronger resistance to GPU/ASIC attacks than legacy hashes.
+  - Adds a native dependency and build considerations for CI.
+  - Passwords are stored only as Argon2id hashes (never plaintext).
+
+---
+
+## ADR-015: Token storage uses HMAC-SHA-256
+
+- **Status:** Accepted
+- **Context:** Email verification, password reset, and email change tokens must be short-lived, single-use, and protected if the database is leaked.
+- **Decision:** Store tokens as **HMAC-SHA-256** hashes using a server-side secret "pepper".
+- **Consequences:**
+  - Prevents raw token disclosure from DB leaks.
+  - Requires secure management of a token-hash secret.
+
+---
+
+## ADR-016: Rate limiting uses Upstash Redis
+
+- **Status:** Accepted
+- **Context:** Auth endpoints need production-style rate limiting and abuse protection across serverless instances.
+- **Decision:** Use **Upstash Redis** for rate limiting, with a lightweight in-memory fallback for local dev if needed.
+- **Consequences:**
+  - Requires Upstash credentials in production-like environments.
+  - Enables consistent limits across multiple instances.
+
+---
+
+## ADR-017: Bot protection via Cloudflare Turnstile
+
+- **Status:** Accepted
+- **Context:** Signup needs bot protection with minimal user friction and privacy-friendly UX.
+- **Decision:** Use **Cloudflare Turnstile** for bot mitigation on signup.
+- **Consequences:**
+  - Requires Turnstile site/secret keys.
+  - Adds a frontend widget and server-side verification step.
+
+---
+
+## ADR-018: Email provider uses Resend with dev/test adapters
+
+- **Status:** Accepted
+- **Context:** We need a production-grade transactional email provider and safe dev/test behavior.
+- **Decision:** Use **Resend** for production email delivery, and implement **dev/test adapters** that never log raw tokens or full links.
+- **Consequences:**
+  - Requires Resend API keys in production-like environments.
+  - Enables safe local testing without real email delivery.
+
+---
+
+## ADR-019: Use Server Actions for auth form handling
+
+- **Status:** Accepted
+- **Context:** The app uses Next.js App Router and benefits from server-side mutations co-located with UI.
+- **Decision:** Use **Server Actions** for auth form submissions and account mutation flows, with route handlers only where necessary.
+- **Consequences:**
+  - Simplifies request handling and reduces API boilerplate.
+  - Requires careful server/client boundary discipline.
+
+---
+
+## ADR-020: Use a free-tier friendly demo hosting stack
+
+- **Status:** Accepted
+- **Context:** This is a low-traffic demo app, so we want a professional hosting stack that stays within free tiers and minimizes ops overhead.
+- **Decision:** Use the following stack:
+  - **Hosting:** Vercel Hobby
+  - **Database:** Neon Postgres (via Vercel Marketplace)
+  - **Rate limiting:** Upstash Redis (free tier)
+  - **Email:** Resend (free tier)
+  - **Bot protection:** Cloudflare Turnstile (free tier)
+- **Consequences:**
+  - Minimizes hosting costs for a low-traffic demo.
+  - Requires provider-specific environment variables for integrations.
+  - Encourages rate limiting and bot protection to avoid abuse-related usage spikes.
