@@ -150,3 +150,19 @@ Use this structure for new ADRs:
   - Slightly longer CI runs.
   - Higher confidence in changes and cleaner contributions.
   - E2E strategy can evolve as the project stabilizes.
+
+---
+
+## ADR-011: Postgres + Prisma 7 with config-based datasource and test DB strategy
+
+- **Status:** Accepted
+- **Context:** The app needs real persistence for authenticated data and safe, repeatable local/CI workflows. Prisma 7 introduces config-based datasource URLs that must live outside the schema file.
+- **Decision:**
+  - Use **Postgres + Prisma 7** for the database layer.
+  - Keep datasource configuration in `prisma.config.ts` (not `schema.prisma`) per Prisma 7 requirements.
+  - Generate Prisma Client into `src/generated/prisma` and keep it out of git.
+  - Use **local Postgres via Docker Compose** for development and a **separate CI test database** in GitHub Actions.
+- **Consequences:**
+  - Requires Docker for local DB and a CI database bootstrap step.
+  - Migrations and seeds are standardized via `pnpm db:migrate` and `pnpm db:seed`.
+  - Tests can run against isolated data with predictable cleanup.

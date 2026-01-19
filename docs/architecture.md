@@ -195,7 +195,7 @@ The `DATABASE_URL` in `.env.example` is configured for the local Docker Postgres
 Once Prisma is set up, run migrations with:
 
 ```bash
-# Placeholder: pnpm prisma migrate dev
+pnpm db:migrate
 ```
 
 ### Database Seeding
@@ -203,7 +203,7 @@ Once Prisma is set up, run migrations with:
 Once seed scripts are added, run with:
 
 ```bash
-# Placeholder: pnpm prisma db seed
+pnpm db:seed
 ```
 
 ### Running Tests
