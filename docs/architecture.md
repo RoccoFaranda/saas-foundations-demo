@@ -216,9 +216,18 @@ Integration tests that require database access will use the local Postgres insta
 # Start Postgres if not already running
 docker compose up -d
 
+# Ensure migrations are applied
+pnpm db:migrate
+
 # Run tests
 pnpm test
 ```
+
+**Test Database Assumptions:**
+
+- **Local Development**: Tests use the same database as development (`saas_foundations_dev`) with test user IDs (`items_test_user_001`, `items_test_user_002`, `activity_test_user_001`, `activity_test_user_002`) that are cleaned up between test runs.
+- **CI**: Tests use a separate test database (`saas_foundations_test`) provisioned by GitHub Actions. The CI workflow runs migrations before tests.
+- **Data Cleanup**: Integration tests in `src/lib/__tests__/` automatically clean up test data (items, activity logs, and test users) before each test run to ensure isolation.
 
 **E2E Tests:**
 

@@ -28,6 +28,19 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Set up Postgres
+        uses: ankane/setup-postgres@v1
+        with:
+          postgres-version: 16
+          database: saas_foundations_test
+
+      - name: Run database migrations
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/saas_foundations_test?schema=public
+        run: |
+          pnpm db:generate
+          pnpm prisma migrate deploy
+
       - name: Check formatting
         run: pnpm format:check
 
@@ -38,6 +51,8 @@ jobs:
         run: pnpm typecheck
 
       - name: Run tests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/saas_foundations_test?schema=public
         run: pnpm test
 
       - name: Build
