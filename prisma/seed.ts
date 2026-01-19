@@ -41,7 +41,7 @@ async function main() {
     },
   });
 
-  console.log(`Seeded demo user: ${demoUser.email}`);
+  console.log(`Seeded demo user id: ${demoUser.id}`);
 
   // Seed items with varied status/tag/summary/metricValue
   const items = [

@@ -1,16 +1,11 @@
 // @vitest-environment node
 import "dotenv/config";
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterAll } from "vitest";
 import { createActivityLog, listActivityLogs } from "../activity-log";
 import prisma from "../db";
 import { vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
-
-if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL =
-    "postgresql://postgres:postgres@localhost:5432/saas_foundations_dev?schema=public";
-}
 
 // Test user IDs for isolation
 const TEST_USER_1 = "activity_test_user_001";
@@ -53,6 +48,10 @@ describe("ActivityLog data layer", () => {
         },
       ],
     });
+  });
+
+  afterAll(async () => {
+    await prisma.$disconnect();
   });
 
   describe("createActivityLog", () => {

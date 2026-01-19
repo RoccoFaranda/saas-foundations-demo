@@ -14,7 +14,12 @@ declare global {
 }
 
 // Create a pg Pool for the adapter
-const pool = globalThis.__prismaPool ?? new Pool({ connectionString });
+const pool =
+  globalThis.__prismaPool ??
+  new Pool({
+    connectionString,
+    allowExitOnIdle: process.env.NODE_ENV !== "production",
+  });
 const adapter = new PrismaPg(pool);
 
 // PrismaClient instance with adapter
