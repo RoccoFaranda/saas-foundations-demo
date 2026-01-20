@@ -74,7 +74,8 @@ Intended structure (may evolve slightly as features land):
 ### Authenticated mode (per-user)
 
 - The current user is derived from the session.
-- Sessions use Auth.js database-backed strategy for server-side revocation.
+- Sessions use Auth.js JWT strategy (credentials-compatible).
+- `/app/*` routes are protected by `middleware.ts` (auth + email verification).
 - All business data access is scoped to the user:
   - queries always include `WHERE userId = session.userId`.
 - Mutations follow a standard pattern:

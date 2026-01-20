@@ -30,3 +30,9 @@ export {
   type EmailMessage,
   type EmailAdapter,
 } from "./email";
+
+// Password utilities
+export { hashPassword, verifyPassword } from "./password";
+
+// Auth actions
+export { signup, login, type AuthActionResult } from "./actions";

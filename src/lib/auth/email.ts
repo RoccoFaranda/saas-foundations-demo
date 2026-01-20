@@ -17,7 +17,6 @@ export interface EmailAdapter {
 export const devEmailAdapter: EmailAdapter = {
   async send(message: EmailMessage) {
     console.log("[EMAIL DEV] Sending email:", {
-      to: message.to,
       subject: message.subject,
     });
   },

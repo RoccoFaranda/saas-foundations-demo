@@ -1,17 +1,17 @@
 import "server-only";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "../db";
+import { verifyPassword } from "./password";
+import { loginSchema } from "../validation/auth";
 
 /**
- * Auth.js configuration with Credentials provider and Prisma adapter
- * Session strategy is "database" per ADR-013
+ * Auth.js configuration with Credentials provider
+ * Session strategy is "jwt" per ADR-013
  */
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(prisma),
   session: {
-    strategy: "database",
+    strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
     updateAge: 24 * 60 * 60, // 24 hours
   },
@@ -22,16 +22,44 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(_credentials) {
-        void _credentials;
-        // Authorization logic will be implemented in auth pages task
-        // This is a placeholder that returns null (no auth yet)
-        // The actual implementation will:
-        // 1. Validate credentials exist
-        // 2. Find user by email
-        // 3. Verify password with Argon2id
-        // 4. Return user object or null
-        return null;
+      async authorize(credentials) {
+        // Validate credentials exist and have correct shape
+        const parsed = loginSchema.safeParse(credentials);
+        if (!parsed.success) {
+          return null;
+        }
+
+        const { email, password } = parsed.data;
+
+        // Find user by email
+        const user = await prisma.user.findUnique({
+          where: { email },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            passwordHash: true,
+            emailVerified: true,
+          },
+        });
+
+        if (!user) {
+          return null;
+        }
+
+        // Verify password with Argon2id
+        const isValid = await verifyPassword(password, user.passwordHash);
+        if (!isValid) {
+          return null;
+        }
+
+        // Return user object (without passwordHash)
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          emailVerified: user.emailVerified,
+        };
       },
     }),
   ],
@@ -41,11 +69,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     error: "/login",
   },
   callbacks: {
-    async session({ session, user }) {
-      // Add user ID and verification status to session
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.emailVerified = user.emailVerified ?? null;
+      }
+      return token;
+    },
+    async session({ session, token }) {
       if (session.user) {
-        session.user.id = user.id;
-        session.user.emailVerified = user.emailVerified ?? null;
+        session.user.id = token.id ?? token.sub ?? "";
+        session.user.emailVerified =
+          typeof token.emailVerified === "string"
+            ? new Date(token.emailVerified)
+            : (token.emailVerified ?? null);
       }
       return session;
     },

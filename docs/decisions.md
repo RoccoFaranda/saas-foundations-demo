@@ -176,21 +176,22 @@ Use this structure for new ADRs:
 - **Decision:** Use **Auth.js (NextAuth)** with a Credentials-based flow for email/password, plus custom verification and reset flows.
 - **Consequences:**
   - Aligns with common Next.js ecosystem patterns and docs.
-  - Requires Auth.js configuration and adapter integration for persistence.
+  - Requires Auth.js configuration suitable for credentials + JWT sessions.
   - Credentials flow remains custom for verification gating and lifecycle flows.
   - Session strategy is documented separately in ADR-013.
 
 ---
 
-## ADR-013: Use Auth.js database sessions via Prisma adapter
+## ADR-013: Use Auth.js JWT sessions (Credentials-compatible)
 
 - **Status:** Accepted
-- **Context:** We need immediate session invalidation for password reset/change, and a professional demo should model real-world revocation patterns.
-- **Decision:** Use **database-backed sessions** with the Prisma adapter. Session cookies store only a session token; session state is in the database.
+- **Context:** Credentials-based login does not support Auth.js database sessions. We need a strategy that works with email/password while keeping auth data lightweight.
+- **Decision:** Use **JWT sessions** with Auth.js for credentials login. JWTs carry `user.id` and `emailVerified` so middleware and server helpers can enforce access and verification.
 - **Consequences:**
-  - Enables server-side session revocation (e.g., after password reset).
-  - Adds database tables for sessions/accounts required by Auth.js.
-  - Introduces DB lookups for session validation.
+  - Credentials provider works without adapter-backed sessions.
+  - No server-side session revocation (JWTs expire naturally).
+  - No Auth.js session/account tables required in the database.
+  - Route protection is enforced via middleware using JWT session data.
 
 ---
 

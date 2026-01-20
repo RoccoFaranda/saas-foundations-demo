@@ -90,6 +90,25 @@ describe("Auth Session Helpers", () => {
         emailVerified: null,
       });
     });
+
+    it("should treat missing emailVerified as null", async () => {
+      mockAuth.mockResolvedValue({
+        user: {
+          id: "user_123",
+          email: "test@example.com",
+          name: "Test User",
+        },
+      });
+
+      const user = await getCurrentUser();
+
+      expect(user).toEqual({
+        id: "user_123",
+        email: "test@example.com",
+        name: "Test User",
+        emailVerified: null,
+      });
+    });
   });
 
   describe("requireUser", () => {
