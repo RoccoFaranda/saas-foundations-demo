@@ -1,7 +1,9 @@
-import "dotenv/config";
+import { config } from "dotenv";
 import "@testing-library/jest-dom";
 import { vi, beforeEach } from "vitest";
 import { testEmailHelpers } from "../lib/auth/email";
+
+config({ path: ".env.test" });
 
 if (!process.env.DATABASE_URL) {
   process.env.DATABASE_URL =
