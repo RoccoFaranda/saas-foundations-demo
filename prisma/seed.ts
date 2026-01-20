@@ -27,7 +27,7 @@ async function main() {
     update: {
       email: DEMO_USER_EMAIL,
       passwordHash: "$2a$10$placeholder.hash.for.demo.user.only",
-      emailVerifiedAt: null,
+      emailVerified: null,
       name: "Demo User",
       themePreference: null,
     },
@@ -35,7 +35,7 @@ async function main() {
       id: DEMO_USER_ID,
       email: DEMO_USER_EMAIL,
       passwordHash: "$2a$10$placeholder.hash.for.demo.user.only",
-      emailVerifiedAt: null,
+      emailVerified: null,
       name: "Demo User",
       themePreference: null,
     },
