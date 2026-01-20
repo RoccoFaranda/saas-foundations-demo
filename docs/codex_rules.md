@@ -21,6 +21,15 @@ This file defines how Codex should operate in this repo.
 - Include objectives, acceptance criteria, explicit non-goals, focused files, tests, and commands.
 - Avoid refactors unless required by the milestone.
 
+## Model Recommendation Guidance (Operator Note)
+
+- Default to **Auto** for small, well-scoped tasks. Auto should adapt to task complexity and quality needs.
+- For **lowest usage / cost-efficient** tasks (simple edits, small tests, doc updates):
+  - Prefer **GPT-5 mini** or **GPT-4.1 mini/nano**.
+  - Consider **Claude Sonnet 4.5** as a lower-cost Anthropic option vs Opus.
+- For **complex, high-stakes, or cross-cutting** work (auth, security, migrations, multi-file refactors):
+  - Prefer **GPT-5.2 Thinking** or **Claude Opus 4.5** for maximum reliability.
+
 ## Dependency Currency (Always)
 
 - When planning to add or upgrade packages, verify the **latest stable version** and the **recommended setup** for that version using web research.
