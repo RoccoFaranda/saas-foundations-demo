@@ -7,9 +7,12 @@ import type {
   EmailChangeToken,
 } from "../../generated/prisma/client";
 
-const TOKEN_HASH_SECRET = process.env.TOKEN_HASH_SECRET;
-if (!TOKEN_HASH_SECRET) {
-  throw new Error("TOKEN_HASH_SECRET environment variable is not set");
+function getTokenHashSecret(): string {
+  const secret = process.env.TOKEN_HASH_SECRET;
+  if (!secret) {
+    throw new Error("TOKEN_HASH_SECRET environment variable is not set");
+  }
+  return secret;
 }
 
 /**
@@ -23,9 +26,7 @@ function generateToken(): string {
  * Hash a token using HMAC-SHA-256
  */
 function hashToken(token: string): string {
-  return createHmac("sha256", TOKEN_HASH_SECRET as string)
-    .update(token)
-    .digest("hex");
+  return createHmac("sha256", getTokenHashSecret()).update(token).digest("hex");
 }
 
 /**
