@@ -19,7 +19,7 @@ export function SiteHeader() {
             href="/login"
             className="text-foreground/70 transition-colors hover:text-foreground"
           >
-            Login
+            App
           </Link>
           <ThemeToggle />
         </nav>

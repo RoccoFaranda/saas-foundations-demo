@@ -3,13 +3,9 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { login } from "@/src/lib/auth/actions";
+import { signup } from "@/src/lib/auth/actions";
 
-type LoginClientProps = {
-  callbackUrl: string;
-};
-
-export default function LoginClient({ callbackUrl }: LoginClientProps) {
+export default function SignupClient() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -23,12 +19,10 @@ export default function LoginClient({ callbackUrl }: LoginClientProps) {
     const formData = new FormData(event.currentTarget);
 
     startTransition(async () => {
-      const result = await login(formData);
+      const result = await signup(formData);
 
       if (result.success) {
-        const destination = result.redirectUrl ?? "/app/dashboard";
-        router.push(destination);
-        router.refresh();
+        router.push("/verify-email");
       } else {
         setError(result.error);
         setFieldError(result.field ?? null);
@@ -40,12 +34,11 @@ export default function LoginClient({ callbackUrl }: LoginClientProps) {
     <main className="flex min-h-screen flex-col items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold">Welcome back</h1>
-          <p className="mt-2 text-sm text-foreground/60">Sign in to your account</p>
+          <h1 className="text-2xl font-bold">Create an account</h1>
+          <p className="mt-2 text-sm text-foreground/60">Get started with SaaS Foundations Demo</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input type="hidden" name="callbackUrl" value={callbackUrl} />
           <div>
             <label htmlFor="email" className="mb-1.5 block text-sm font-medium">
               Email
@@ -73,8 +66,9 @@ export default function LoginClient({ callbackUrl }: LoginClientProps) {
               id="password"
               name="password"
               type="password"
-              autoComplete="current-password"
+              autoComplete="new-password"
               required
+              minLength={8}
               disabled={isPending}
               className={`w-full rounded-md border bg-background px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-foreground/20 disabled:cursor-not-allowed disabled:opacity-50 ${
                 fieldError === "password" ? "border-red-500" : "border-foreground/20"
@@ -82,6 +76,7 @@ export default function LoginClient({ callbackUrl }: LoginClientProps) {
               placeholder="••••••••"
               aria-describedby={fieldError === "password" ? "password-error" : undefined}
             />
+            <p className="mt-1 text-xs text-foreground/50">At least 8 characters</p>
           </div>
 
           {error && (
@@ -98,23 +93,14 @@ export default function LoginClient({ callbackUrl }: LoginClientProps) {
             disabled={isPending}
             className="w-full rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isPending ? "Signing in..." : "Sign in"}
+            {isPending ? "Creating account..." : "Create account"}
           </button>
         </form>
 
-        <p className="mt-4 text-center text-sm">
-          <Link
-            href="/forgot-password"
-            className="text-foreground/60 hover:text-foreground hover:underline"
-          >
-            Forgot your password?
-          </Link>
-        </p>
-
         <p className="mt-6 text-center text-sm text-foreground/60">
-          Don&apos;t have an account?{" "}
-          <Link href="/signup" className="font-medium text-foreground hover:underline">
-            Sign up
+          Already have an account?{" "}
+          <Link href="/login" className="font-medium text-foreground hover:underline">
+            Sign in
           </Link>
         </p>
       </div>
