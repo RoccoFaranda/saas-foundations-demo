@@ -1,4 +1,5 @@
 import "server-only";
+import { appendDevMailboxMessage } from "./dev-mailbox";
 
 export interface EmailMessage {
   to: string;
@@ -23,9 +24,18 @@ export const devEmailAdapter: EmailAdapter = {
 };
 
 /**
- * In-memory mailbox for testing
+ * Dev mailbox adapter: stores emails on disk for local inspection
  */
-class TestMailbox {
+export const devMailboxEmailAdapter: EmailAdapter = {
+  async send(message: EmailMessage) {
+    await appendDevMailboxMessage(message);
+  },
+};
+
+/**
+ * In-memory mailbox for dev/test
+ */
+class InMemoryMailbox {
   private messages: EmailMessage[] = [];
 
   add(message: EmailMessage): void {
@@ -53,14 +63,14 @@ class TestMailbox {
   }
 }
 
-const testMailbox = new TestMailbox();
+const mailbox = new InMemoryMailbox();
 
 /**
- * Test adapter: stores emails in memory for test assertions
+ * In-memory adapter for dev/test assertions
  */
 export const testEmailAdapter: EmailAdapter = {
   async send(message: EmailMessage) {
-    testMailbox.add(message);
+    mailbox.add(message);
   },
 };
 
@@ -68,12 +78,16 @@ export const testEmailAdapter: EmailAdapter = {
  * Test helpers for accessing the mailbox
  */
 export const testEmailHelpers = {
-  getAll: () => testMailbox.getAll(),
-  findByTo: (email: string) => testMailbox.findByTo(email),
-  findBySubject: (subject: string) => testMailbox.findBySubject(subject),
-  findLatest: () => testMailbox.findLatest(),
-  reset: () => testMailbox.reset(),
+  getAll: () => mailbox.getAll(),
+  findByTo: (email: string) => mailbox.findByTo(email),
+  findBySubject: (subject: string) => mailbox.findBySubject(subject),
+  findLatest: () => mailbox.findLatest(),
+  reset: () => mailbox.reset(),
 };
+
+/**
+ * Dev helpers for accessing the mailbox (dev-only)
+ */
 
 /**
  * Get the appropriate email adapter based on environment
@@ -81,6 +95,9 @@ export const testEmailHelpers = {
 export function getEmailAdapter(): EmailAdapter {
   if (process.env.NODE_ENV === "test") {
     return testEmailAdapter;
+  }
+  if (process.env.NODE_ENV === "development") {
+    return devMailboxEmailAdapter;
   }
   return devEmailAdapter;
 }

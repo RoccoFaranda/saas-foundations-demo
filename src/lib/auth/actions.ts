@@ -3,9 +3,9 @@
 import prisma from "../db";
 import { signupSchema, loginSchema } from "../validation/auth";
 import { hashPassword } from "./password";
-import { createEmailVerificationToken } from "./tokens";
+import { createEmailVerificationToken, verifyEmailVerificationToken } from "./tokens";
 import { getEmailAdapter } from "./email";
-import { signIn } from "./config";
+import { signIn, auth } from "./config";
 import { AuthError } from "next-auth";
 import { logAuthEvent } from "./logging";
 
@@ -161,6 +161,26 @@ export async function signup(formData: FormData): Promise<AuthActionResult> {
   });
   logAuthEvent("signup_verification_email_sent", { userId: user.id });
 
+  try {
+    const result = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+      redirectTo: "/verify-email",
+    });
+
+    if (typeof result === "string" && hasAuthError(result)) {
+      logAuthEvent("signup_auto_login_failed", { userId: user.id });
+      return { success: false, error: "Unable to sign in. Please log in." };
+    }
+  } catch (error) {
+    if (error instanceof AuthError) {
+      logAuthEvent("signup_auto_login_failed", { userId: user.id });
+      return { success: false, error: "Unable to sign in. Please log in." };
+    }
+    throw error;
+  }
+
   return { success: true };
 }
 
@@ -212,3 +232,80 @@ export async function login(formData: FormData): Promise<AuthActionResult> {
     throw error;
   }
 }
+
+/**
+ * Verify email action
+ * Consumes token and sets emailVerified timestamp
+ */
+export async function verifyEmail(token: string): Promise<AuthActionResult> {
+  if (!token || typeof token !== "string" || token.trim().length === 0) {
+    logAuthEvent("verify_email_invalid_token");
+    return { success: false, error: "Invalid or missing verification token" };
+  }
+
+  // Verify and consume the token
+  const tokenRecord = await verifyEmailVerificationToken(token);
+
+  if (!tokenRecord) {
+    logAuthEvent("verify_email_token_invalid");
+    return {
+      success: false,
+      error: "Invalid, expired, or already used verification token",
+    };
+  }
+
+  // Set emailVerified on the user
+  await prisma.user.update({
+    where: { id: tokenRecord.userId },
+    data: { emailVerified: new Date() },
+  });
+
+  logAuthEvent("verify_email_success", { userId: tokenRecord.userId });
+  return { success: true };
+}
+
+/**
+ * Resend verification email action
+ * Returns generic success to prevent account enumeration
+ */
+export async function resendVerificationEmail(): Promise<AuthActionResult> {
+  const session = await auth();
+  const sessionEmail = session?.user?.email ?? null;
+  if (!sessionEmail) {
+    logAuthEvent("resend_verification_validation_failed");
+    return { success: false, error: "Please sign in to resend verification email." };
+  }
+
+  // Find user (if exists)
+  const user = await prisma.user.findUnique({
+    where: { email: sessionEmail },
+    select: { id: true, email: true, emailVerified: true },
+  });
+
+  // Always return success to prevent account enumeration
+  // But only send email if user exists and isn't already verified
+  if (user && !user.emailVerified) {
+    const { token } = await createEmailVerificationToken(user.id);
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    const verifyUrl = `${baseUrl}/verify-email?token=${token}`;
+
+    const emailAdapter = getEmailAdapter();
+    await emailAdapter.send({
+      to: user.email,
+      subject: "Verify your email - SaaS Foundations Demo",
+      html: generateVerificationEmailHtml(verifyUrl),
+      text: `Verify your email by visiting: ${verifyUrl}`,
+    });
+
+    logAuthEvent("resend_verification_sent", { userId: user.id });
+  } else {
+    // Log but don't reveal whether user exists or is already verified
+    logAuthEvent("resend_verification_noop");
+  }
+
+  return { success: true };
+}
+
+/**
+ * Sign out current user (server action)
+ */

@@ -3,9 +3,13 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signup } from "@/src/lib/auth/actions";
+import { login } from "@/src/lib/auth/actions";
 
-export default function SignupPage() {
+type LoginClientProps = {
+  callbackUrl: string;
+};
+
+export default function LoginClient({ callbackUrl }: LoginClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -19,11 +23,12 @@ export default function SignupPage() {
     const formData = new FormData(event.currentTarget);
 
     startTransition(async () => {
-      const result = await signup(formData);
+      const result = await login(formData);
 
       if (result.success) {
-        // Redirect to verify-email page
-        router.push("/verify-email");
+        const destination = result.redirectUrl ?? "/app/dashboard";
+        router.push(destination);
+        router.refresh();
       } else {
         setError(result.error);
         setFieldError(result.field ?? null);
@@ -35,12 +40,12 @@ export default function SignupPage() {
     <main className="flex min-h-screen flex-col items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold">Create an account</h1>
-          <p className="mt-2 text-sm text-foreground/60">Get started with SaaS Foundations Demo</p>
+          <h1 className="text-2xl font-bold">Welcome back</h1>
+          <p className="mt-2 text-sm text-foreground/60">Sign in to your account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Email field */}
+          <input type="hidden" name="callbackUrl" value={callbackUrl} />
           <div>
             <label htmlFor="email" className="mb-1.5 block text-sm font-medium">
               Email
@@ -60,7 +65,6 @@ export default function SignupPage() {
             />
           </div>
 
-          {/* Password field */}
           <div>
             <label htmlFor="password" className="mb-1.5 block text-sm font-medium">
               Password
@@ -69,20 +73,17 @@ export default function SignupPage() {
               id="password"
               name="password"
               type="password"
-              autoComplete="new-password"
+              autoComplete="current-password"
               required
-              minLength={8}
               disabled={isPending}
               className={`w-full rounded-md border bg-background px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-foreground/20 disabled:cursor-not-allowed disabled:opacity-50 ${
                 fieldError === "password" ? "border-red-500" : "border-foreground/20"
               }`}
-              placeholder="••••••••"
+              placeholder="????????????????????????"
               aria-describedby={fieldError === "password" ? "password-error" : undefined}
             />
-            <p className="mt-1 text-xs text-foreground/50">At least 8 characters</p>
           </div>
 
-          {/* Error message */}
           {error && (
             <div
               className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-400"
@@ -92,21 +93,28 @@ export default function SignupPage() {
             </div>
           )}
 
-          {/* Submit button */}
           <button
             type="submit"
             disabled={isPending}
             className="w-full rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isPending ? "Creating account..." : "Create account"}
+            {isPending ? "Signing in..." : "Sign in"}
           </button>
         </form>
 
-        {/* Login link */}
+        <p className="mt-4 text-center text-sm">
+          <Link
+            href="/forgot-password"
+            className="text-foreground/60 hover:text-foreground hover:underline"
+          >
+            Forgot your password?
+          </Link>
+        </p>
+
         <p className="mt-6 text-center text-sm text-foreground/60">
-          Already have an account?{" "}
-          <Link href="/login" className="font-medium text-foreground hover:underline">
-            Sign in
+          Don&apos;t have an account?{" "}
+          <Link href="/signup" className="font-medium text-foreground hover:underline">
+            Sign up
           </Link>
         </p>
       </div>

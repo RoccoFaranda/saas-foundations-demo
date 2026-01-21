@@ -16,6 +16,7 @@
 /test-results/
 /blob-report/
 /playwright/.cache/
+/.playwright-mcp/
 
 # next.js
 /.next/
@@ -38,6 +39,7 @@ yarn-error.log*
 .env*
 !.env.example
 !.env.test
+.dev-mailbox.json
 
 # vercel
 .vercel
