@@ -252,6 +252,18 @@ Use this structure for new ADRs:
 
 ---
 
+## ADR-021: Token invalidation prevents multiple active tokens
+
+- **Status:** Accepted
+- **Context:** When users request multiple verification/reset/email-change tokens, we should ensure only the latest token is valid to prevent confusion and reduce attack surface.
+- **Decision:** When creating new tokens (verification, password reset, email change), **invalidate all previous unused tokens** for the same user in a single transaction. This ensures only the most recent token request is valid.
+- **Consequences:**
+  - Users cannot use old tokens if they request a new one.
+  - Reduces risk of token reuse attacks.
+  - Requires transaction support in token creation logic.
+
+---
+
 ## ADR-019: Use Server Actions for auth form handling
 
 - **Status:** Accepted

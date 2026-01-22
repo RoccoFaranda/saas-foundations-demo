@@ -312,7 +312,7 @@ Tools:
 Required Playwright E2E:
 
 1. Guest edit resets on refresh
-2. Signup → verify email → login → dashboard
+2. Signup -> verify email -> login -> dashboard
 3. Billing:
    - billing enabled: can start checkout session
    - billing disabled: graceful UI state

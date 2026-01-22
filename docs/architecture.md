@@ -42,6 +42,87 @@ High-level components:
 
 ---
 
+## Authentication Flow
+
+The app implements a complete email/password authentication lifecycle:
+
+### Signup Flow
+
+1. User submits signup form with email and password
+2. Server validates input and checks for duplicate email
+3. Password is hashed with Argon2id
+4. User record is created in database
+5. Email verification token is generated (HMAC-SHA-256 hashed, 1-hour expiry)
+6. Verification email is sent via email adapter (dev mailbox in development, Resend in production)
+7. User is automatically signed in and redirected to `/verify-email` page
+8. User must verify email before accessing authenticated routes
+
+### Email Verification Flow
+
+1. User clicks verification link in email (`/verify-email?token=...`)
+2. Server validates token (checks hash, expiry, and single-use status)
+3. Token is marked as used (prevents reuse)
+4. User's `emailVerified` timestamp is set
+5. User is redirected to dashboard if already signed in; otherwise prompted to sign in
+
+### Login Flow
+
+1. User submits login form with email and password
+2. Server validates credentials using Auth.js Credentials provider
+3. Password is verified against stored Argon2id hash
+4. JWT session is created with user ID and email verification status
+5. User is redirected to dashboard (or callback URL if provided)
+
+### Password Reset Flow
+
+1. User requests password reset from `/forgot-password` page
+2. Server always returns generic success (prevents account enumeration)
+3. If user exists, password reset token is generated and email is sent
+4. User clicks reset link (`/reset-password?token=...`)
+5. Server validates token and shows password reset form
+6. User submits new password
+7. Password is hashed and updated in database
+8. Token is marked as used
+9. User is signed out and redirected to login
+
+### Change Password Flow (Authenticated)
+
+1. Verified user navigates to `/app/settings/change-password`
+2. User submits current password and new password
+3. Server verifies current password
+4. New password is hashed and updated
+5. User sees success message
+
+### Change Email Flow (Authenticated)
+
+1. Verified user navigates to `/app/settings/change-email`
+2. User submits current password and new email address
+3. Server verifies current password and checks for duplicate email
+4. Email change token is generated and sent to new email address
+5. User clicks verification link (`/verify-email-change?token=...`)
+6. Server validates token and updates user email
+7. Token is marked as used
+8. If signed in, session is refreshed and user is redirected to settings/dashboard; if logged out, user is prompted to sign in
+
+### Session Management
+
+- **Strategy:** JWT sessions (Auth.js compatible with Credentials provider)
+- **Storage:** JWT stored in HTTP-only cookie
+- **Expiry:** Configurable via Auth.js session maxAge
+- **Verification Check:** Middleware enforces email verification for `/app/*` routes
+- **Session Refresh:** On-demand via `update({ refresh: true })` after verification or email change
+
+### Token Security
+
+- All tokens (verification, reset, email change) are:
+  - Generated using cryptographically secure random bytes (32 bytes, base64url encoded)
+  - Stored as HMAC-SHA-256 hashes in database (never plaintext)
+  - Single-use (marked as used after consumption)
+  - Time-limited (default 1 hour expiry)
+  - Invalidated when new tokens are issued (prevents multiple active tokens)
+
+---
+
 ## Directory Structure
 
 Intended structure (may evolve slightly as features land):
@@ -75,7 +156,7 @@ Intended structure (may evolve slightly as features land):
 
 - The current user is derived from the session.
 - Sessions use Auth.js JWT strategy (credentials-compatible).
-- `/app/*` routes are protected by `middleware.ts` (auth + email verification).
+- `/app/*` routes are protected by `proxy.ts` (auth + email verification).
 - All business data access is scoped to the user:
   - queries always include `WHERE userId = session.userId`.
 - Mutations follow a standard pattern:

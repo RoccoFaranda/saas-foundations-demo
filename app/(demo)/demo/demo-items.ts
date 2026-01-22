@@ -234,13 +234,13 @@ export function describeChanges(oldItem: DemoItem, newItem: DemoItem): string | 
   const changes: string[] = [];
 
   if (oldItem.status !== newItem.status) {
-    changes.push(`status: ${oldItem.status} → ${newItem.status}`);
+    changes.push(`status: ${oldItem.status} -> ${newItem.status}`);
   }
   if (oldItem.tag !== newItem.tag) {
-    changes.push(`tag: ${oldItem.tag} → ${newItem.tag}`);
+    changes.push(`tag: ${oldItem.tag} -> ${newItem.tag}`);
   }
   if (oldItem.metric !== newItem.metric) {
-    changes.push(`progress: ${oldItem.metric}% → ${newItem.metric}%`);
+    changes.push(`progress: ${oldItem.metric}% -> ${newItem.metric}%`);
   }
   if (oldItem.name !== newItem.name) {
     changes.push(`renamed`);

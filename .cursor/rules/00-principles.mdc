@@ -61,7 +61,7 @@ Use structured logging with sanitization for any user-generated or external data
 - Understand and respect the server/client component boundary
 - Server Components are the default; use "use client" only when necessary
 - Don't import server-only modules (database, auth helpers) into client components
-- Keep route handlers thin: validate → call service → return response
+- Keep route handlers thin: validate -> call service -> return response
 
 ## Standard API Error Shape
 All API errors should follow this consistent format:
@@ -79,3 +79,4 @@ All API errors should follow this consistent format:
 - **Refresh resets**: Page refresh resets all business data to seeded demo state
 - **Theme persistence**: Only theme preference is allowed in localStorage
 - **In-memory state**: Guest mode uses seeded demo data + in-memory state only
+
