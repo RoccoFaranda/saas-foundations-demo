@@ -1,18 +1,26 @@
 "use server";
 
 import prisma from "../db";
-import { signupSchema, loginSchema } from "../validation/auth";
-import { hashPassword } from "./password";
+import {
+  signupSchema,
+  loginSchema,
+  changePasswordSchema,
+  changeEmailSchema,
+} from "../validation/auth";
+import { hashPassword, verifyPassword } from "./password";
 import {
   createEmailVerificationToken,
   verifyEmailVerificationToken,
   createPasswordResetToken,
   verifyPasswordResetToken,
+  createEmailChangeToken,
+  verifyEmailChangeToken,
 } from "./tokens";
 import { getEmailAdapter } from "./email";
 import { signIn, signOut, auth } from "./config";
 import { AuthError } from "next-auth";
 import { logAuthEvent } from "./logging";
+import { requireVerifiedUser } from "./session";
 
 /**
  * Action result type for auth actions
@@ -412,6 +420,209 @@ export async function resendVerificationEmail(): Promise<AuthActionResult> {
     logAuthEvent("resend_verification_noop");
   }
 
+  return { success: true };
+}
+
+/**
+ * Generate email change verification email HTML
+ */
+function generateEmailChangeHtml(verifyUrl: string, newEmail: string): string {
+  return `
+    <h1>Verify your new email address</h1>
+    <p>You requested to change your email address to: <strong>${newEmail}</strong></p>
+    <p>Click the link below to verify and complete the change:</p>
+    <p><a href="${verifyUrl}">Verify new email</a></p>
+    <p>This link will expire in 1 hour.</p>
+    <p>If you didn't request this change, you can ignore this email.</p>
+  `;
+}
+
+/**
+ * Change password action
+ * Requires authenticated and verified user
+ */
+export async function changePassword(formData: FormData): Promise<AuthActionResult> {
+  const user = await requireVerifiedUser();
+
+  const rawInput = {
+    currentPassword: formData.get("currentPassword"),
+    newPassword: formData.get("newPassword"),
+  };
+
+  const parsed = changePasswordSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    const firstIssue = parsed.error.issues[0];
+    logAuthEvent("change_password_validation_failed");
+    return {
+      success: false,
+      error: firstIssue?.message ?? "Invalid input",
+      field: "password",
+    };
+  }
+
+  const { currentPassword, newPassword } = parsed.data;
+
+  // Get user with password hash
+  const userRecord = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { passwordHash: true },
+  });
+
+  if (!userRecord) {
+    logAuthEvent("change_password_invalid_current");
+    return { success: false, error: "User not found", field: "password" };
+  }
+
+  // Verify current password
+  const isCurrentPasswordValid = await verifyPassword(currentPassword, userRecord.passwordHash);
+  if (!isCurrentPasswordValid) {
+    logAuthEvent("change_password_invalid_current");
+    return { success: false, error: "Current password is incorrect", field: "password" };
+  }
+
+  // Hash new password
+  const newPasswordHash = await hashPassword(newPassword);
+
+  // Update password
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash: newPasswordHash },
+  });
+
+  logAuthEvent("change_password_success", { userId: user.id });
+  return { success: true };
+}
+
+/**
+ * Request email change action
+ * Requires authenticated and verified user
+ * Sends verification email to new address
+ */
+export async function requestEmailChange(formData: FormData): Promise<AuthActionResult> {
+  const user = await requireVerifiedUser();
+
+  const rawInput = {
+    currentPassword: formData.get("currentPassword"),
+    newEmail: formData.get("newEmail"),
+  };
+
+  const parsed = changeEmailSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    const firstIssue = parsed.error.issues[0];
+    logAuthEvent("change_email_validation_failed");
+    return {
+      success: false,
+      error: firstIssue?.message ?? "Invalid input",
+      field: firstIssue?.path[0] === "newEmail" ? "email" : "password",
+    };
+  }
+
+  const { currentPassword, newEmail } = parsed.data;
+
+  // Check if new email is same as current
+  if (newEmail === user.email) {
+    logAuthEvent("change_email_validation_failed");
+    return {
+      success: false,
+      error: "New email must be different from current email",
+      field: "email",
+    };
+  }
+
+  // Get user with password hash
+  const userRecord = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { passwordHash: true },
+  });
+
+  if (!userRecord) {
+    logAuthEvent("change_email_invalid_current_password");
+    return { success: false, error: "User not found", field: "password" };
+  }
+
+  // Verify current password
+  const isCurrentPasswordValid = await verifyPassword(currentPassword, userRecord.passwordHash);
+  if (!isCurrentPasswordValid) {
+    logAuthEvent("change_email_invalid_current_password");
+    return { success: false, error: "Current password is incorrect", field: "password" };
+  }
+
+  // Check if new email is already in use
+  const existingUser = await prisma.user.findUnique({
+    where: { email: newEmail },
+    select: { id: true },
+  });
+
+  if (existingUser) {
+    logAuthEvent("change_email_duplicate", { userId: user.id });
+    return {
+      success: false,
+      error: "An account with this email already exists",
+      field: "email",
+    };
+  }
+
+  // Create email change token
+  const { token } = await createEmailChangeToken(user.id, newEmail);
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const verifyUrl = `${baseUrl}/verify-email-change?token=${token}`;
+
+  // Send verification email to new address
+  const emailAdapter = getEmailAdapter();
+  await emailAdapter.send({
+    to: newEmail,
+    subject: "Verify your new email - SaaS Foundations Demo",
+    html: generateEmailChangeHtml(verifyUrl, newEmail),
+    text: `Verify your new email by visiting: ${verifyUrl}`,
+  });
+
+  logAuthEvent("change_email_token_sent", { userId: user.id });
+  return { success: true };
+}
+
+/**
+ * Verify email change action
+ * Consumes token and updates user email
+ */
+export async function verifyEmailChange(token: string): Promise<AuthActionResult> {
+  if (!token || typeof token !== "string" || token.trim().length === 0) {
+    logAuthEvent("change_email_token_invalid");
+    return { success: false, error: "Invalid or missing verification token" };
+  }
+
+  // Verify and consume the token
+  const tokenRecord = await verifyEmailChangeToken(token);
+
+  if (!tokenRecord) {
+    logAuthEvent("change_email_token_invalid");
+    return {
+      success: false,
+      error: "Invalid, expired, or already used verification token",
+    };
+  }
+
+  // Check if new email is still available (race condition protection)
+  const existingUser = await prisma.user.findUnique({
+    where: { email: tokenRecord.newEmail },
+    select: { id: true },
+  });
+
+  if (existingUser) {
+    logAuthEvent("change_email_duplicate", { userId: tokenRecord.userId });
+    return {
+      success: false,
+      error: "This email address is already in use",
+      field: "email",
+    };
+  }
+
+  // Update user email
+  await prisma.user.update({
+    where: { id: tokenRecord.userId },
+    data: { email: tokenRecord.newEmail },
+  });
+
+  logAuthEvent("change_email_success", { userId: tokenRecord.userId });
   return { success: true };
 }
 

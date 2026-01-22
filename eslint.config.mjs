@@ -6,6 +6,17 @@ import eslintConfigPrettier from "eslint-config-prettier";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  {
+    files: ["**/*.{ts,tsx}"],
+    languageOptions: {
+      parserOptions: {
+        project: "./tsconfig.json",
+      },
+    },
+    rules: {
+      "@typescript-eslint/no-deprecated": "warn",
+    },
+  },
   // Disable rules that conflict with Prettier
   eslintConfigPrettier,
   // Override default ignores of eslint-config-next.

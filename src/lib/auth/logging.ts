@@ -20,7 +20,16 @@ export type AuthLogEvent =
   | "reset_password_missing_token"
   | "reset_password_invalid_password"
   | "reset_password_token_invalid"
-  | "reset_password_success";
+  | "reset_password_success"
+  | "change_password_validation_failed"
+  | "change_password_invalid_current"
+  | "change_password_success"
+  | "change_email_validation_failed"
+  | "change_email_invalid_current_password"
+  | "change_email_duplicate"
+  | "change_email_token_sent"
+  | "change_email_token_invalid"
+  | "change_email_success";
 
 type AuthLogDetails = Record<string, string | number | boolean | null | undefined>;
 

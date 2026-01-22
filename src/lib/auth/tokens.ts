@@ -176,13 +176,24 @@ export async function createEmailChangeToken(
   const hashedToken = hashToken(token);
   const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
 
-  const record = await prisma.emailChangeToken.create({
-    data: {
-      userId,
-      newEmail,
-      hashedToken,
-      expiresAt,
-    },
+  const record = await prisma.$transaction(async (tx) => {
+    // Invalidate any previous unused email change tokens for this user.
+    await tx.emailChangeToken.updateMany({
+      where: {
+        userId,
+        usedAt: null,
+      },
+      data: { usedAt: new Date() },
+    });
+
+    return tx.emailChangeToken.create({
+      data: {
+        userId,
+        newEmail,
+        hashedToken,
+        expiresAt,
+      },
+    });
   });
 
   return { token, record };
