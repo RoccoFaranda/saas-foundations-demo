@@ -22,6 +22,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const resolvedSearchParams = await Promise.resolve(searchParams);
   const callbackParam = resolvedSearchParams?.callbackUrl;
   const callbackUrl = typeof callbackParam === "string" ? callbackParam : "";
+  const resetParam = resolvedSearchParams?.reset;
+  const resetSuccess = resetParam === "success";
 
-  return <LoginClient callbackUrl={callbackUrl} />;
+  return <LoginClient callbackUrl={callbackUrl} resetSuccess={resetSuccess} />;
 }

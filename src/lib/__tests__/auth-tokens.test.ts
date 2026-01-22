@@ -124,6 +124,18 @@ describe("Auth Token utilities", () => {
       expect(secondVerify).toBeNull();
     });
 
+    it("should invalidate older tokens when a new token is issued", async () => {
+      const { token: oldToken } = await createPasswordResetToken(TEST_USER_1);
+      const { token: newToken } = await createPasswordResetToken(TEST_USER_1);
+
+      const oldVerify = await verifyPasswordResetToken(oldToken);
+      expect(oldVerify).toBeNull();
+
+      const newVerify = await verifyPasswordResetToken(newToken);
+      expect(newVerify).toBeDefined();
+      expect(newVerify?.userId).toBe(TEST_USER_1);
+    });
+
     it("should store only hashed tokens in database", async () => {
       const { token, record } = await createPasswordResetToken(TEST_USER_1);
 

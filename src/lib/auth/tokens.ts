@@ -40,12 +40,23 @@ export async function createEmailVerificationToken(
   const hashedToken = hashToken(token);
   const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
 
-  const record = await prisma.emailVerificationToken.create({
-    data: {
-      userId,
-      hashedToken,
-      expiresAt,
-    },
+  const record = await prisma.$transaction(async (tx) => {
+    // Invalidate any previous unused verification tokens for this user.
+    await tx.emailVerificationToken.updateMany({
+      where: {
+        userId,
+        usedAt: null,
+      },
+      data: { usedAt: new Date() },
+    });
+
+    return tx.emailVerificationToken.create({
+      data: {
+        userId,
+        hashedToken,
+        expiresAt,
+      },
+    });
   });
 
   return { token, record };
@@ -89,12 +100,23 @@ export async function createPasswordResetToken(
   const hashedToken = hashToken(token);
   const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
 
-  const record = await prisma.passwordResetToken.create({
-    data: {
-      userId,
-      hashedToken,
-      expiresAt,
-    },
+  const record = await prisma.$transaction(async (tx) => {
+    // Invalidate any previous unused reset tokens for this user.
+    await tx.passwordResetToken.updateMany({
+      where: {
+        userId,
+        usedAt: null,
+      },
+      data: { usedAt: new Date() },
+    });
+
+    return tx.passwordResetToken.create({
+      data: {
+        userId,
+        hashedToken,
+        expiresAt,
+      },
+    });
   });
 
   return { token, record };
@@ -122,6 +144,23 @@ export async function verifyPasswordResetToken(token: string): Promise<PasswordR
 
   return prisma.passwordResetToken.findUnique({
     where: { hashedToken },
+  });
+}
+
+/**
+ * Check a password reset token without consuming it.
+ * Returns the token record if valid, null otherwise.
+ */
+export async function getPasswordResetToken(token: string): Promise<PasswordResetToken | null> {
+  const hashedToken = hashToken(token);
+  const now = new Date();
+
+  return prisma.passwordResetToken.findFirst({
+    where: {
+      hashedToken,
+      usedAt: null,
+      expiresAt: { gt: now },
+    },
   });
 }
 

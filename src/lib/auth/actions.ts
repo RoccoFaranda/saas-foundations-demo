@@ -3,9 +3,14 @@
 import prisma from "../db";
 import { signupSchema, loginSchema } from "../validation/auth";
 import { hashPassword } from "./password";
-import { createEmailVerificationToken, verifyEmailVerificationToken } from "./tokens";
+import {
+  createEmailVerificationToken,
+  verifyEmailVerificationToken,
+  createPasswordResetToken,
+  verifyPasswordResetToken,
+} from "./tokens";
 import { getEmailAdapter } from "./email";
-import { signIn, auth } from "./config";
+import { signIn, signOut, auth } from "./config";
 import { AuthError } from "next-auth";
 import { logAuthEvent } from "./logging";
 
@@ -262,6 +267,106 @@ export async function verifyEmail(token: string): Promise<AuthActionResult> {
 
   logAuthEvent("verify_email_success", { userId: tokenRecord.userId });
   return { success: true };
+}
+
+/**
+ * Generate password reset email HTML
+ */
+function generateResetEmailHtml(resetUrl: string): string {
+  return `
+    <h1>Reset your password</h1>
+    <p>Click the link below to reset your password:</p>
+    <p><a href="${resetUrl}">Reset your password</a></p>
+    <p>This link will expire in 1 hour.</p>
+    <p>If you didn't request a password reset, you can ignore this email.</p>
+  `;
+}
+
+/**
+ * Forgot password action
+ * Always returns success to avoid account enumeration.
+ * If the user exists, creates a password reset token and sends an email.
+ */
+export async function forgotPassword(formData: FormData): Promise<AuthActionResult> {
+  const rawEmail = formData.get("email");
+  const email = typeof rawEmail === "string" ? rawEmail.trim().toLowerCase() : "";
+
+  if (!email) {
+    logAuthEvent("forgot_password_validation_failed");
+    // Return generic success
+    return { success: true };
+  }
+
+  // Find user by email
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true, email: true },
+  });
+
+  if (user) {
+    try {
+      const { token } = await createPasswordResetToken(user.id);
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+      const resetUrl = `${baseUrl}/reset-password?token=${token}`;
+      const emailAdapter = getEmailAdapter();
+      await emailAdapter.send({
+        to: user.email,
+        subject: "Reset your password - SaaS Foundations Demo",
+        html: generateResetEmailHtml(resetUrl),
+        text: `Reset your password by visiting: ${resetUrl}`,
+      });
+      logAuthEvent("forgot_password_email_sent", { userId: user.id });
+    } catch (err) {
+      // Don't surface errors to caller; log and continue returning generic success
+      logAuthEvent("forgot_password_email_error", { email, error: String(err) });
+    }
+  } else {
+    logAuthEvent("forgot_password_noop", { email });
+  }
+
+  return { success: true };
+}
+
+/**
+ * Reset password action
+ * Consumes a password reset token and updates the user's password.
+ */
+export async function resetPassword(formData: FormData): Promise<AuthActionResult> {
+  const rawToken = formData.get("token");
+  const rawPassword = formData.get("password");
+  const token = typeof rawToken === "string" ? rawToken.trim() : "";
+  const password = typeof rawPassword === "string" ? rawPassword : "";
+
+  if (!token) {
+    logAuthEvent("reset_password_missing_token");
+    return { success: false, error: "Invalid or missing reset token" };
+  }
+
+  if (!password || password.length < 8) {
+    logAuthEvent("reset_password_invalid_password");
+    return { success: false, error: "Password must be at least 8 characters", field: "password" };
+  }
+
+  // Consume and verify the token
+  const tokenRecord = await verifyPasswordResetToken(token);
+
+  if (!tokenRecord) {
+    logAuthEvent("reset_password_token_invalid");
+    return { success: false, error: "Invalid, expired, or already used reset token" };
+  }
+
+  // Update user's password
+  const passwordHash = await hashPassword(password);
+  await prisma.user.update({
+    where: { id: tokenRecord.userId },
+    data: { passwordHash },
+  });
+
+  logAuthEvent("reset_password_success", { userId: tokenRecord.userId });
+  const signOutUrl = await signOut({ redirect: false, redirectTo: "/login?reset=success" });
+  const redirectUrl =
+    typeof signOutUrl === "string" ? toPathWithSearch(signOutUrl) : "/login?reset=success";
+  return { success: true, redirectUrl };
 }
 
 /**

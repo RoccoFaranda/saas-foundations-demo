@@ -95,4 +95,15 @@ describe("verifyEmail", () => {
       expect(result.error).toContain("Invalid, expired, or already used");
     }
   });
+
+  it("should invalidate older tokens when a new token is issued", async () => {
+    const { token: firstToken } = await createEmailVerificationToken(testUserId);
+    const { token: secondToken } = await createEmailVerificationToken(testUserId);
+
+    const firstResult = await verifyEmail(firstToken);
+    expect(firstResult.success).toBe(false);
+
+    const secondResult = await verifyEmail(secondToken);
+    expect(secondResult.success).toBe(true);
+  });
 });

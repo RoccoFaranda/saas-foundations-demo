@@ -12,7 +12,15 @@ export type AuthLogEvent =
   | "verify_email_success"
   | "resend_verification_validation_failed"
   | "resend_verification_sent"
-  | "resend_verification_noop";
+  | "resend_verification_noop"
+  | "forgot_password_validation_failed"
+  | "forgot_password_email_sent"
+  | "forgot_password_email_error"
+  | "forgot_password_noop"
+  | "reset_password_missing_token"
+  | "reset_password_invalid_password"
+  | "reset_password_token_invalid"
+  | "reset_password_success";
 
 type AuthLogDetails = Record<string, string | number | boolean | null | undefined>;
 

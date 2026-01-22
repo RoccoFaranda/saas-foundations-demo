@@ -7,9 +7,10 @@ import { login } from "@/src/lib/auth/actions";
 
 type LoginClientProps = {
   callbackUrl: string;
+  resetSuccess?: boolean;
 };
 
-export default function LoginClient({ callbackUrl }: LoginClientProps) {
+export default function LoginClient({ callbackUrl, resetSuccess }: LoginClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +44,15 @@ export default function LoginClient({ callbackUrl }: LoginClientProps) {
           <h1 className="text-2xl font-bold">Welcome back</h1>
           <p className="mt-2 text-sm text-foreground/60">Sign in to your account</p>
         </div>
+
+        {resetSuccess && (
+          <div
+            className="mb-4 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-400"
+            role="status"
+          >
+            Your password has been reset. Please sign in again.
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <input type="hidden" name="callbackUrl" value={callbackUrl} />
