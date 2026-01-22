@@ -119,9 +119,13 @@ export async function signup(formData: FormData): Promise<AuthActionResult> {
   });
 
   if (existingUser) {
-    // Return generic error to prevent account enumeration
+    // Surface specific message for better UX (allows enumeration).
     logAuthEvent("signup_duplicate");
-    return { success: false, error: "Unable to create account. Please try again.", field: "email" };
+    return {
+      success: false,
+      error: "An account with this email already exists. Please sign in instead.",
+      field: "email",
+    };
   }
 
   // Hash password
@@ -141,7 +145,7 @@ export async function signup(formData: FormData): Promise<AuthActionResult> {
       logAuthEvent("signup_duplicate");
       return {
         success: false,
-        error: "Unable to create account. Please try again.",
+        error: "An account with this email already exists. Please sign in instead.",
         field: "email",
       };
     }

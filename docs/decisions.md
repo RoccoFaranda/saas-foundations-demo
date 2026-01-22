@@ -89,6 +89,7 @@ Use this structure for new ADRs:
   - Requires secure token handling (TTL + single-use + ideally hashed tokens in DB).
   - Requires rate limiting and careful UX to reduce account enumeration.
   - Strong credibility signal for technical reviewers.
+  - Demo trade-off: signup currently surfaces "account already exists" for UX, which allows enumeration. For production, we would switch to an email-first signup (always-success response) to reduce enumeration.
 
 ---
 
