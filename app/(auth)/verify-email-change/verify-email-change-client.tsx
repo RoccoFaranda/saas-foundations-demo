@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { verifyEmailChange } from "@/src/lib/auth/actions";
 
 type VerifyEmailChangeClientProps = {
@@ -19,10 +19,13 @@ export default function VerifyEmailChangeClient({ token }: VerifyEmailChangeClie
   const [verifyError, setVerifyError] = useState<string | null>(
     token ? null : "Missing verification token"
   );
+  const [tokenOwnerId, setTokenOwnerId] = useState<string | null>(null);
   const [sessionRefreshError, setSessionRefreshError] = useState<string | null>(null);
   const lastVerifiedToken = useRef<string | null>(null);
   const refreshTriggered = useRef(false);
-  const hasSession = Boolean(session?.user?.id);
+  const sessionUserId = session?.user?.id ?? null;
+  const hasSession = Boolean(sessionUserId);
+  const sessionMismatch = Boolean(tokenOwnerId && sessionUserId && tokenOwnerId !== sessionUserId);
 
   // Auto-verify if token is present
   useEffect(() => {
@@ -35,19 +38,32 @@ export default function VerifyEmailChangeClient({ token }: VerifyEmailChangeClie
     }
 
     lastVerifiedToken.current = token;
+    refreshTriggered.current = false;
 
     verifyEmailChange(token).then((result) => {
       if (result.success) {
         setVerifyState("success");
+        setTokenOwnerId(result.tokenUserId ?? null);
+        setSessionRefreshError(null);
       } else {
         setVerifyState("error");
         setVerifyError(result.error);
       }
     });
-  }, [token]);
+  }, [token, sessionUserId]);
 
   useEffect(() => {
     if (verifyState !== "success" || !hasSession || refreshTriggered.current) {
+      return;
+    }
+
+    if (!sessionUserId) {
+      return;
+    }
+
+    if (sessionMismatch) {
+      refreshTriggered.current = true;
+      void signOut({ redirect: false });
       return;
     }
 
@@ -59,7 +75,7 @@ export default function VerifyEmailChangeClient({ token }: VerifyEmailChangeClie
       .catch(() => {
         setSessionRefreshError("Please sign in again to continue.");
       });
-  }, [verifyState, hasSession, update, router]);
+  }, [verifyState, hasSession, update, router, sessionUserId, tokenOwnerId, sessionMismatch]);
 
   if (verifyState === null) {
     return (
@@ -104,19 +120,32 @@ export default function VerifyEmailChangeClient({ token }: VerifyEmailChangeClie
 
           {hasSession ? (
             <div className="space-y-3">
-              {sessionRefreshError ? (
+              {sessionMismatch ? (
+                <div className="rounded-md border border-foreground/20 bg-background px-3 py-2 text-sm text-foreground/80">
+                  Please sign in with the updated email to continue.
+                </div>
+              ) : sessionRefreshError ? (
                 <div className="rounded-md border border-foreground/20 bg-background px-3 py-2 text-sm text-foreground/80">
                   {sessionRefreshError}
                 </div>
               ) : (
                 <p className="text-sm text-foreground/60">Redirecting you to settings...</p>
               )}
-              <Link
-                href="/app/settings"
-                className="inline-block rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:ring-offset-2"
-              >
-                Continue to settings
-              </Link>
+              {sessionMismatch ? (
+                <Link
+                  href="/login"
+                  className="inline-block rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:ring-offset-2"
+                >
+                  Sign in
+                </Link>
+              ) : (
+                <Link
+                  href="/app/settings"
+                  className="inline-block rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:ring-offset-2"
+                >
+                  Continue to settings
+                </Link>
+              )}
             </div>
           ) : (
             <div className="space-y-3">
@@ -161,20 +190,37 @@ export default function VerifyEmailChangeClient({ token }: VerifyEmailChangeClie
             <p className="mt-2 text-sm text-foreground/60">{verifyError}</p>
           </div>
 
-          <div className="space-y-3">
-            <Link
-              href="/app/settings/change-email"
-              className="block rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:ring-offset-2"
-            >
-              Request a new verification email
-            </Link>
-            <Link
-              href="/app/settings"
-              className="block text-sm text-foreground/60 hover:text-foreground hover:underline"
-            >
-              Back to settings
-            </Link>
-          </div>
+          {hasSession ? (
+            <div className="space-y-3">
+              <Link
+                href="/app/settings/change-email"
+                className="block rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:ring-offset-2"
+              >
+                Request a new verification email
+              </Link>
+              <Link
+                href="/app/settings"
+                className="block text-sm text-foreground/60 hover:text-foreground hover:underline"
+              >
+                Back to settings
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <Link
+                href="/login"
+                className="block rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:ring-offset-2"
+              >
+                Sign in to request a new email
+              </Link>
+              <Link
+                href="/login"
+                className="block text-sm text-foreground/60 hover:text-foreground hover:underline"
+              >
+                Back to login
+              </Link>
+            </div>
+          )}
         </div>
       </main>
     );

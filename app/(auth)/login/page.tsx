@@ -1,4 +1,4 @@
-import { auth } from "@/src/lib/auth";
+import { getCurrentUser } from "@/src/lib/auth";
 import { redirect } from "next/navigation";
 import LoginClient from "./login-client";
 
@@ -9,13 +9,13 @@ type LoginPageProps = {
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const session = await auth();
+  const user = await getCurrentUser();
 
-  if (session?.user?.emailVerified) {
+  if (user?.emailVerified) {
     redirect("/app/dashboard");
   }
 
-  if (session) {
+  if (user) {
     redirect("/verify-email");
   }
 

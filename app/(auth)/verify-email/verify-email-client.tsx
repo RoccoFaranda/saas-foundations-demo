@@ -3,7 +3,7 @@
 import { useState, useTransition, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { verifyEmail, resendVerificationEmail } from "@/src/lib/auth/actions";
 
 type VerifyState = "success" | "error";
@@ -15,9 +15,10 @@ type VerifyEmailClientProps = {
 
 export default function VerifyEmailClient({ token, email }: VerifyEmailClientProps) {
   const router = useRouter();
-  const { update } = useSession();
+  const { update, data: session } = useSession();
   const [verifyState, setVerifyState] = useState<VerifyState | null>(null);
   const [verifyError, setVerifyError] = useState<string | null>(null);
+  const [tokenOwnerId, setTokenOwnerId] = useState<string | null>(null);
 
   const [resendPending, startResendTransition] = useTransition();
   const [resendMessage, setResendMessage] = useState<string | null>(null);
@@ -25,7 +26,9 @@ export default function VerifyEmailClient({ token, email }: VerifyEmailClientPro
   const lastVerifiedToken = useRef<string | null>(null);
 
   const hasEmail = Boolean(email);
-  const hasSession = Boolean(email);
+  const sessionUserId = session?.user?.id ?? null;
+  const hasSession = Boolean(sessionUserId);
+  const sessionMismatch = Boolean(tokenOwnerId && sessionUserId && tokenOwnerId !== sessionUserId);
   const refreshTriggered = useRef(false);
 
   // Auto-verify if token is present
@@ -39,18 +42,31 @@ export default function VerifyEmailClient({ token, email }: VerifyEmailClientPro
     }
 
     lastVerifiedToken.current = token;
+    refreshTriggered.current = false;
     verifyEmail(token).then((result) => {
       if (result.success) {
         setVerifyState("success");
+        setTokenOwnerId(result.tokenUserId ?? null);
+        setSessionRefreshError(null);
       } else {
         setVerifyState("error");
         setVerifyError(result.error);
       }
     });
-  }, [token]);
+  }, [token, sessionUserId]);
 
   useEffect(() => {
     if (verifyState !== "success" || !hasSession || refreshTriggered.current) {
+      return;
+    }
+
+    if (!sessionUserId) {
+      return;
+    }
+
+    if (sessionMismatch) {
+      refreshTriggered.current = true;
+      void signOut({ redirect: false });
       return;
     }
 
@@ -62,7 +78,7 @@ export default function VerifyEmailClient({ token, email }: VerifyEmailClientPro
       .catch(() => {
         setSessionRefreshError("Please sign in again to continue.");
       });
-  }, [verifyState, hasSession, update, router]);
+  }, [verifyState, hasSession, update, router, sessionUserId, tokenOwnerId, sessionMismatch]);
 
   function handleResendSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -126,7 +142,11 @@ export default function VerifyEmailClient({ token, email }: VerifyEmailClientPro
 
             {hasSession ? (
               <div className="space-y-3">
-                {sessionRefreshError ? (
+                {sessionMismatch ? (
+                  <div className="rounded-md border border-foreground/20 bg-background px-3 py-2 text-sm text-foreground/80">
+                    Please sign in with the verified email to continue.
+                  </div>
+                ) : sessionRefreshError ? (
                   <div className="rounded-md border border-foreground/20 bg-background px-3 py-2 text-sm text-foreground/80">
                     {sessionRefreshError}
                   </div>
@@ -178,20 +198,31 @@ export default function VerifyEmailClient({ token, email }: VerifyEmailClientPro
               <p className="mt-2 text-sm text-foreground/60">{verifyError}</p>
             </div>
 
-            <div className="space-y-3">
-              <Link
-                href="/login?callbackUrl=/verify-email"
-                className="block rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:ring-offset-2"
-              >
-                Sign in to resend
-              </Link>
-              <Link
-                href="/login"
-                className="block text-sm text-foreground/60 hover:text-foreground hover:underline"
-              >
-                Back to login
-              </Link>
-            </div>
+            {hasSession ? (
+              <div className="space-y-3">
+                <Link
+                  href="/verify-email"
+                  className="block rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:ring-offset-2"
+                >
+                  Go to resend
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <Link
+                  href="/login?callbackUrl=/verify-email"
+                  className="block rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:ring-offset-2"
+                >
+                  Sign in to resend
+                </Link>
+                <Link
+                  href="/login"
+                  className="block text-sm text-foreground/60 hover:text-foreground hover:underline"
+                >
+                  Back to login
+                </Link>
+              </div>
+            )}
           </div>
         </main>
       );

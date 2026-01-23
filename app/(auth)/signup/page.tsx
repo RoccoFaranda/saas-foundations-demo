@@ -1,15 +1,15 @@
-import { auth } from "@/src/lib/auth";
+import { getCurrentUser } from "@/src/lib/auth";
 import { redirect } from "next/navigation";
 import SignupClient from "./signup-client";
 
 export default async function SignupPage() {
-  const session = await auth();
+  const user = await getCurrentUser();
 
-  if (session?.user?.emailVerified) {
+  if (user?.emailVerified) {
     redirect("/app/dashboard");
   }
 
-  if (session) {
+  if (user) {
     redirect("/verify-email");
   }
 

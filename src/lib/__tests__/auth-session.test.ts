@@ -18,6 +18,15 @@ vi.mock("../auth/config", () => ({
   auth: () => mockAuth(),
 }));
 
+const mockPrismaUserFindUnique = vi.hoisted(() => vi.fn());
+vi.mock("../db", () => ({
+  default: {
+    user: {
+      findUnique: mockPrismaUserFindUnique,
+    },
+  },
+}));
+
 // Import after mocks are set up
 import {
   getCurrentUser,
@@ -31,6 +40,7 @@ describe("Auth Session Helpers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockAuth.mockReset();
+    mockPrismaUserFindUnique.mockReset();
   });
 
   describe("getCurrentUser", () => {
@@ -58,8 +68,15 @@ describe("Auth Session Helpers", () => {
         email: "test@example.com",
         name: "Test User",
         emailVerified: new Date("2026-01-01"),
+        sessionVersion: 0,
       };
       mockAuth.mockResolvedValue({ user: mockUser });
+      mockPrismaUserFindUnique.mockResolvedValue({
+        email: mockUser.email,
+        name: mockUser.name,
+        emailVerified: mockUser.emailVerified,
+        sessionVersion: mockUser.sessionVersion,
+      });
 
       const user = await getCurrentUser();
 
@@ -68,6 +85,7 @@ describe("Auth Session Helpers", () => {
         email: "test@example.com",
         name: "Test User",
         emailVerified: mockUser.emailVerified,
+        sessionVersion: 0,
       });
     });
 
@@ -78,7 +96,14 @@ describe("Auth Session Helpers", () => {
           email: "test@example.com",
           name: null,
           emailVerified: null,
+          sessionVersion: 0,
         },
+      });
+      mockPrismaUserFindUnique.mockResolvedValue({
+        email: "test@example.com",
+        name: null,
+        emailVerified: null,
+        sessionVersion: 0,
       });
 
       const user = await getCurrentUser();
@@ -88,6 +113,7 @@ describe("Auth Session Helpers", () => {
         email: "test@example.com",
         name: null,
         emailVerified: null,
+        sessionVersion: 0,
       });
     });
 
@@ -97,7 +123,14 @@ describe("Auth Session Helpers", () => {
           id: "user_123",
           email: "test@example.com",
           name: "Test User",
+          sessionVersion: 0,
         },
+      });
+      mockPrismaUserFindUnique.mockResolvedValue({
+        email: "test@example.com",
+        name: "Test User",
+        emailVerified: null,
+        sessionVersion: 0,
       });
 
       const user = await getCurrentUser();
@@ -107,7 +140,28 @@ describe("Auth Session Helpers", () => {
         email: "test@example.com",
         name: "Test User",
         emailVerified: null,
+        sessionVersion: 0,
       });
+    });
+
+    it("should return null when session version is stale", async () => {
+      mockAuth.mockResolvedValue({
+        user: {
+          id: "user_123",
+          email: "test@example.com",
+          emailVerified: new Date("2026-01-01"),
+          sessionVersion: 0,
+        },
+      });
+      mockPrismaUserFindUnique.mockResolvedValue({
+        email: "test@example.com",
+        name: "Test User",
+        emailVerified: new Date("2026-01-01"),
+        sessionVersion: 2,
+      });
+
+      const user = await getCurrentUser();
+      expect(user).toBeNull();
     });
   });
 
@@ -126,7 +180,14 @@ describe("Auth Session Helpers", () => {
           email: "test@example.com",
           name: "Test",
           emailVerified: new Date(),
+          sessionVersion: 0,
         },
+      });
+      mockPrismaUserFindUnique.mockResolvedValue({
+        email: "test@example.com",
+        name: "Test",
+        emailVerified: new Date(),
+        sessionVersion: 0,
       });
 
       const user = await requireUser();
@@ -149,7 +210,14 @@ describe("Auth Session Helpers", () => {
           id: "user_123",
           email: "test@example.com",
           emailVerified: null,
+          sessionVersion: 0,
         },
+      });
+      mockPrismaUserFindUnique.mockResolvedValue({
+        email: "test@example.com",
+        name: null,
+        emailVerified: null,
+        sessionVersion: 0,
       });
 
       await expect(requireVerifiedUser()).rejects.toThrow("REDIRECT:/verify-email");
@@ -164,7 +232,14 @@ describe("Auth Session Helpers", () => {
           email: "test@example.com",
           name: "Test",
           emailVerified: verifiedDate,
+          sessionVersion: 0,
         },
+      });
+      mockPrismaUserFindUnique.mockResolvedValue({
+        email: "test@example.com",
+        name: "Test",
+        emailVerified: verifiedDate,
+        sessionVersion: 0,
       });
 
       const user = await requireVerifiedUser();
@@ -183,7 +258,13 @@ describe("Auth Session Helpers", () => {
 
     it("should return true when authenticated", async () => {
       mockAuth.mockResolvedValue({
-        user: { id: "user_123", email: "test@example.com" },
+        user: { id: "user_123", email: "test@example.com", sessionVersion: 0 },
+      });
+      mockPrismaUserFindUnique.mockResolvedValue({
+        email: "test@example.com",
+        name: null,
+        emailVerified: null,
+        sessionVersion: 0,
       });
 
       const result = await isAuthenticated();
@@ -201,7 +282,18 @@ describe("Auth Session Helpers", () => {
 
     it("should return false when authenticated but not verified", async () => {
       mockAuth.mockResolvedValue({
-        user: { id: "user_123", email: "test@example.com", emailVerified: null },
+        user: {
+          id: "user_123",
+          email: "test@example.com",
+          emailVerified: null,
+          sessionVersion: 0,
+        },
+      });
+      mockPrismaUserFindUnique.mockResolvedValue({
+        email: "test@example.com",
+        name: null,
+        emailVerified: null,
+        sessionVersion: 0,
       });
 
       const result = await isEmailVerified();
@@ -215,7 +307,14 @@ describe("Auth Session Helpers", () => {
           id: "user_123",
           email: "test@example.com",
           emailVerified: new Date(),
+          sessionVersion: 0,
         },
+      });
+      mockPrismaUserFindUnique.mockResolvedValue({
+        email: "test@example.com",
+        name: null,
+        emailVerified: new Date(),
+        sessionVersion: 0,
       });
 
       const result = await isEmailVerified();

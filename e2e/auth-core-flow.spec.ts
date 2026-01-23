@@ -109,29 +109,30 @@ test.describe("Auth core flow", () => {
     await page.goto(`/verify-email?token=${verificationToken}`);
 
     // Step 7: Wait for verification success or auto-redirect to dashboard
-    await page.waitForURL(/\/verify-email|\/app\/dashboard/, { timeout: 5000 });
-    if (page.url().includes("/verify-email")) {
-      await expect(page.getByRole("heading", { name: /Email verified!/i })).toBeVisible({
-        timeout: 5000,
-      });
-    }
+    await Promise.race([
+      page.waitForURL(/\/app\/dashboard/, { timeout: 15000 }),
+      page
+        .getByRole("heading", { name: /Email verified!/i })
+        .waitFor({ state: "visible", timeout: 15000 }),
+    ]);
 
-    // Step 8: Ensure logged out before testing login
-    await page.context().clearCookies();
-    await page.evaluate(() => {
-      localStorage.clear();
-      sessionStorage.clear();
-    });
-    await page.goto("/login");
-    await expect(page).toHaveURL(/\/login/);
+    // Step 8: Ensure logged out before testing login (fresh context)
+    const browser = page.context().browser();
+    if (!browser) {
+      throw new Error("Browser instance not available for login flow");
+    }
+    const loginContext = await browser.newContext();
+    const loginPage = await loginContext.newPage();
+    await loginPage.goto("/login");
+    await expect(loginPage).toHaveURL(/\/login/);
 
     // Step 9: Fill and submit login form
-    await page.getByLabel("Email").fill(testEmail);
-    await page.getByLabel("Password").fill(testPassword);
-    await page.getByRole("button", { name: /Sign in/i }).click();
+    await loginPage.getByLabel("Email").fill(testEmail);
+    await loginPage.getByLabel("Password").fill(testPassword);
+    await loginPage.getByRole("button", { name: /Sign in/i }).click();
 
     // Step 10: Wait for redirect to dashboard
-    await expect(page).toHaveURL(/\/app\/dashboard/, { timeout: 5000 });
-    await expect(page.getByRole("heading", { name: /Dashboard/i })).toBeVisible();
+    await expect(loginPage).toHaveURL(/\/app\/dashboard/, { timeout: 5000 });
+    await expect(loginPage.getByRole("heading", { name: /Dashboard/i })).toBeVisible();
   });
 });

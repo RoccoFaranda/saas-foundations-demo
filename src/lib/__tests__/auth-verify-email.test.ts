@@ -42,6 +42,9 @@ describe("verifyEmail", () => {
     const result = await verifyEmail(token);
 
     expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.tokenUserId).toBe(testUserId);
+    }
 
     // Check that emailVerified was set
     const user = await prisma.user.findUnique({

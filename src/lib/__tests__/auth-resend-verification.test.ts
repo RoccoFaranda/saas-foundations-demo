@@ -37,7 +37,9 @@ describe("resendVerificationEmail", () => {
       },
     });
 
-    authMock.mockResolvedValue({ user: { email: user.email } });
+    authMock.mockResolvedValue({
+      user: { id: user.id, email: user.email, emailVerified: null, sessionVersion: 0 },
+    });
     const result = await resendVerificationEmail();
 
     expect(result.success).toBe(true);
@@ -48,16 +50,16 @@ describe("resendVerificationEmail", () => {
     expect(emails[0].subject).toContain("Verify your email");
   });
 
-  it("should return success for a non-existent email (no enumeration)", async () => {
-    authMock.mockResolvedValue({ user: { email: "nonexistent@example.com" } });
+  it("should fail when session user no longer exists", async () => {
+    authMock.mockResolvedValue({
+      user: { id: "missing-user", email: "missing@example.com", sessionVersion: 0 },
+    });
     const result = await resendVerificationEmail();
 
-    // Should succeed to prevent account enumeration
-    expect(result.success).toBe(true);
-
-    // No email should be sent
-    const emails = testEmailHelpers.findByTo("nonexistent@example.com");
-    expect(emails).toHaveLength(0);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toContain("Please sign in");
+    }
   });
 
   it("should return success for an already verified user (no enumeration)", async () => {
@@ -70,7 +72,14 @@ describe("resendVerificationEmail", () => {
       },
     });
 
-    authMock.mockResolvedValue({ user: { email: user.email } });
+    authMock.mockResolvedValue({
+      user: {
+        id: user.id,
+        email: user.email,
+        emailVerified: user.emailVerified,
+        sessionVersion: 0,
+      },
+    });
     const result = await resendVerificationEmail();
 
     // Should succeed to prevent enumeration
@@ -101,7 +110,9 @@ describe("resendVerificationEmail", () => {
       },
     });
 
-    authMock.mockResolvedValue({ user: { email: user.email } });
+    authMock.mockResolvedValue({
+      user: { id: user.id, email: user.email, emailVerified: null, sessionVersion: 0 },
+    });
     await resendVerificationEmail();
 
     const emails = testEmailHelpers.findByTo(user.email);

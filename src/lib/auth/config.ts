@@ -40,6 +40,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             name: true,
             passwordHash: true,
             emailVerified: true,
+            sessionVersion: true,
           },
         });
 
@@ -59,6 +60,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: user.email,
           name: user.name,
           emailVerified: user.emailVerified,
+          sessionVersion: user.sessionVersion ?? 0,
         };
       },
     }),
@@ -75,13 +77,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.email = user.email;
         token.name = user.name;
         token.emailVerified = user.emailVerified ?? null;
+        token.sessionVersion = user.sessionVersion ?? 0;
       }
 
       const userId = token.id ?? token.sub;
-      if ((trigger === "update" || token.emailVerified == null) && userId) {
+      if (trigger === "update" && userId) {
         const dbUser = await prisma.user.findUnique({
           where: { id: userId },
-          select: { email: true, name: true, emailVerified: true },
+          select: { email: true, name: true, emailVerified: true, sessionVersion: true },
         });
 
         if (dbUser) {
@@ -89,6 +92,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.email = dbUser.email ?? token.email;
           token.name = dbUser.name ?? token.name;
           token.emailVerified = dbUser.emailVerified ?? null;
+          token.sessionVersion = dbUser.sessionVersion ?? token.sessionVersion ?? 0;
         }
       }
 
@@ -101,6 +105,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           typeof token.emailVerified === "string"
             ? new Date(token.emailVerified)
             : (token.emailVerified ?? null);
+        session.user.sessionVersion =
+          typeof token.sessionVersion === "number" ? token.sessionVersion : 0;
       }
       return session;
     },

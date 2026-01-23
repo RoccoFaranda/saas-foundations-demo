@@ -30,11 +30,11 @@ describe("changePassword", () => {
     const oldHash = await hashPassword(oldPassword);
 
     const user = await prisma.user.create({
-      data: { email, passwordHash: oldHash },
+      data: { email, passwordHash: oldHash, emailVerified: new Date() },
     });
 
     authMock.mockResolvedValue({
-      user: { id: user.id, email: user.email, emailVerified: new Date() },
+      user: { id: user.id, email: user.email, emailVerified: new Date(), sessionVersion: 0 },
     });
 
     const form = new FormData();
@@ -52,6 +52,7 @@ describe("changePassword", () => {
       // Old password should not work
       const oldMatches = await verifyPassword(oldPassword, updated.passwordHash);
       expect(oldMatches).toBe(false);
+      expect(updated.sessionVersion).toBe((user.sessionVersion ?? 0) + 1);
     }
   });
 
@@ -63,11 +64,11 @@ describe("changePassword", () => {
     const correctHash = await hashPassword(correctPassword);
 
     const user = await prisma.user.create({
-      data: { email, passwordHash: correctHash },
+      data: { email, passwordHash: correctHash, emailVerified: new Date() },
     });
 
     authMock.mockResolvedValue({
-      user: { id: user.id, email: user.email, emailVerified: new Date() },
+      user: { id: user.id, email: user.email, emailVerified: new Date(), sessionVersion: 0 },
     });
 
     const form = new FormData();
@@ -97,11 +98,11 @@ describe("changePassword", () => {
     const currentHash = await hashPassword(currentPassword);
 
     const user = await prisma.user.create({
-      data: { email, passwordHash: currentHash },
+      data: { email, passwordHash: currentHash, emailVerified: new Date() },
     });
 
     authMock.mockResolvedValue({
-      user: { id: user.id, email: user.email, emailVerified: new Date() },
+      user: { id: user.id, email: user.email, emailVerified: new Date(), sessionVersion: 0 },
     });
 
     const form = new FormData();

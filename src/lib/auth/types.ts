@@ -8,6 +8,7 @@ declare module "next-auth" {
       email: string;
       name?: string | null;
       emailVerified?: Date | null;
+      sessionVersion?: number;
     };
   }
 
@@ -16,6 +17,7 @@ declare module "next-auth" {
     email: string;
     name?: string | null;
     emailVerified?: Date | null;
+    sessionVersion?: number;
   }
 }
 
@@ -25,5 +27,6 @@ declare module "next-auth/jwt" {
     email?: string | null;
     name?: string | null;
     emailVerified?: Date | string | null;
+    sessionVersion?: number;
   }
 }

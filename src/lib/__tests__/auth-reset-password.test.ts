@@ -44,6 +44,7 @@ describe("resetPassword", () => {
     if (updated) {
       const matches = await verifyPassword("newpassword123", updated.passwordHash);
       expect(matches).toBe(true);
+      expect(updated.sessionVersion).toBe((user.sessionVersion ?? 0) + 1);
     }
   });
 

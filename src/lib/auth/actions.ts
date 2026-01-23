@@ -17,16 +17,16 @@ import {
   verifyEmailChangeToken,
 } from "./tokens";
 import { getEmailAdapter } from "./email";
-import { signIn, signOut, auth } from "./config";
+import { signIn, signOut } from "./config";
 import { AuthError } from "next-auth";
 import { logAuthEvent } from "./logging";
-import { requireVerifiedUser } from "./session";
+import { getCurrentUser, requireVerifiedUser } from "./session";
 
 /**
  * Action result type for auth actions
  */
 export type AuthActionResult =
-  | { success: true; redirectUrl?: string }
+  | { success: true; redirectUrl?: string; tokenUserId?: string }
   | { success: false; error: string; field?: "email" | "password" };
 
 const DEFAULT_LOGIN_REDIRECT = "/app/dashboard";
@@ -271,14 +271,14 @@ export async function verifyEmail(token: string): Promise<AuthActionResult> {
     };
   }
 
-  // Set emailVerified on the user
+  // Set emailVerified on the user and invalidate other sessions
   await prisma.user.update({
     where: { id: tokenRecord.userId },
-    data: { emailVerified: new Date() },
+    data: { emailVerified: new Date(), sessionVersion: { increment: 1 } },
   });
 
   logAuthEvent("verify_email_success", { userId: tokenRecord.userId });
-  return { success: true };
+  return { success: true, tokenUserId: tokenRecord.userId };
 }
 
 /**
@@ -371,7 +371,10 @@ export async function resetPassword(formData: FormData): Promise<AuthActionResul
   const passwordHash = await hashPassword(password);
   await prisma.user.update({
     where: { id: tokenRecord.userId },
-    data: { passwordHash },
+    data: {
+      passwordHash,
+      sessionVersion: { increment: 1 },
+    },
   });
 
   logAuthEvent("reset_password_success", { userId: tokenRecord.userId });
@@ -386,8 +389,8 @@ export async function resetPassword(formData: FormData): Promise<AuthActionResul
  * Returns generic success to prevent account enumeration
  */
 export async function resendVerificationEmail(): Promise<AuthActionResult> {
-  const session = await auth();
-  const sessionEmail = session?.user?.email ?? null;
+  const sessionUser = await getCurrentUser();
+  const sessionEmail = sessionUser?.email ?? null;
   if (!sessionEmail) {
     logAuthEvent("resend_verification_validation_failed");
     return { success: false, error: "Please sign in to resend verification email." };
@@ -486,7 +489,10 @@ export async function changePassword(formData: FormData): Promise<AuthActionResu
   // Update password
   await prisma.user.update({
     where: { id: user.id },
-    data: { passwordHash: newPasswordHash },
+    data: {
+      passwordHash: newPasswordHash,
+      sessionVersion: { increment: 1 },
+    },
   });
 
   logAuthEvent("change_password_success", { userId: user.id });
@@ -619,11 +625,14 @@ export async function verifyEmailChange(token: string): Promise<AuthActionResult
   // Update user email
   await prisma.user.update({
     where: { id: tokenRecord.userId },
-    data: { email: tokenRecord.newEmail },
+    data: {
+      email: tokenRecord.newEmail,
+      sessionVersion: { increment: 1 },
+    },
   });
 
   logAuthEvent("change_email_success", { userId: tokenRecord.userId });
-  return { success: true };
+  return { success: true, tokenUserId: tokenRecord.userId };
 }
 
 /**

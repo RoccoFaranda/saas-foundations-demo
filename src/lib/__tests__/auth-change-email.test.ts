@@ -163,9 +163,13 @@ describe("verifyEmailChange", () => {
 
     const result = await verifyEmailChange(token);
     expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.tokenUserId).toBe(user.id);
+    }
 
     const updated = await prisma.user.findUnique({ where: { id: user.id } });
     expect(updated?.email).toBe(newEmail);
+    expect(updated?.sessionVersion).toBe((user.sessionVersion ?? 0) + 1);
   });
 
   it("should fail for used token", async () => {

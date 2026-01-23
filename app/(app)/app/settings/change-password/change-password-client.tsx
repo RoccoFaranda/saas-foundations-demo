@@ -3,14 +3,17 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { changePassword } from "@/src/lib/auth/actions";
 
 export default function ChangePasswordClient() {
   const router = useRouter();
+  const { update } = useSession();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [fieldError, setFieldError] = useState<"email" | "password" | null>(null);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -25,6 +28,12 @@ export default function ChangePasswordClient() {
 
       if (result.success) {
         setSuccess(true);
+        setRefreshError(null);
+        try {
+          await update({ refresh: true });
+        } catch {
+          setRefreshError("Please sign in again to continue.");
+        }
         setTimeout(() => {
           router.push("/app/settings");
           router.refresh();
@@ -100,6 +109,14 @@ export default function ChangePasswordClient() {
               role="status"
             >
               Password changed successfully! Redirecting...
+            </div>
+          )}
+          {refreshError && (
+            <div
+              className="rounded-md border border-foreground/20 bg-background px-3 py-2 text-sm text-foreground/80"
+              role="status"
+            >
+              {refreshError}
             </div>
           )}
 
