@@ -21,6 +21,8 @@ import { signIn, signOut } from "./config";
 import { AuthError } from "next-auth";
 import { logAuthEvent } from "./logging";
 import { getCurrentUser, requireVerifiedUser } from "./session";
+import { AUTH_RATE_LIMIT_ERROR, getAuthRateLimiter, type AuthRateLimitAction } from "../ratelimit";
+import { headers } from "next/headers";
 
 /**
  * Action result type for auth actions
@@ -30,6 +32,42 @@ export type AuthActionResult =
   | { success: false; error: string; field?: "email" | "password" };
 
 const DEFAULT_LOGIN_REDIRECT = "/app/dashboard";
+
+async function enforceAuthRateLimit(
+  action: AuthRateLimitAction,
+  identifiers: string[]
+): Promise<AuthActionResult | null> {
+  const limiter = getAuthRateLimiter(action);
+  for (const identifier of identifiers) {
+    const normalizedIdentifier = identifier.trim();
+    if (!normalizedIdentifier) {
+      continue;
+    }
+
+    const result = await limiter.limit(normalizedIdentifier);
+    if (!result.allowed) {
+      return { success: false, error: AUTH_RATE_LIMIT_ERROR };
+    }
+  }
+
+  return null;
+}
+
+async function getRequestIp(): Promise<string | null> {
+  try {
+    const requestHeaders = await headers();
+    const forwardedFor = requestHeaders.get("x-forwarded-for");
+    const realIp = requestHeaders.get("x-real-ip");
+    const source = forwardedFor ?? realIp;
+    if (!source) {
+      return null;
+    }
+    const [first] = source.split(",");
+    return first?.trim() ?? null;
+  } catch {
+    return null;
+  }
+}
 
 function isUniqueConstraintError(error: unknown): boolean {
   return (
@@ -104,9 +142,20 @@ function generateVerificationEmailHtml(verifyUrl: string): string {
  * Creates a new user, sends verification email
  */
 export async function signup(formData: FormData): Promise<AuthActionResult> {
+  const rawEmail = formData.get("email");
+  const emailIdentifier = typeof rawEmail === "string" ? rawEmail.trim().toLowerCase() : "";
+  const requestIp = await getRequestIp();
+  const signupRateLimit = await enforceAuthRateLimit("signup", [
+    requestIp ? `ip:${requestIp}` : "",
+    emailIdentifier ? `email:${emailIdentifier}` : "",
+  ]);
+  if (signupRateLimit) {
+    return signupRateLimit;
+  }
+
   // Parse and validate input
   const rawInput = {
-    email: formData.get("email"),
+    email: rawEmail,
     password: formData.get("password"),
   };
 
@@ -206,9 +255,20 @@ export async function signup(formData: FormData): Promise<AuthActionResult> {
  * Authenticates user via Auth.js credentials
  */
 export async function login(formData: FormData): Promise<AuthActionResult> {
+  const rawEmail = formData.get("email");
+  const emailIdentifier = typeof rawEmail === "string" ? rawEmail.trim().toLowerCase() : "";
+  const requestIp = await getRequestIp();
+  const loginRateLimit = await enforceAuthRateLimit("login", [
+    requestIp ? `ip:${requestIp}` : "",
+    emailIdentifier ? `email:${emailIdentifier}` : "",
+  ]);
+  if (loginRateLimit) {
+    return loginRateLimit;
+  }
+
   // Parse and validate input
   const rawInput = {
-    email: formData.get("email"),
+    email: rawEmail,
     password: formData.get("password"),
   };
 
@@ -302,6 +362,14 @@ function generateResetEmailHtml(resetUrl: string): string {
 export async function forgotPassword(formData: FormData): Promise<AuthActionResult> {
   const rawEmail = formData.get("email");
   const email = typeof rawEmail === "string" ? rawEmail.trim().toLowerCase() : "";
+  const requestIp = await getRequestIp();
+  const forgotRateLimit = await enforceAuthRateLimit("forgotPassword", [
+    requestIp ? `ip:${requestIp}` : "",
+    email ? `email:${email}` : "",
+  ]);
+  if (forgotRateLimit) {
+    return forgotRateLimit;
+  }
 
   if (!email) {
     logAuthEvent("forgot_password_validation_failed");
@@ -391,9 +459,18 @@ export async function resetPassword(formData: FormData): Promise<AuthActionResul
 export async function resendVerificationEmail(): Promise<AuthActionResult> {
   const sessionUser = await getCurrentUser();
   const sessionEmail = sessionUser?.email ?? null;
-  if (!sessionEmail) {
+  if (!sessionUser?.id || !sessionEmail) {
     logAuthEvent("resend_verification_validation_failed");
     return { success: false, error: "Please sign in to resend verification email." };
+  }
+
+  const requestIp = await getRequestIp();
+  const resendRateLimit = await enforceAuthRateLimit("resendVerificationEmail", [
+    `user:${sessionUser.id}`,
+    requestIp ? `ip:${requestIp}` : "",
+  ]);
+  if (resendRateLimit) {
+    return resendRateLimit;
   }
 
   // Find user (if exists)
