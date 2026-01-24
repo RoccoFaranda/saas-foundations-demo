@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Turnstile from "react-turnstile";
@@ -11,7 +11,42 @@ export default function SignupClient() {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [fieldError, setFieldError] = useState<"email" | "password" | null>(null);
+  const [isRateLimited, setIsRateLimited] = useState(false);
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearRateLimitMessageRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+      }
+    };
+  }, []);
+
+  function applyRetryAt(nextRetryAt: number | null | undefined, onClearMessage?: () => void) {
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+    clearRateLimitMessageRef.current = onClearMessage ?? null;
+
+    if (nextRetryAt && nextRetryAt > Date.now()) {
+      setIsRateLimited(true);
+      const delay = Math.max(nextRetryAt - Date.now(), 0);
+      retryTimerRef.current = setTimeout(() => {
+        setIsRateLimited(false);
+        retryTimerRef.current = null;
+        clearRateLimitMessageRef.current?.();
+        clearRateLimitMessageRef.current = null;
+      }, delay);
+      return;
+    }
+
+    setIsRateLimited(false);
+    clearRateLimitMessageRef.current?.();
+    clearRateLimitMessageRef.current = null;
+  }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -24,10 +59,12 @@ export default function SignupClient() {
       const result = await signup(formData);
 
       if (result.success) {
+        applyRetryAt(null);
         router.push("/verify-email");
       } else {
         setError(result.error);
         setFieldError(result.field ?? null);
+        applyRetryAt(result.retryAt ?? null, () => setError(null));
       }
     });
   }
@@ -98,7 +135,7 @@ export default function SignupClient() {
 
           <button
             type="submit"
-            disabled={isPending}
+            disabled={isPending || isRateLimited}
             className="w-full rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isPending ? "Creating account..." : "Create account"}

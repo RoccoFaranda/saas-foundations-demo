@@ -22,14 +22,49 @@ export default function VerifyEmailClient({ token, email }: VerifyEmailClientPro
 
   const [resendPending, startResendTransition] = useTransition();
   const [resendMessage, setResendMessage] = useState<string | null>(null);
+  const [isResendRateLimited, setIsResendRateLimited] = useState(false);
   const [sessionRefreshError, setSessionRefreshError] = useState<string | null>(null);
   const lastVerifiedToken = useRef<string | null>(null);
+  const resendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearRateLimitMessageRef = useRef<(() => void) | null>(null);
 
   const hasEmail = Boolean(email);
   const sessionUserId = session?.user?.id ?? null;
   const hasSession = Boolean(sessionUserId);
   const sessionMismatch = Boolean(tokenOwnerId && sessionUserId && tokenOwnerId !== sessionUserId);
   const refreshTriggered = useRef(false);
+
+  useEffect(() => {
+    return () => {
+      if (resendTimerRef.current) {
+        clearTimeout(resendTimerRef.current);
+      }
+    };
+  }, []);
+
+  function applyResendRetryAt(nextRetryAt: number | null | undefined, onClearMessage?: () => void) {
+    if (resendTimerRef.current) {
+      clearTimeout(resendTimerRef.current);
+      resendTimerRef.current = null;
+    }
+    clearRateLimitMessageRef.current = onClearMessage ?? null;
+
+    if (nextRetryAt && nextRetryAt > Date.now()) {
+      setIsResendRateLimited(true);
+      const delay = Math.max(nextRetryAt - Date.now(), 0);
+      resendTimerRef.current = setTimeout(() => {
+        setIsResendRateLimited(false);
+        resendTimerRef.current = null;
+        clearRateLimitMessageRef.current?.();
+        clearRateLimitMessageRef.current = null;
+      }, delay);
+      return;
+    }
+
+    setIsResendRateLimited(false);
+    clearRateLimitMessageRef.current?.();
+    clearRateLimitMessageRef.current = null;
+  }
 
   // Auto-verify if token is present
   useEffect(() => {
@@ -91,8 +126,10 @@ export default function VerifyEmailClient({ token, email }: VerifyEmailClientPro
         setResendMessage(
           "If an account with that email exists, a verification email has been sent."
         );
+        applyResendRetryAt(null);
       } else {
         setResendMessage(result.error);
+        applyResendRetryAt(result.retryAt ?? null, () => setResendMessage(null));
       }
     });
   }
@@ -281,7 +318,7 @@ export default function VerifyEmailClient({ token, email }: VerifyEmailClientPro
 
             <button
               type="submit"
-              disabled={resendPending}
+              disabled={resendPending || isResendRateLimited}
               className="w-full rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {resendPending ? "Sending..." : "Resend verification email"}

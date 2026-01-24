@@ -19,14 +19,23 @@ export type RateLimiterFactory = (action: AuthRateLimitAction) => RateLimiter;
 
 export const AUTH_RATE_LIMIT_ERROR = "Too many requests. Please wait a few minutes and try again.";
 
+export function formatRateLimitMessage(resetAt: number): string {
+  const minutes = Math.max(1, Math.ceil((resetAt - Date.now()) / 60000));
+  return `Too many requests. Try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`;
+}
+
 const AUTH_RATE_LIMITS: Record<
   AuthRateLimitAction,
   { limit: number; window: Duration; windowMs: number }
 > = {
-  signup: { limit: 3, window: "10 m", windowMs: 10 * 60 * 1000 },
+  /* signup: { limit: 3, window: "10 m", windowMs: 10 * 60 * 1000 },
   login: { limit: 5, window: "1 m", windowMs: 60 * 1000 },
   resendVerificationEmail: { limit: 3, window: "10 m", windowMs: 10 * 60 * 1000 },
-  forgotPassword: { limit: 3, window: "10 m", windowMs: 10 * 60 * 1000 },
+  forgotPassword: { limit: 3, window: "10 m", windowMs: 10 * 60 * 1000 }, */
+  signup: { limit: 3, window: "1 m", windowMs: 60 * 1000 },
+  login: { limit: 5, window: "1 m", windowMs: 60 * 1000 },
+  resendVerificationEmail: { limit: 3, window: "1 m", windowMs: 60 * 1000 },
+  forgotPassword: { limit: 3, window: "1 m", windowMs: 60 * 1000 },
 };
 
 const limiterCache = new Map<AuthRateLimitAction, RateLimiter>();

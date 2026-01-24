@@ -93,6 +93,7 @@ describe("auth rate limiting", () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error).toContain("Too many");
+      expect(result.retryAt).toBeTypeOf("number");
     }
 
     const emails = testEmailHelpers.findByTo(email);

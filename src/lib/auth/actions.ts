@@ -21,7 +21,12 @@ import { signIn, signOut } from "./config";
 import { AuthError } from "next-auth";
 import { logAuthEvent } from "./logging";
 import { getCurrentUser, requireVerifiedUser } from "./session";
-import { AUTH_RATE_LIMIT_ERROR, getAuthRateLimiter, type AuthRateLimitAction } from "../ratelimit";
+import {
+  AUTH_RATE_LIMIT_ERROR,
+  formatRateLimitMessage,
+  getAuthRateLimiter,
+  type AuthRateLimitAction,
+} from "../ratelimit";
 import { headers } from "next/headers";
 import { verifyTurnstileToken } from "./turnstile";
 
@@ -30,7 +35,7 @@ import { verifyTurnstileToken } from "./turnstile";
  */
 export type AuthActionResult =
   | { success: true; redirectUrl?: string; tokenUserId?: string }
-  | { success: false; error: string; field?: "email" | "password" };
+  | { success: false; error: string; field?: "email" | "password"; retryAt?: number };
 
 const DEFAULT_LOGIN_REDIRECT = "/app/dashboard";
 
@@ -47,7 +52,10 @@ async function enforceAuthRateLimit(
 
     const result = await limiter.limit(normalizedIdentifier);
     if (!result.allowed) {
-      return { success: false, error: AUTH_RATE_LIMIT_ERROR };
+      const message = result.resetAt
+        ? formatRateLimitMessage(result.resetAt)
+        : AUTH_RATE_LIMIT_ERROR;
+      return { success: false, error: message, retryAt: result.resetAt };
     }
   }
 

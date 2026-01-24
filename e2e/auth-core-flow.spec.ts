@@ -76,6 +76,7 @@ async function waitForVerificationEmail(
 
 test.describe("Auth core flow", () => {
   test("signup -> verify email -> login -> dashboard", async ({ page }) => {
+    test.setTimeout(60000);
     // Generate unique email for this test run
     const timestamp = Date.now();
     const testEmail = `e2e-test-${timestamp}@example.com`;

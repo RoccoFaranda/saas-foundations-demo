@@ -1,12 +1,47 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { forgotPassword } from "@/src/lib/auth/actions";
 
 export default function ForgotClient() {
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
+  const [isRateLimited, setIsRateLimited] = useState(false);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearRateLimitMessageRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+      }
+    };
+  }, []);
+
+  function applyRetryAt(nextRetryAt: number | null | undefined, onClearMessage?: () => void) {
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+    clearRateLimitMessageRef.current = onClearMessage ?? null;
+
+    if (nextRetryAt && nextRetryAt > Date.now()) {
+      setIsRateLimited(true);
+      const delay = Math.max(nextRetryAt - Date.now(), 0);
+      retryTimerRef.current = setTimeout(() => {
+        setIsRateLimited(false);
+        retryTimerRef.current = null;
+        clearRateLimitMessageRef.current?.();
+        clearRateLimitMessageRef.current = null;
+      }, delay);
+      return;
+    }
+
+    setIsRateLimited(false);
+    clearRateLimitMessageRef.current?.();
+    clearRateLimitMessageRef.current = null;
+  }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -18,8 +53,10 @@ export default function ForgotClient() {
       const result = await forgotPassword(formData);
       if (result.success) {
         setMessage("If an account with that email exists, a reset email has been sent.");
+        applyRetryAt(null);
       } else {
         setMessage(result.error);
+        applyRetryAt(result.retryAt ?? null, () => setMessage(null));
       }
     });
   }
@@ -62,7 +99,7 @@ export default function ForgotClient() {
 
           <button
             type="submit"
-            disabled={isPending}
+            disabled={isPending || isRateLimited}
             className="w-full rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isPending ? "Sending..." : "Send reset email"}
