@@ -90,6 +90,33 @@ test.describe("Auth core flow", () => {
     // Step 2: Fill and submit signup form
     await page.getByLabel("Email").fill(testEmail);
     await page.getByLabel("Password").fill(testPassword);
+    // Wait for Turnstile to populate a token before submitting (when enabled)
+    const hasTurnstile = await page
+      .waitForFunction(
+        () =>
+          Boolean(
+            document.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+              'input[name="cf-turnstile-response"], textarea[name="cf-turnstile-response"]'
+            )
+          ),
+        { timeout: 5000 }
+      )
+      .then(() => true)
+      .catch(() => false);
+
+    if (hasTurnstile) {
+      await page
+        .waitForFunction(
+          () => {
+            const el = document.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+              'input[name="cf-turnstile-response"], textarea[name="cf-turnstile-response"]'
+            );
+            return Boolean(el && el.value && el.value.length > 0);
+          },
+          { timeout: 20000 }
+        )
+        .catch(() => {});
+    }
     await page.getByRole("button", { name: /Create account/i }).click();
 
     // Step 3: Wait for redirect to verify-email page

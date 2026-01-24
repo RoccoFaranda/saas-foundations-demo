@@ -303,9 +303,13 @@ export default function VerifyEmailClient({ token, email }: VerifyEmailClientPro
 
         <p className="mt-6 text-center text-sm text-foreground/60">
           Wrong email?{" "}
-          <Link href="/signup" className="font-medium text-foreground hover:underline">
+          <button
+            type="button"
+            onClick={() => void signOut({ callbackUrl: "/signup" })}
+            className="font-medium text-foreground hover:underline"
+          >
             Create a new account
-          </Link>
+          </button>
         </p>
       </div>
     </main>

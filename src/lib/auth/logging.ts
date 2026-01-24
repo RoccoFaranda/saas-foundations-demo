@@ -4,6 +4,7 @@ export type AuthLogEvent =
   | "signup_created"
   | "signup_verification_email_sent"
   | "signup_auto_login_failed"
+  | "signup_turnstile_failed"
   | "login_validation_failed"
   | "login_invalid_credentials"
   | "login_success"

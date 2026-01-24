@@ -23,6 +23,7 @@ import { logAuthEvent } from "./logging";
 import { getCurrentUser, requireVerifiedUser } from "./session";
 import { AUTH_RATE_LIMIT_ERROR, getAuthRateLimiter, type AuthRateLimitAction } from "../ratelimit";
 import { headers } from "next/headers";
+import { verifyTurnstileToken } from "./turnstile";
 
 /**
  * Action result type for auth actions
@@ -151,6 +152,19 @@ export async function signup(formData: FormData): Promise<AuthActionResult> {
   ]);
   if (signupRateLimit) {
     return signupRateLimit;
+  }
+
+  // Verify Turnstile token
+  const turnstileToken = formData.get("cf-turnstile-response");
+  const isTurnstileValid = await verifyTurnstileToken(
+    typeof turnstileToken === "string" ? turnstileToken : null
+  );
+  if (!isTurnstileValid) {
+    logAuthEvent("signup_turnstile_failed");
+    return {
+      success: false,
+      error: "Verification failed. Please try again.",
+    };
   }
 
   // Parse and validate input

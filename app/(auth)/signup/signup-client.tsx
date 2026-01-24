@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Turnstile from "react-turnstile";
 import { signup } from "@/src/lib/auth/actions";
 
 export default function SignupClient() {
@@ -10,6 +11,7 @@ export default function SignupClient() {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [fieldError, setFieldError] = useState<"email" | "password" | null>(null);
+  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -78,6 +80,12 @@ export default function SignupClient() {
             />
             <p className="mt-1 text-xs text-foreground/50">At least 8 characters</p>
           </div>
+
+          {siteKey && (
+            <div>
+              <Turnstile sitekey={siteKey} theme="auto" />
+            </div>
+          )}
 
           {error && (
             <div
