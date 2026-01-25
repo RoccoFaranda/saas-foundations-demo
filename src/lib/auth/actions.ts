@@ -420,10 +420,10 @@ export async function forgotPassword(formData: FormData): Promise<AuthActionResu
       logAuthEvent("forgot_password_email_sent", { userId: user.id });
     } catch (err) {
       // Don't surface errors to caller; log and continue returning generic success
-      logAuthEvent("forgot_password_email_error", { email, error: String(err) });
+      logAuthEvent("forgot_password_email_error", { error: String(err) });
     }
   } else {
-    logAuthEvent("forgot_password_noop", { email });
+    logAuthEvent("forgot_password_noop");
   }
 
   return { success: true };
