@@ -182,6 +182,7 @@ Demo-safe behavior:
 
 - Local/dev can use a console or dev mailbox adapter.
 - Production uses a transactional provider with domain authentication (Resend).
+- Optional override: set `EMAIL_PROVIDER=resend` to force Resend outside production for debugging.
 - Never log tokens or full email links.
 
 ### Rate limiting (Redis)
