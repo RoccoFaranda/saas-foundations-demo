@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { getDevMailboxMessages } from "@/src/lib/auth/dev-mailbox";
 
+export const dynamic = "force-dynamic";
+
 export default async function DevMailboxPage() {
   if (process.env.NODE_ENV !== "development") {
     notFound();
@@ -9,7 +11,7 @@ export default async function DevMailboxPage() {
   const messages = (await getDevMailboxMessages()).slice().reverse();
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
+    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6" suppressHydrationWarning>
       <header className="space-y-2">
         <h1 className="text-2xl font-bold">Dev Mailbox</h1>
         <p className="text-sm text-foreground/60">

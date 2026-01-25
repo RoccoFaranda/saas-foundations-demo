@@ -1,4 +1,5 @@
 import "server-only";
+import { Resend } from "resend";
 import { appendDevMailboxMessage } from "./dev-mailbox";
 
 export interface EmailMessage {
@@ -86,18 +87,80 @@ export const testEmailHelpers = {
 };
 
 /**
- * Dev helpers for accessing the mailbox (dev-only)
+ * Resend production adapter
+ * Never logs tokens or PII
  */
+function createResendAdapter(): EmailAdapter {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.EMAIL_FROM;
+
+  if (!apiKey || !from) {
+    throw new Error("Resend adapter requires RESEND_API_KEY and EMAIL_FROM environment variables");
+  }
+
+  const resend = new Resend(apiKey);
+
+  return {
+    async send(message: EmailMessage) {
+      // Never log tokens or PII - only log subject for debugging
+      try {
+        await resend.emails.send({
+          from,
+          to: message.to,
+          subject: message.subject,
+          html: message.html,
+          text: message.text,
+        });
+      } catch (error) {
+        // Log error without exposing tokens or PII
+        console.error("[EMAIL ERROR] Failed to send email:", {
+          subject: message.subject,
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+        throw error;
+      }
+    },
+  };
+}
+
+/**
+ * Check if Resend should be used
+ */
+type EmailProvider = "resend" | "dev" | "test";
+
+function resolveEmailProvider(): EmailProvider {
+  const provider = process.env.EMAIL_PROVIDER?.toLowerCase();
+  if (provider) {
+    if (provider !== "resend") {
+      throw new Error(`Unsupported EMAIL_PROVIDER value: ${provider}`);
+    }
+    return "resend";
+  }
+
+  if (process.env.NODE_ENV === "test") {
+    return "test";
+  }
+
+  if (process.env.NODE_ENV === "development") {
+    return "dev";
+  }
+
+  return "resend";
+}
 
 /**
  * Get the appropriate email adapter based on environment
  */
 export function getEmailAdapter(): EmailAdapter {
-  if (process.env.NODE_ENV === "test") {
+  const provider = resolveEmailProvider();
+
+  if (provider === "test") {
     return testEmailAdapter;
   }
-  if (process.env.NODE_ENV === "development") {
+
+  if (provider === "dev") {
     return devMailboxEmailAdapter;
   }
-  return devEmailAdapter;
+
+  return createResendAdapter();
 }
