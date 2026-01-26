@@ -311,6 +311,7 @@ export default function VerifyEmailClient({ token, email }: VerifyEmailClientPro
                 type="email"
                 autoComplete="email"
                 required
+                maxLength={255}
                 disabled
                 readOnly
                 value={email ?? ""}

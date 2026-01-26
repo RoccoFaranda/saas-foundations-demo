@@ -48,6 +48,32 @@ describe("resetPassword", () => {
     }
   });
 
+  it("should reject passwords over 128 characters without consuming the token", async () => {
+    const email = `reset-too-long-${randomUUID()}@example.com`;
+    const user = await prisma.user.create({
+      data: { email, passwordHash: "hash" },
+    });
+
+    const { token } = await createPasswordResetToken(user.id);
+
+    const form = new FormData();
+    form.set("token", token);
+    form.set("password", "a".repeat(129));
+
+    const result = await resetPassword(form);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toContain("at most 128");
+    }
+
+    const retryForm = new FormData();
+    retryForm.set("token", token);
+    retryForm.set("password", "validpassword123");
+
+    const retryResult = await resetPassword(retryForm);
+    expect(retryResult.success).toBe(true);
+  });
+
   it("should fail for used token", async () => {
     const email = `reset-used-${randomUUID()}@example.com`;
     const user = await prisma.user.create({

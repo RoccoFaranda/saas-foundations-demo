@@ -4,6 +4,8 @@ import prisma from "../db";
 import {
   signupSchema,
   loginSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
   changePasswordSchema,
   changeEmailSchema,
 } from "../validation/auth";
@@ -427,15 +429,18 @@ export async function forgotPassword(formData: FormData): Promise<AuthActionResu
     return forgotRateLimit;
   }
 
-  if (!email) {
+  const parsed = forgotPasswordSchema.safeParse({ email: rawEmail });
+  if (!parsed.success) {
     logAuthEvent("forgot_password_validation_failed");
     // Return generic success
     return { success: true };
   }
 
+  const { email: normalizedEmail } = parsed.data;
+
   // Find user by email
   const user = await prisma.user.findUnique({
-    where: { email },
+    where: { email: normalizedEmail },
     select: { id: true, email: true },
   });
 
@@ -470,18 +475,27 @@ export async function forgotPassword(formData: FormData): Promise<AuthActionResu
 export async function resetPassword(formData: FormData): Promise<AuthActionResult> {
   const rawToken = formData.get("token");
   const rawPassword = formData.get("password");
-  const token = typeof rawToken === "string" ? rawToken.trim() : "";
-  const password = typeof rawPassword === "string" ? rawPassword : "";
+  const parsed = resetPasswordSchema.safeParse({
+    token: typeof rawToken === "string" ? rawToken.trim() : "",
+    password: typeof rawPassword === "string" ? rawPassword : "",
+  });
 
-  if (!token) {
-    logAuthEvent("reset_password_missing_token");
-    return { success: false, error: "Invalid or missing reset token" };
-  }
+  if (!parsed.success) {
+    const firstIssue = parsed.error.issues[0];
+    if (firstIssue?.path[0] === "token") {
+      logAuthEvent("reset_password_missing_token");
+      return { success: false, error: "Invalid or missing reset token" };
+    }
 
-  if (!password || password.length < 8) {
     logAuthEvent("reset_password_invalid_password");
-    return { success: false, error: "Password must be at least 8 characters", field: "password" };
+    return {
+      success: false,
+      error: firstIssue?.message ?? "Invalid password",
+      field: "password",
+    };
   }
+
+  const { token, password } = parsed.data;
 
   // Consume and verify the token
   const tokenRecord = await verifyPasswordResetToken(token);

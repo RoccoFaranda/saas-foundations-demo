@@ -136,6 +136,7 @@ export default function ResetClient({ token, tokenValid }: ResetClientProps) {
               autoComplete="new-password"
               required
               minLength={8}
+              maxLength={128}
               disabled={isPending || success}
               className="w-full rounded-md border border-foreground/20 bg-background px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-foreground/20 disabled:cursor-not-allowed disabled:opacity-50"
               placeholder="••••••••"

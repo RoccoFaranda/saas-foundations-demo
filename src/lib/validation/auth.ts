@@ -44,6 +44,27 @@ export type LoginInput = z.input<typeof loginSchema>;
 export type LoginOutput = z.output<typeof loginSchema>;
 
 /**
+ * Forgot password form schema
+ */
+export const forgotPasswordSchema = z.object({
+  email: emailSchema,
+});
+
+export type ForgotPasswordInput = z.input<typeof forgotPasswordSchema>;
+export type ForgotPasswordOutput = z.output<typeof forgotPasswordSchema>;
+
+/**
+ * Reset password form schema
+ */
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, "Invalid or missing reset token"),
+  password: passwordSchema,
+});
+
+export type ResetPasswordInput = z.input<typeof resetPasswordSchema>;
+export type ResetPasswordOutput = z.output<typeof resetPasswordSchema>;
+
+/**
  * Change password form schema
  */
 export const changePasswordSchema = z.object({
