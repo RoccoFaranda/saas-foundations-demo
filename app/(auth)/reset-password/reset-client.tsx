@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { resetPassword } from "@/src/lib/auth/actions";
+import { GENERIC_ACTION_ERROR } from "@/src/lib/ui/messages";
 
 type ResetClientProps = {
   token: string | null;
@@ -26,14 +27,18 @@ export default function ResetClient({ token, tokenValid }: ResetClientProps) {
     }
 
     startTransition(async () => {
-      const result = await resetPassword(formData);
-      if (result.success) {
-        setSuccess(true);
-        const redirectUrl = result.redirectUrl ?? "/login";
-        // Redirect to login after short delay
-        setTimeout(() => router.push(redirectUrl), 800);
-      } else {
-        setError(result.error);
+      try {
+        const result = await resetPassword(formData);
+        if (result.success) {
+          setSuccess(true);
+          const redirectUrl = result.redirectUrl ?? "/login";
+          // Redirect to login after short delay
+          setTimeout(() => router.push(redirectUrl), 800);
+        } else {
+          setError(result.error);
+        }
+      } catch {
+        setError(GENERIC_ACTION_ERROR);
       }
     });
   }

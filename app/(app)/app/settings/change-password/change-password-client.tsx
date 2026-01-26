@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { changePassword } from "@/src/lib/auth/actions";
+import { GENERIC_ACTION_ERROR } from "@/src/lib/ui/messages";
 
 export default function ChangePasswordClient() {
   const router = useRouter();
@@ -24,23 +25,27 @@ export default function ChangePasswordClient() {
     const formData = new FormData(event.currentTarget);
 
     startTransition(async () => {
-      const result = await changePassword(formData);
+      try {
+        const result = await changePassword(formData);
 
-      if (result.success) {
-        setSuccess(true);
-        setRefreshError(null);
-        try {
-          await update({ refresh: true });
-        } catch {
-          setRefreshError("Please sign in again to continue.");
+        if (result.success) {
+          setSuccess(true);
+          setRefreshError(null);
+          try {
+            await update({ refresh: true });
+          } catch {
+            setRefreshError("Please sign in again to continue.");
+          }
+          setTimeout(() => {
+            router.push("/app/settings");
+            router.refresh();
+          }, 1500);
+        } else {
+          setError(result.error);
+          setFieldError(result.field ?? null);
         }
-        setTimeout(() => {
-          router.push("/app/settings");
-          router.refresh();
-        }, 1500);
-      } else {
-        setError(result.error);
-        setFieldError(result.field ?? null);
+      } catch {
+        setError(GENERIC_ACTION_ERROR);
       }
     });
   }

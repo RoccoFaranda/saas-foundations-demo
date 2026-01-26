@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { verifyEmail, resendVerificationEmail } from "@/src/lib/auth/actions";
+import { GENERIC_ACTION_ERROR } from "@/src/lib/ui/messages";
 
 type VerifyState = "success" | "error";
 
@@ -78,16 +79,21 @@ export default function VerifyEmailClient({ token, email }: VerifyEmailClientPro
 
     lastVerifiedToken.current = token;
     refreshTriggered.current = false;
-    verifyEmail(token).then((result) => {
-      if (result.success) {
-        setVerifyState("success");
-        setTokenOwnerId(result.tokenUserId ?? null);
-        setSessionRefreshError(null);
-      } else {
+    verifyEmail(token)
+      .then((result) => {
+        if (result.success) {
+          setVerifyState("success");
+          setTokenOwnerId(result.tokenUserId ?? null);
+          setSessionRefreshError(null);
+        } else {
+          setVerifyState("error");
+          setVerifyError(result.error);
+        }
+      })
+      .catch(() => {
         setVerifyState("error");
-        setVerifyError(result.error);
-      }
-    });
+        setVerifyError(GENERIC_ACTION_ERROR);
+      });
   }, [token, sessionUserId]);
 
   useEffect(() => {
@@ -120,16 +126,21 @@ export default function VerifyEmailClient({ token, email }: VerifyEmailClientPro
     setResendMessage(null);
 
     startResendTransition(async () => {
-      const result = await resendVerificationEmail();
+      try {
+        const result = await resendVerificationEmail();
 
-      if (result.success) {
-        setResendMessage(
-          "If an account with that email exists, a verification email has been sent."
-        );
+        if (result.success) {
+          setResendMessage(
+            "If an account with that email exists, a verification email has been sent."
+          );
+          applyResendRetryAt(null);
+        } else {
+          setResendMessage(result.error);
+          applyResendRetryAt(result.retryAt ?? null, () => setResendMessage(null));
+        }
+      } catch {
         applyResendRetryAt(null);
-      } else {
-        setResendMessage(result.error);
-        applyResendRetryAt(result.retryAt ?? null, () => setResendMessage(null));
+        setResendMessage(GENERIC_ACTION_ERROR);
       }
     });
   }

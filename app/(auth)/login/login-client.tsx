@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { login } from "@/src/lib/auth/actions";
+import { GENERIC_ACTION_ERROR } from "@/src/lib/ui/messages";
 
 type LoginClientProps = {
   callbackUrl: string;
@@ -59,18 +60,23 @@ export default function LoginClient({ callbackUrl, resetSuccess }: LoginClientPr
     const formData = new FormData(event.currentTarget);
 
     startTransition(async () => {
-      const result = await login(formData);
+      try {
+        const result = await login(formData);
 
-      if (result.success) {
+        if (result.success) {
+          applyRetryAt(null);
+          const destination = result.redirectUrl ?? "/app/dashboard";
+          router.push(destination);
+          router.refresh();
+        } else {
+          const retryAt = result.retryAt ?? null;
+          setError(result.error);
+          setFieldError(result.field ?? null);
+          applyRetryAt(retryAt, retryAt ? () => setError(null) : undefined);
+        }
+      } catch {
         applyRetryAt(null);
-        const destination = result.redirectUrl ?? "/app/dashboard";
-        router.push(destination);
-        router.refresh();
-      } else {
-        const retryAt = result.retryAt ?? null;
-        setError(result.error);
-        setFieldError(result.field ?? null);
-        applyRetryAt(retryAt, retryAt ? () => setError(null) : undefined);
+        setError(GENERIC_ACTION_ERROR);
       }
     });
   }

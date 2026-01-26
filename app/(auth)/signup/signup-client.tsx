@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Turnstile from "react-turnstile";
 import { signup } from "@/src/lib/auth/actions";
+import { GENERIC_ACTION_ERROR } from "@/src/lib/ui/messages";
 
 export default function SignupClient() {
   const router = useRouter();
@@ -56,16 +57,21 @@ export default function SignupClient() {
     const formData = new FormData(event.currentTarget);
 
     startTransition(async () => {
-      const result = await signup(formData);
+      try {
+        const result = await signup(formData);
 
-      if (result.success) {
+        if (result.success) {
+          applyRetryAt(null);
+          router.push("/verify-email");
+        } else {
+          const retryAt = result.retryAt ?? null;
+          setError(result.error);
+          setFieldError(result.field ?? null);
+          applyRetryAt(retryAt, retryAt ? () => setError(null) : undefined);
+        }
+      } catch {
         applyRetryAt(null);
-        router.push("/verify-email");
-      } else {
-        const retryAt = result.retryAt ?? null;
-        setError(result.error);
-        setFieldError(result.field ?? null);
-        applyRetryAt(retryAt, retryAt ? () => setError(null) : undefined);
+        setError(GENERIC_ACTION_ERROR);
       }
     });
   }

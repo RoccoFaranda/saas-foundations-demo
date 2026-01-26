@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { verifyEmailChange } from "@/src/lib/auth/actions";
+import { GENERIC_ACTION_ERROR } from "@/src/lib/ui/messages";
 
 type VerifyEmailChangeClientProps = {
   token: string | null;
@@ -40,16 +41,21 @@ export default function VerifyEmailChangeClient({ token }: VerifyEmailChangeClie
     lastVerifiedToken.current = token;
     refreshTriggered.current = false;
 
-    verifyEmailChange(token).then((result) => {
-      if (result.success) {
-        setVerifyState("success");
-        setTokenOwnerId(result.tokenUserId ?? null);
-        setSessionRefreshError(null);
-      } else {
+    verifyEmailChange(token)
+      .then((result) => {
+        if (result.success) {
+          setVerifyState("success");
+          setTokenOwnerId(result.tokenUserId ?? null);
+          setSessionRefreshError(null);
+        } else {
+          setVerifyState("error");
+          setVerifyError(result.error);
+        }
+      })
+      .catch(() => {
         setVerifyState("error");
-        setVerifyError(result.error);
-      }
-    });
+        setVerifyError(GENERIC_ACTION_ERROR);
+      });
   }, [token, sessionUserId]);
 
   useEffect(() => {

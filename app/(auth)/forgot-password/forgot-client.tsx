@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { forgotPassword } from "@/src/lib/auth/actions";
+import { GENERIC_ACTION_ERROR } from "@/src/lib/ui/messages";
 
 export default function ForgotClient() {
   const [isPending, startTransition] = useTransition();
@@ -50,14 +51,19 @@ export default function ForgotClient() {
     const formData = new FormData(event.currentTarget);
 
     startTransition(async () => {
-      const result = await forgotPassword(formData);
-      if (result.success) {
-        setMessage("If an account with that email exists, a reset email has been sent.");
+      try {
+        const result = await forgotPassword(formData);
+        if (result.success) {
+          setMessage("If an account with that email exists, a reset email has been sent.");
+          applyRetryAt(null);
+        } else {
+          const retryAt = result.retryAt ?? null;
+          setMessage(result.error);
+          applyRetryAt(retryAt, retryAt ? () => setMessage(null) : undefined);
+        }
+      } catch {
         applyRetryAt(null);
-      } else {
-        const retryAt = result.retryAt ?? null;
-        setMessage(result.error);
-        applyRetryAt(retryAt, retryAt ? () => setMessage(null) : undefined);
+        setMessage(GENERIC_ACTION_ERROR);
       }
     });
   }

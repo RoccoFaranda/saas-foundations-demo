@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { requestEmailChange } from "@/src/lib/auth/actions";
+import { GENERIC_ACTION_ERROR } from "@/src/lib/ui/messages";
 
 type ChangeEmailClientProps = {
   currentEmail: string;
@@ -25,17 +26,21 @@ export default function ChangeEmailClient({ currentEmail }: ChangeEmailClientPro
     const formData = new FormData(event.currentTarget);
 
     startTransition(async () => {
-      const result = await requestEmailChange(formData);
+      try {
+        const result = await requestEmailChange(formData);
 
-      if (result.success) {
-        setSuccess(true);
-        setTimeout(() => {
-          router.push("/app/settings");
-          router.refresh();
-        }, 2000);
-      } else {
-        setError(result.error);
-        setFieldError(result.field ?? null);
+        if (result.success) {
+          setSuccess(true);
+          setTimeout(() => {
+            router.push("/app/settings");
+            router.refresh();
+          }, 2000);
+        } else {
+          setError(result.error);
+          setFieldError(result.field ?? null);
+        }
+      } catch {
+        setError(GENERIC_ACTION_ERROR);
       }
     });
   }
