@@ -8,7 +8,8 @@ export interface RateLimitDecision {
   allowed: boolean;
   limit: number;
   remaining: number;
-  resetAt: number;
+  resetAt?: number;
+  reason?: "limited" | "unavailable";
 }
 
 export interface RateLimiter {
@@ -18,6 +19,8 @@ export interface RateLimiter {
 export type RateLimiterFactory = (action: AuthRateLimitAction) => RateLimiter;
 
 export const AUTH_RATE_LIMIT_ERROR = "Too many requests. Please wait a few minutes and try again.";
+export const AUTH_RATE_LIMIT_UNAVAILABLE_ERROR =
+  "Unable to process requests right now. Please try again later.";
 
 export function formatRateLimitMessage(resetAt: number): string {
   const minutes = Math.max(1, Math.ceil((resetAt - Date.now()) / 60000));
@@ -39,16 +42,33 @@ const AUTH_RATE_LIMITS: Record<
 };
 
 const limiterCache = new Map<AuthRateLimitAction, RateLimiter>();
+const inMemoryLimiterCache = new Map<AuthRateLimitAction, RateLimiter>();
 let testLimiterFactory: RateLimiterFactory | null = null;
 let warnedMissingUpstashEnv = false;
+let warnedUpstashInitError = false;
 
 export function setRateLimiterFactoryForTests(factory: RateLimiterFactory | null): void {
   testLimiterFactory = factory;
   limiterCache.clear();
+  inMemoryLimiterCache.clear();
+  warnedMissingUpstashEnv = false;
+  warnedUpstashInitError = false;
 }
 
 function hasUpstashEnv(): boolean {
   return Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
+}
+
+function isProduction(): boolean {
+  return process.env.NODE_ENV === "production";
+}
+
+export function isInMemoryRateLimitFallbackEnabled(): boolean {
+  if (!isProduction()) {
+    return true;
+  }
+
+  return process.env.ALLOW_IN_MEMORY_RATE_LIMIT_FALLBACK === "true";
 }
 
 function createInMemoryRateLimiter(limit: number, windowMs: number): RateLimiter {
@@ -77,6 +97,41 @@ function createInMemoryRateLimiter(limit: number, windowMs: number): RateLimiter
         resetAt: entry.resetAt,
       };
     },
+  };
+}
+
+function createFailClosedRateLimiter(limit: number): RateLimiter {
+  return {
+    async limit() {
+      return {
+        allowed: false,
+        limit,
+        remaining: 0,
+        reason: "unavailable",
+      };
+    },
+  };
+}
+
+export function getInMemoryRateLimiter(action: AuthRateLimitAction): RateLimiter {
+  const cached = inMemoryLimiterCache.get(action);
+  if (cached) {
+    return cached;
+  }
+
+  const config = AUTH_RATE_LIMITS[action];
+  const limiter = createInMemoryRateLimiter(config.limit, config.windowMs);
+  inMemoryLimiterCache.set(action, limiter);
+  return limiter;
+}
+
+export function getFailClosedDecision(action: AuthRateLimitAction): RateLimitDecision {
+  const config = AUTH_RATE_LIMITS[action];
+  return {
+    allowed: false,
+    limit: config.limit,
+    remaining: 0,
+    reason: "unavailable",
   };
 }
 
@@ -116,15 +171,39 @@ export function getAuthRateLimiter(action: AuthRateLimitAction): RateLimiter {
 
   const config = AUTH_RATE_LIMITS[action];
   const hasEnv = hasUpstashEnv();
-  if (process.env.NODE_ENV === "production" && !hasEnv && !warnedMissingUpstashEnv) {
+  const allowFallback = isInMemoryRateLimitFallbackEnabled();
+  if (isProduction() && !hasEnv && !warnedMissingUpstashEnv) {
     warnedMissingUpstashEnv = true;
-    console.warn("[rate-limit] Upstash env not configured; falling back to in-memory limiter.");
+    if (allowFallback) {
+      console.warn("[rate-limit] Upstash env not configured; falling back to in-memory limiter.");
+    } else {
+      console.warn("[rate-limit] Upstash env not configured; failing closed.");
+    }
   }
 
-  const limiter =
-    process.env.NODE_ENV !== "test" && hasEnv
-      ? createUpstashRateLimiter(action, config.limit, config.window)
-      : createInMemoryRateLimiter(config.limit, config.windowMs);
+  let limiter: RateLimiter;
+
+  if (process.env.NODE_ENV !== "test" && hasEnv) {
+    try {
+      limiter = createUpstashRateLimiter(action, config.limit, config.window);
+    } catch (error) {
+      if (!warnedUpstashInitError) {
+        warnedUpstashInitError = true;
+        console.warn("[rate-limit] Upstash init failed; applying fallback policy.", {
+          action,
+          error: error instanceof Error ? error.message : String(error),
+          allowFallback,
+        });
+      }
+      limiter = allowFallback
+        ? getInMemoryRateLimiter(action)
+        : createFailClosedRateLimiter(config.limit);
+    }
+  } else {
+    limiter = allowFallback
+      ? getInMemoryRateLimiter(action)
+      : createFailClosedRateLimiter(config.limit);
+  }
 
   limiterCache.set(action, limiter);
   return limiter;

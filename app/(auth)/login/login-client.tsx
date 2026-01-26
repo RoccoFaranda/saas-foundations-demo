@@ -67,9 +67,10 @@ export default function LoginClient({ callbackUrl, resetSuccess }: LoginClientPr
         router.push(destination);
         router.refresh();
       } else {
+        const retryAt = result.retryAt ?? null;
         setError(result.error);
         setFieldError(result.field ?? null);
-        applyRetryAt(result.retryAt ?? null, () => setError(null));
+        applyRetryAt(retryAt, retryAt ? () => setError(null) : undefined);
       }
     });
   }

@@ -62,9 +62,10 @@ export default function SignupClient() {
         applyRetryAt(null);
         router.push("/verify-email");
       } else {
+        const retryAt = result.retryAt ?? null;
         setError(result.error);
         setFieldError(result.field ?? null);
-        applyRetryAt(result.retryAt ?? null, () => setError(null));
+        applyRetryAt(retryAt, retryAt ? () => setError(null) : undefined);
       }
     });
   }

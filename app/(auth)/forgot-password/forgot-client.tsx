@@ -55,8 +55,9 @@ export default function ForgotClient() {
         setMessage("If an account with that email exists, a reset email has been sent.");
         applyRetryAt(null);
       } else {
+        const retryAt = result.retryAt ?? null;
         setMessage(result.error);
-        applyRetryAt(result.retryAt ?? null, () => setMessage(null));
+        applyRetryAt(retryAt, retryAt ? () => setMessage(null) : undefined);
       }
     });
   }

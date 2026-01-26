@@ -23,9 +23,14 @@ import { logAuthEvent } from "./logging";
 import { getCurrentUser, requireVerifiedUser } from "./session";
 import {
   AUTH_RATE_LIMIT_ERROR,
+  AUTH_RATE_LIMIT_UNAVAILABLE_ERROR,
   formatRateLimitMessage,
   getAuthRateLimiter,
+  getFailClosedDecision,
+  getInMemoryRateLimiter,
+  isInMemoryRateLimitFallbackEnabled,
   type AuthRateLimitAction,
+  type RateLimiter,
 } from "../ratelimit";
 import { headers } from "next/headers";
 import { verifyTurnstileToken } from "./turnstile";
@@ -44,17 +49,46 @@ async function enforceAuthRateLimit(
   identifiers: string[]
 ): Promise<AuthActionResult | null> {
   const limiter = getAuthRateLimiter(action);
+  const allowFallback = isInMemoryRateLimitFallbackEnabled();
+  let fallbackLimiter: RateLimiter | null = null;
+  let loggedLimiterError = false;
   for (const identifier of identifiers) {
     const normalizedIdentifier = identifier.trim();
     if (!normalizedIdentifier) {
       continue;
     }
 
-    const result = await limiter.limit(normalizedIdentifier);
+    let result;
+    try {
+      const activeLimiter = fallbackLimiter ?? limiter;
+      result = await activeLimiter.limit(normalizedIdentifier);
+    } catch (error) {
+      if (!loggedLimiterError) {
+        loggedLimiterError = true;
+        console.warn("[rate-limit] Upstash error; applying fallback policy.", {
+          action,
+          error: error instanceof Error ? error.message : String(error),
+          allowFallback,
+        });
+      }
+
+      if (allowFallback) {
+        if (!fallbackLimiter) {
+          fallbackLimiter = getInMemoryRateLimiter(action);
+        }
+        result = await fallbackLimiter.limit(normalizedIdentifier);
+      } else {
+        result = getFailClosedDecision(action);
+      }
+    }
+
     if (!result.allowed) {
-      const message = result.resetAt
-        ? formatRateLimitMessage(result.resetAt)
-        : AUTH_RATE_LIMIT_ERROR;
+      const message =
+        result.reason === "unavailable"
+          ? AUTH_RATE_LIMIT_UNAVAILABLE_ERROR
+          : result.resetAt
+            ? formatRateLimitMessage(result.resetAt)
+            : AUTH_RATE_LIMIT_ERROR;
       return { success: false, error: message, retryAt: result.resetAt };
     }
   }

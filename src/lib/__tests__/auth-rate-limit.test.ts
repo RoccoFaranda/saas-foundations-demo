@@ -99,4 +99,27 @@ describe("auth rate limiting", () => {
     const emails = testEmailHelpers.findByTo(email);
     expect(emails).toHaveLength(0);
   });
+
+  it("fails closed when limiter throws and fallback is disabled in production", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("ALLOW_IN_MEMORY_RATE_LIMIT_FALLBACK", "false");
+
+    const throwingLimiter: RateLimiter = {
+      async limit() {
+        throw new Error("Upstash unavailable");
+      },
+    };
+    setRateLimiterFactoryForTests(() => throwingLimiter);
+
+    const form = new FormData();
+    form.set("email", `rate-error-${randomUUID()}@example.com`);
+    const result = await forgotPassword(form);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toContain("Unable to process");
+    }
+
+    vi.unstubAllEnvs();
+  });
 });

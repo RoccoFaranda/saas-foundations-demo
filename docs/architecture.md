@@ -188,6 +188,7 @@ Demo-safe behavior:
 ### Rate limiting (Redis)
 
 - Backed by Redis (Upstash) for shared limits across instances.
+- In production, missing/invalid Upstash configuration fails closed by default unless `ALLOW_IN_MEMORY_RATE_LIMIT_FALLBACK=true` is set.
 - Used on auth endpoints and billing endpoints to mitigate abuse.
 
 ### Stripe (test mode only)
@@ -282,6 +283,11 @@ cp .env.example .env.local
 ```
 
 The `DATABASE_URL` in `.env.example` is configured for the local Docker Postgres instance.
+
+Rate limiting notes:
+
+- `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` are required for shared limits in production.
+- `ALLOW_IN_MEMORY_RATE_LIMIT_FALLBACK=true` opt-in enables in-memory fallback in production (weaker across instances).
 
 ### Database Migrations
 

@@ -223,9 +223,9 @@ Use this structure for new ADRs:
 
 - **Status:** Accepted
 - **Context:** Auth endpoints need production-style rate limiting and abuse protection across serverless instances.
-- **Decision:** Use **Upstash Redis** for rate limiting, with a lightweight in-memory fallback for local dev if needed.
+- **Decision:** Use **Upstash Redis** for rate limiting, with a lightweight in-memory fallback for local dev. In production, missing/invalid Upstash config fails closed by default unless `ALLOW_IN_MEMORY_RATE_LIMIT_FALLBACK=true` is explicitly set.
 - **Consequences:**
-  - Requires Upstash credentials in production-like environments.
+  - Requires Upstash credentials in production-like environments (or explicit opt-in to weaker in-memory fallback).
   - Enables consistent limits across multiple instances.
 
 ---
