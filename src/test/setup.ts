@@ -6,8 +6,7 @@ import { testEmailHelpers } from "../lib/auth/email";
 config({ path: ".env.test" });
 
 if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL =
-    "postgresql://postgres:postgres@localhost:5432/saas_foundations_dev?schema=public";
+  throw new Error("DATABASE_URL is required for tests. Set it in .env.test.");
 }
 
 if (!process.env.TOKEN_HASH_SECRET) {

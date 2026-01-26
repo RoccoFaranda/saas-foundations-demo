@@ -13,10 +13,15 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test --project=chromium",
-    "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
-    "db:studio": "prisma studio",
+    "db:migrate": "prisma migrate dev",
+    "db:reset": "prisma migrate reset",
     "db:seed": "prisma db seed",
+    "db:studio": "prisma studio",
+    "db:migrate:test": "node -e \"require('dotenv').config({path:'.env.test'}); const {spawnSync}=require('child_process'); const r=spawnSync('prisma',['migrate','dev'],{stdio:'inherit', env:process.env, shell:true}); if (r.error) { console.error(r.error); } process.exit(r.status ?? (r.error ? 1 : 0));\"",
+    "db:reset:test": "node -e \"require('dotenv').config({path:'.env.test'}); const {spawnSync}=require('child_process'); const r=spawnSync('prisma',['migrate','reset'],{stdio:'inherit', env:process.env, shell:true}); if (r.error) { console.error(r.error); } process.exit(r.status ?? (r.error ? 1 : 0));\"",
+    "db:seed:test": "node -e \"require('dotenv').config({path:'.env.test'}); const {spawnSync}=require('child_process'); const r=spawnSync('prisma',['db','seed'],{stdio:'inherit', env:process.env, shell:true}); if (r.error) { console.error(r.error); } process.exit(r.status ?? (r.error ? 1 : 0));\"",
+    "db:studio:test": "node -e \"require('dotenv').config({path:'.env.test'}); const {spawnSync}=require('child_process'); const r=spawnSync('prisma',['studio'],{stdio:'inherit', env:process.env, shell:true}); if (r.error) { console.error(r.error); } process.exit(r.status ?? (r.error ? 1 : 0));\"",
     "prepare": "husky"
   },
   "dependencies": {
