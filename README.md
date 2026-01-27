@@ -52,6 +52,8 @@ Create a `.env.local` file in the project root for local development:
 # NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
+`NEXT_PUBLIC_APP_URL` must be an absolute URL in production/preview so emails can include valid links.
+In local dev/test, the app falls back to `http://localhost:3000` if it is not set.
 See `.env.example` for all available environment variables (when available).
 
 ## Project Structure

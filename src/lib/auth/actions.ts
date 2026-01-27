@@ -22,6 +22,7 @@ import { getEmailAdapter } from "./email";
 import { signIn, signOut } from "./config";
 import { AuthError } from "next-auth";
 import { logAuthEvent } from "./logging";
+import { getAppUrl } from "./urls";
 import { getCurrentUser, requireVerifiedUser } from "./session";
 import {
   AUTH_RATE_LIMIT_ERROR,
@@ -137,7 +138,7 @@ function sanitizeCallbackUrl(input: unknown, fallback: string): string {
     return trimmed.startsWith("//") ? fallback : trimmed;
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const baseUrl = getAppUrl();
 
   try {
     const base = new URL(baseUrl);
@@ -153,7 +154,7 @@ function sanitizeCallbackUrl(input: unknown, fallback: string): string {
 }
 
 function hasAuthError(url: string): boolean {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const baseUrl = getAppUrl();
   try {
     const parsed = new URL(url, baseUrl);
     return parsed.searchParams.has("error");
@@ -163,7 +164,7 @@ function hasAuthError(url: string): boolean {
 }
 
 function toPathWithSearch(url: string): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const baseUrl = getAppUrl();
   const parsed = new URL(url, baseUrl);
   return `${parsed.pathname}${parsed.search}${parsed.hash}`;
 }
@@ -272,8 +273,16 @@ export async function signup(formData: FormData): Promise<AuthActionResult> {
   logAuthEvent("signup_created", { userId: user.id });
 
   // Build verification URL (token is safe to include in URL, not logged)
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const verifyUrl = `${baseUrl}/verify-email?token=${token}`;
+  let appUrl: string;
+  try {
+    appUrl = getAppUrl();
+  } catch {
+    return {
+      success: false,
+      error: "Unable to send verification email. Please contact support.",
+    };
+  }
+  const verifyUrl = `${appUrl}/verify-email?token=${token}`;
 
   // Send verification email
   const emailAdapter = getEmailAdapter();
@@ -447,8 +456,13 @@ export async function forgotPassword(formData: FormData): Promise<AuthActionResu
   if (user) {
     try {
       const { token } = await createPasswordResetToken(user.id);
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-      const resetUrl = `${baseUrl}/reset-password?token=${token}`;
+      let appUrl: string;
+      try {
+        appUrl = getAppUrl();
+      } catch {
+        return { success: true };
+      }
+      const resetUrl = `${appUrl}/reset-password?token=${token}`;
       const emailAdapter = getEmailAdapter();
       await emailAdapter.send({
         to: user.email,
@@ -553,8 +567,16 @@ export async function resendVerificationEmail(): Promise<AuthActionResult> {
   // But only send email if user exists and isn't already verified
   if (user && !user.emailVerified) {
     const { token } = await createEmailVerificationToken(user.id);
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-    const verifyUrl = `${baseUrl}/verify-email?token=${token}`;
+    let appUrl: string;
+    try {
+      appUrl = getAppUrl();
+    } catch {
+      return {
+        success: false,
+        error: "Unable to send verification email. Please contact support.",
+      };
+    }
+    const verifyUrl = `${appUrl}/verify-email?token=${token}`;
 
     const emailAdapter = getEmailAdapter();
     await emailAdapter.send({
@@ -717,8 +739,16 @@ export async function requestEmailChange(formData: FormData): Promise<AuthAction
 
   // Create email change token
   const { token } = await createEmailChangeToken(user.id, newEmail);
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const verifyUrl = `${baseUrl}/verify-email-change?token=${token}`;
+  let appUrl: string;
+  try {
+    appUrl = getAppUrl();
+  } catch {
+    return {
+      success: false,
+      error: "Unable to send verification email. Please contact support.",
+    };
+  }
+  const verifyUrl = `${appUrl}/verify-email-change?token=${token}`;
 
   // Send verification email to new address
   const emailAdapter = getEmailAdapter();

@@ -1,4 +1,5 @@
 export type AuthLogEvent =
+  | "app_url_missing"
   | "signup_validation_failed"
   | "signup_duplicate"
   | "signup_created"

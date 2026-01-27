@@ -135,8 +135,9 @@ export default function VerifyEmailClient({ token, email }: VerifyEmailClientPro
           );
           applyResendRetryAt(null);
         } else {
+          const retryAt = result.retryAt ?? null;
           setResendMessage(result.error);
-          applyResendRetryAt(result.retryAt ?? null, () => setResendMessage(null));
+          applyResendRetryAt(retryAt, retryAt ? () => setResendMessage(null) : undefined);
         }
       } catch {
         applyResendRetryAt(null);
