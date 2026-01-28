@@ -32,6 +32,7 @@ describe("signup", () => {
     authMock.mockReset();
     signInMock.mockReset();
     fetchMock.mockReset();
+    delete process.env.TURNSTILE_ALLOW_BYPASS;
     setRateLimiterFactoryForTests(() => ({
       limit: async () => ({ allowed: true, limit: 3, remaining: 2, resetAt: Date.now() + 60000 }),
     }));
@@ -126,6 +127,53 @@ describe("signup", () => {
     if (originalSecret) {
       process.env.TURNSTILE_SECRET_KEY = originalSecret;
     }
+  });
+
+  it("should bypass Turnstile verification when bypass flag is enabled", async () => {
+    const originalBypass = process.env.TURNSTILE_ALLOW_BYPASS;
+    process.env.TURNSTILE_ALLOW_BYPASS = "true";
+
+    signInMock.mockResolvedValueOnce("/verify-email");
+
+    const email = `signup-test-${randomUUID()}@example.com`;
+    const form = new FormData();
+    form.set("email", email);
+    form.set("password", "password123");
+    // No Turnstile token provided
+
+    const result = await signup(form);
+
+    expect(result.success).toBe(true);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    if (originalBypass) {
+      process.env.TURNSTILE_ALLOW_BYPASS = originalBypass;
+    } else {
+      delete process.env.TURNSTILE_ALLOW_BYPASS;
+    }
+  });
+
+  it("should fail when Turnstile is required but misconfigured", async () => {
+    const originalSecret = process.env.TURNSTILE_SECRET_KEY;
+
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "");
+    vi.stubEnv("TURNSTILE_SECRET_KEY", originalSecret ?? "secret-key");
+
+    const email = `signup-test-${randomUUID()}@example.com`;
+    const form = new FormData();
+    form.set("email", email);
+    form.set("password", "password123");
+
+    const result = await signup(form);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toBe("Sign up is temporarily unavailable. Please contact support.");
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    vi.unstubAllEnvs();
   });
 
   it("should fail when Turnstile verification fetch errors", async () => {

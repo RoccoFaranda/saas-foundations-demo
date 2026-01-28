@@ -36,7 +36,7 @@ import {
   type RateLimiter,
 } from "../ratelimit";
 import { headers } from "next/headers";
-import { verifyTurnstileToken } from "./turnstile";
+import { getTurnstilePolicy, verifyTurnstileToken } from "./turnstile";
 
 /**
  * Action result type for auth actions
@@ -199,17 +199,32 @@ export async function signup(formData: FormData): Promise<AuthActionResult> {
     return signupRateLimit;
   }
 
-  // Verify Turnstile token
-  const turnstileToken = formData.get("cf-turnstile-response");
-  const isTurnstileValid = await verifyTurnstileToken(
-    typeof turnstileToken === "string" ? turnstileToken : null
-  );
-  if (!isTurnstileValid) {
-    logAuthEvent("signup_turnstile_failed");
+  const turnstilePolicy = getTurnstilePolicy();
+  if (turnstilePolicy.required && !turnstilePolicy.configured) {
+    logAuthEvent("signup_turnstile_misconfigured", {
+      validSiteKey: turnstilePolicy.validSiteKey,
+      validSecretKey: turnstilePolicy.validSecretKey,
+      bypass: turnstilePolicy.bypass,
+    });
     return {
       success: false,
-      error: "Verification failed. Please try again.",
+      error: "Sign up is temporarily unavailable. Please contact support.",
     };
+  }
+
+  // Verify Turnstile token
+  if (!turnstilePolicy.bypass && turnstilePolicy.configured) {
+    const turnstileToken = formData.get("cf-turnstile-response");
+    const isTurnstileValid = await verifyTurnstileToken(
+      typeof turnstileToken === "string" ? turnstileToken : null
+    );
+    if (!isTurnstileValid) {
+      logAuthEvent("signup_turnstile_failed");
+      return {
+        success: false,
+        error: "Verification failed. Please try again.",
+      };
+    }
   }
 
   // Parse and validate input

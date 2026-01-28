@@ -7,13 +7,23 @@ import Turnstile from "react-turnstile";
 import { signup } from "@/src/lib/auth/actions";
 import { GENERIC_ACTION_ERROR } from "@/src/lib/ui/messages";
 
-export default function SignupClient() {
+type SignupClientProps = {
+  turnstileSiteKey: string | null;
+  turnstileMisconfiguredMessage?: string | null;
+};
+
+export default function SignupClient({
+  turnstileSiteKey,
+  turnstileMisconfiguredMessage,
+}: SignupClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [turnstileError, setTurnstileError] = useState<string | null>(null);
   const [fieldError, setFieldError] = useState<"email" | "password" | null>(null);
   const [isRateLimited, setIsRateLimited] = useState(false);
-  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const siteKey = turnstileSiteKey;
+  const turnstileMessage = turnstileMisconfiguredMessage ?? turnstileError;
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const clearRateLimitMessageRef = useRef<(() => void) | null>(null);
 
@@ -51,6 +61,9 @@ export default function SignupClient() {
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (turnstileMessage || turnstileMisconfiguredMessage) {
+      return;
+    }
     setError(null);
     setFieldError(null);
 
@@ -129,7 +142,23 @@ export default function SignupClient() {
 
           {siteKey && (
             <div>
-              <Turnstile sitekey={siteKey} theme="auto" />
+              <Turnstile
+                sitekey={siteKey}
+                theme="auto"
+                refreshExpired="auto"
+                onError={() =>
+                  setTurnstileError("Sign up is temporarily unavailable. Please contact support.")
+                }
+              />
+            </div>
+          )}
+
+          {turnstileMessage && (
+            <div
+              className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-400"
+              role="alert"
+            >
+              {turnstileMessage}
             </div>
           )}
 
@@ -144,7 +173,12 @@ export default function SignupClient() {
 
           <button
             type="submit"
-            disabled={isPending || isRateLimited}
+            disabled={
+              isPending ||
+              isRateLimited ||
+              Boolean(turnstileMisconfiguredMessage) ||
+              Boolean(turnstileError)
+            }
             className="w-full rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isPending ? "Creating account..." : "Create account"}

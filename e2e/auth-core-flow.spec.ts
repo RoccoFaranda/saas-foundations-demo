@@ -91,20 +91,16 @@ test.describe("Auth core flow", () => {
     // Step 2: Fill and submit signup form
     await page.getByLabel("Email").fill(testEmail);
     await page.getByLabel("Password").fill(testPassword);
-    // Wait for Turnstile to populate a token before submitting (when enabled)
-    const hasTurnstile = await page
-      .waitForFunction(
-        () =>
-          Boolean(
-            document.querySelector<HTMLInputElement | HTMLTextAreaElement>(
-              'input[name="cf-turnstile-response"], textarea[name="cf-turnstile-response"]'
-            )
-          ),
-        { timeout: 5000 }
-      )
+
+    // Check if Turnstile is present using locators (more reliable than waitForFunction)
+    const turnstileInput = page.locator(
+      'input[name="cf-turnstile-response"], textarea[name="cf-turnstile-response"]'
+    );
+    const hasTurnstile = await turnstileInput
+      .waitFor({ state: "attached", timeout: 5000 })
       .then(() => true)
       .catch(() => false);
-
+    // If Turnstile is present, wait for it to be populated with a token
     if (hasTurnstile) {
       await page
         .waitForFunction(
@@ -118,7 +114,11 @@ test.describe("Auth core flow", () => {
         )
         .catch(() => {});
     }
-    await page.getByRole("button", { name: /Create account/i }).click();
+
+    // Wait for the submit button to be enabled before clicking
+    const submitButton = page.getByRole("button", { name: /Create account/i });
+    await expect(submitButton).toBeEnabled({ timeout: 5000 });
+    await submitButton.click();
 
     // Step 3: Wait for redirect to verify-email page
     await expect(page).toHaveURL(/\/verify-email/, { timeout: 5000 });
