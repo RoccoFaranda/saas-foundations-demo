@@ -78,9 +78,10 @@ The demo is intentionally “skeleton SaaS”: it’s not a real business produc
 
 ### Billing approach
 
-- Stripe is implemented in **test mode only**.
-- Billing actions are available only to **verified users** (never guests).
-- Safety controls:
+- Status: **planned** (Stripe integration is not implemented in code yet).
+- Stripe will be implemented in **test mode only**.
+- Billing actions will be available only to **verified users** (never guests).
+- Safety controls (when implemented):
   - rate limiting
   - webhook event deduplication by Stripe `event.id`
   - kill switch (`BILLING_ENABLED=false`)
@@ -193,12 +194,14 @@ Email provider:
 
 ### 7.5 Billing (Stripe test mode only)
 
+Status: **planned** (billing UI and API endpoints are not implemented yet).
+
 Billing page:
 
 - Shows current plan state (e.g. Free vs Pro (Test))
 - Upgrade button (verified users only)
 
-Backend:
+Backend (intended):
 
 - Endpoint to create Stripe Checkout Session (test mode)
 - Webhook endpoint validates and processes Stripe events:

@@ -34,7 +34,7 @@ High-level components:
 - **Database:** Postgres + Prisma (migrations)
 - **Auth:** Auth.js (NextAuth) with Credentials + email verification + account lifecycle flows
 - **Password Hashing:** Argon2id
-- **Billing:** Stripe (test mode only)
+- **Billing:** Stripe (test mode only; planned)
 - **Rate Limiting:** Redis-backed (Upstash)
 - **Bot Protection:** Cloudflare Turnstile (signup at minimum)
 - **Testing:** Vitest (unit/integration), Playwright (E2E)
@@ -193,6 +193,7 @@ Demo-safe behavior:
 
 ### Stripe (test mode only)
 
+- Status: **planned** (no billing routes/handlers implemented yet).
 - No live charges and no production keys.
 - Billing actions restricted to verified users.
 - Required safety controls:
