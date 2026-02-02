@@ -1,20 +1,15 @@
 "use client";
 
-import type {
-  DemoItemStatus,
-  DemoItemTag,
-  SortField,
-  SortDirection,
-} from "../../../app/(demo)/demo/demo-items";
-import { statusOptions, tagOptions, sortOptions } from "../../../app/(demo)/demo/demo-items";
+import type { ItemStatus, ItemTag, SortField, SortDirection } from "./model";
+import { statusOptions, tagOptions, sortOptions } from "./model";
 
 interface TableFiltersProps {
   search: string;
   onSearchChange: (value: string) => void;
-  status: DemoItemStatus | "all";
-  onStatusChange: (value: DemoItemStatus | "all") => void;
-  tag: DemoItemTag | "all";
-  onTagChange: (value: DemoItemTag | "all") => void;
+  status: ItemStatus | "all";
+  onStatusChange: (value: ItemStatus | "all") => void;
+  tag: ItemTag | "all";
+  onTagChange: (value: ItemTag | "all") => void;
   sortField: SortField;
   sortDirection: SortDirection;
   onSortChange: (field: SortField, direction: SortDirection) => void;
@@ -62,7 +57,7 @@ export function TableFilters({
       {/* Status Filter */}
       <select
         value={status}
-        onChange={(e) => onStatusChange(e.target.value as DemoItemStatus | "all")}
+        onChange={(e) => onStatusChange(e.target.value as ItemStatus | "all")}
         className="h-8 rounded-md border border-foreground/10 bg-background px-2 text-sm text-foreground/80 focus:border-foreground/30 focus:outline-none"
       >
         {statusOptions.map((opt) => (
@@ -75,7 +70,7 @@ export function TableFilters({
       {/* Tag Filter */}
       <select
         value={tag}
-        onChange={(e) => onTagChange(e.target.value as DemoItemTag | "all")}
+        onChange={(e) => onTagChange(e.target.value as ItemTag | "all")}
         className="h-8 rounded-md border border-foreground/10 bg-background px-2 text-sm text-foreground/80 focus:border-foreground/30 focus:outline-none"
       >
         {tagOptions.map((opt) => (

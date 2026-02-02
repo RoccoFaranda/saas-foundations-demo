@@ -1,17 +1,18 @@
 "use client";
 
 import { useRef, useState } from "react";
-import type { DemoItem, DemoItemStatus, DemoItemTag } from "../../../app/(demo)/demo/demo-items";
+import type { DashboardItem, ItemStatus, ItemTag, ChecklistItem } from "./model";
+import { computeProgress, generateId } from "./model";
 
 interface EditItemModalProps {
-  item: DemoItem | null;
+  item: DashboardItem | null;
   isOpen: boolean;
-  onSave: (updated: DemoItem) => void;
+  onSave: (updated: DashboardItem) => void;
   onCancel: () => void;
 }
 
-const statusOptions: DemoItemStatus[] = ["active", "pending", "completed", "archived"];
-const tagOptions: DemoItemTag[] = ["feature", "bugfix", "docs", "infra", "design"];
+const statusOptions: ItemStatus[] = ["active", "pending", "completed", "archived"];
+const tagOptions: ItemTag[] = ["feature", "bugfix", "docs", "infra", "design"];
 
 export function EditItemModal({ item, isOpen, onSave, onCancel }: EditItemModalProps) {
   // Track if mousedown started on backdrop (for proper click-to-close behavior)
@@ -43,20 +44,38 @@ export function EditItemModal({ item, isOpen, onSave, onCancel }: EditItemModalP
 }
 
 interface EditItemFormProps {
-  item: DemoItem;
-  onSave: (updated: DemoItem) => void;
+  item: DashboardItem;
+  onSave: (updated: DashboardItem) => void;
   onCancel: () => void;
 }
 
 function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
   // State initialized from props on mount (no effect needed)
   const [name, setName] = useState(item.name);
-  const [status, setStatus] = useState<DemoItemStatus>(item.status);
-  const [tag, setTag] = useState<DemoItemTag>(item.tag);
+  const [status, setStatus] = useState<ItemStatus>(item.status);
+  const [tag, setTag] = useState<ItemTag>(item.tag);
   const [summary, setSummary] = useState(item.summary);
+  const [checklist, setChecklist] = useState<ChecklistItem[]>(item.checklist);
+  const [newChecklistText, setNewChecklistText] = useState("");
   const nameInputRef = useRef<HTMLInputElement>(null);
-  // Store metric as string to allow empty field while typing
-  const [metricStr, setMetricStr] = useState(String(item.metric));
+
+  const toggleChecklistItem = (id: string) => {
+    setChecklist((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, done: !item.done } : item))
+    );
+  };
+
+  const addChecklistItem = () => {
+    const text = newChecklistText.trim();
+    if (text.length === 0) return;
+
+    setChecklist((prev) => [...prev, { id: generateId("check"), text, done: false }]);
+    setNewChecklistText("");
+  };
+
+  const removeChecklistItem = (id: string) => {
+    setChecklist((prev) => prev.filter((item) => item.id !== id));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,15 +90,14 @@ function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
     }
 
     const trimmedSummary = summary.trim();
-    const metricValue = parseInt(metricStr, 10);
-    const clampedMetric = Math.max(0, Math.min(100, isNaN(metricValue) ? 0 : metricValue));
 
+    // Check if anything changed (deep equality for checklist)
     const hasChanges =
       trimmedName !== item.name ||
       status !== item.status ||
       tag !== item.tag ||
       trimmedSummary !== item.summary ||
-      clampedMetric !== item.metric;
+      JSON.stringify(checklist) !== JSON.stringify(item.checklist);
 
     if (!hasChanges) {
       onCancel();
@@ -92,10 +110,12 @@ function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
       status,
       tag,
       summary: trimmedSummary,
-      metric: clampedMetric,
+      checklist,
       updatedAt: new Date().toISOString(),
     });
   };
+
+  const progress = computeProgress(checklist);
 
   return (
     <div
@@ -139,7 +159,7 @@ function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
             <select
               id="edit-status"
               value={status}
-              onChange={(e) => setStatus(e.target.value as DemoItemStatus)}
+              onChange={(e) => setStatus(e.target.value as ItemStatus)}
               className="mt-1 w-full rounded-md border border-foreground/10 bg-background px-3 py-2 text-sm capitalize focus:border-foreground/30 focus:outline-none"
               data-testid="edit-status-select"
             >
@@ -159,7 +179,7 @@ function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
             <select
               id="edit-tag"
               value={tag}
-              onChange={(e) => setTag(e.target.value as DemoItemTag)}
+              onChange={(e) => setTag(e.target.value as ItemTag)}
               className="mt-1 w-full rounded-md border border-foreground/10 bg-background px-3 py-2 text-sm capitalize focus:border-foreground/30 focus:outline-none"
               data-testid="edit-tag-select"
             >
@@ -186,26 +206,73 @@ function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
             />
           </div>
 
-          {/* Metric / Progress */}
+          {/* Checklist / Progress */}
           <div>
-            <label htmlFor="edit-metric" className="block text-sm font-medium text-foreground/70">
-              Progress (%)
+            <label className="block text-sm font-medium text-foreground/70">
+              Progress Checklist ({progress}%)
             </label>
-            <input
-              id="edit-metric"
-              type="number"
-              min={0}
-              max={100}
-              value={metricStr}
-              onChange={(e) => setMetricStr(e.target.value)}
-              onBlur={() => {
-                const parsed = parseInt(metricStr, 10);
-                const clamped = isNaN(parsed) ? 0 : Math.max(0, Math.min(100, parsed));
-                setMetricStr(String(clamped));
-              }}
-              className="mt-1 w-full rounded-md border border-foreground/10 bg-background px-3 py-2 text-sm focus:border-foreground/30 focus:outline-none"
-              data-testid="edit-metric-input"
-            />
+            <div className="mt-2 space-y-2">
+              {checklist.length === 0 ? (
+                <p className="text-xs text-foreground/40">No checklist items yet.</p>
+              ) : (
+                <ul className="space-y-1" data-testid="checklist-items">
+                  {checklist.map((item) => (
+                    <li
+                      key={item.id}
+                      className="flex items-center gap-2 rounded border border-foreground/10 px-2 py-1.5"
+                      data-testid={`checklist-item-${item.id}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={item.done}
+                        onChange={() => toggleChecklistItem(item.id)}
+                        className="h-4 w-4 cursor-pointer rounded border-foreground/20"
+                        data-testid={`checklist-checkbox-${item.id}`}
+                      />
+                      <span
+                        className={`flex-1 text-sm ${item.done ? "text-foreground/40 line-through" : "text-foreground"}`}
+                      >
+                        {item.text}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeChecklistItem(item.id)}
+                        aria-label={`Remove checklist item: ${item.text}`}
+                        className="text-xs text-foreground/40 hover:text-foreground/70"
+                        data-testid={`checklist-remove-${item.id}`}
+                      >
+                        ✕
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {/* Add new checklist item */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Add checklist item..."
+                  value={newChecklistText}
+                  onChange={(e) => setNewChecklistText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addChecklistItem();
+                    }
+                  }}
+                  className="flex-1 rounded-md border border-foreground/10 bg-background px-2 py-1.5 text-sm focus:border-foreground/30 focus:outline-none"
+                  data-testid="checklist-add-input"
+                />
+                <button
+                  type="button"
+                  onClick={addChecklistItem}
+                  className="rounded-md border border-foreground/10 bg-background px-3 py-1.5 text-xs font-medium text-foreground/70 transition-colors hover:bg-foreground/5"
+                  data-testid="checklist-add-btn"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
