@@ -65,11 +65,28 @@ model Item {
   updatedAt   DateTime   @updatedAt
 
   // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  checklistItems ChecklistItem[]
 
   @@index([userId])
   @@index([status])
   @@map("items")
+}
+
+model ChecklistItem {
+  id        String   @id @default(cuid())
+  itemId    String
+  text      String
+  done      Boolean  @default(false)
+  position  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, position])
+  @@map("checklist_items")
 }
 
 model ActivityLog {

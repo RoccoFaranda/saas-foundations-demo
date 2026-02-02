@@ -5,6 +5,35 @@ const itemStatusValues = Object.values(ItemStatus) as [ItemStatus, ...ItemStatus
 const itemTagValues = Object.values(ItemTag) as [ItemTag, ...ItemTag[]];
 
 /**
+ * Schema for a single checklist item
+ */
+export const checklistItemSchema = z.object({
+  text: z.string().min(1).max(500),
+  done: z.boolean().default(false),
+  position: z.number().int().min(0),
+});
+
+export type ChecklistItemInput = z.input<typeof checklistItemSchema>;
+const checklistSchema = z
+  .array(checklistItemSchema)
+  .max(50)
+  .superRefine((items, ctx) => {
+    const seenPositions = new Set<number>();
+    for (let index = 0; index < items.length; index += 1) {
+      const checklistItem = items[index];
+      if (seenPositions.has(checklistItem.position)) {
+        ctx.addIssue({
+          code: "custom",
+          path: [index, "position"],
+          message: "Checklist positions must be unique per item",
+        });
+      } else {
+        seenPositions.add(checklistItem.position);
+      }
+    }
+  });
+
+/**
  * Schema for creating a new item
  */
 export const createItemSchema = z.object({
@@ -13,6 +42,7 @@ export const createItemSchema = z.object({
   tag: z.enum(itemTagValues).optional(),
   summary: z.string().max(1000).optional(),
   metricValue: z.number().int().min(0).max(100).optional(),
+  checklist: checklistSchema.optional(),
 });
 
 export type CreateItemInput = z.input<typeof createItemSchema>;
@@ -29,6 +59,7 @@ export const updateItemSchema = z
     tag: z.enum(itemTagValues).nullable().optional(),
     summary: z.string().max(1000).nullable().optional(),
     metricValue: z.number().int().min(0).max(100).nullable().optional(),
+    checklist: checklistSchema.optional(),
   })
   .refine((data) => Object.values(data).some((value) => value !== undefined), {
     message: "At least one field must be provided for update",

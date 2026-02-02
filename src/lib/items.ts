@@ -2,14 +2,24 @@ import "server-only";
 import prisma from "./db";
 import { createItemSchema, updateItemSchema } from "./validation/item";
 import type { CreateItemInput, UpdateItemInput } from "./validation/item";
-import type { Item } from "../generated/prisma/client";
+import type { Item, ChecklistItem } from "../generated/prisma/client";
 import { ItemStatus, ItemTag } from "../generated/prisma/enums";
 import type { Prisma } from "../generated/prisma/client";
 
 /**
+ * Extended Item type that includes checklist items
+ */
+export type ItemWithChecklist = Item & {
+  checklistItems: ChecklistItem[];
+};
+
+/**
  * Create a new item for a user
  */
-export async function createItem(userId: string, input: CreateItemInput): Promise<Item> {
+export async function createItem(
+  userId: string,
+  input: CreateItemInput
+): Promise<ItemWithChecklist> {
   const validated = createItemSchema.parse(input);
 
   return await prisma.item.create({
@@ -20,6 +30,20 @@ export async function createItem(userId: string, input: CreateItemInput): Promis
       tag: validated.tag,
       summary: validated.summary,
       metricValue: validated.metricValue,
+      checklistItems: validated.checklist
+        ? {
+            create: validated.checklist.map((item) => ({
+              text: item.text,
+              done: item.done,
+              position: item.position,
+            })),
+          }
+        : undefined,
+    },
+    include: {
+      checklistItems: {
+        orderBy: { position: "asc" },
+      },
     },
   });
 }
@@ -35,7 +59,7 @@ export async function listItems(
     limit?: number;
     offset?: number;
   }
-): Promise<Item[]> {
+): Promise<ItemWithChecklist[]> {
   const where: Prisma.ItemWhereInput = {
     userId,
   };
@@ -53,29 +77,40 @@ export async function listItems(
     orderBy: { createdAt: "desc" },
     take: options?.limit,
     skip: options?.offset,
+    include: {
+      checklistItems: {
+        orderBy: { position: "asc" },
+      },
+    },
   });
 }
 
 /**
  * Get a single item by ID, scoped to the user
  */
-export async function getItem(userId: string, itemId: string): Promise<Item | null> {
+export async function getItem(userId: string, itemId: string): Promise<ItemWithChecklist | null> {
   return await prisma.item.findFirst({
     where: {
       id: itemId,
       userId,
+    },
+    include: {
+      checklistItems: {
+        orderBy: { position: "asc" },
+      },
     },
   });
 }
 
 /**
  * Update an item, scoped to the user
+ * For checklist updates, replaces the entire checklist (delete + recreate pattern)
  */
 export async function updateItem(
   userId: string,
   itemId: string,
   input: UpdateItemInput
-): Promise<Item> {
+): Promise<ItemWithChecklist> {
   const validated = updateItemSchema.parse(input);
 
   // Verify the item belongs to the user
@@ -109,14 +144,32 @@ export async function updateItem(
     updateData.metricValue = validated.metricValue;
   }
 
+  // Handle checklist updates: delete all existing and create new ones
+  if (validated.checklist !== undefined) {
+    updateData.checklistItems = {
+      deleteMany: {},
+      create: validated.checklist.map((item) => ({
+        text: item.text,
+        done: item.done,
+        position: item.position,
+      })),
+    };
+  }
+
   return await prisma.item.update({
     where: { id: itemId },
     data: updateData,
+    include: {
+      checklistItems: {
+        orderBy: { position: "asc" },
+      },
+    },
   });
 }
 
 /**
  * Delete an item, scoped to the user
+ * Checklist items are cascade deleted automatically via FK constraint
  */
 export async function deleteItem(userId: string, itemId: string): Promise<void> {
   // Verify the item belongs to the user
