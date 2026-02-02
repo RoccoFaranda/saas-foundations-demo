@@ -1,4 +1,4 @@
-import type { DemoItem, DemoItemStatus, DemoItemTag } from "../demo-items";
+import type { DemoItem, DemoItemStatus, DemoItemTag } from "../../../app/(demo)/demo/demo-items";
 
 interface ItemsTableProps {
   items: DemoItem[];

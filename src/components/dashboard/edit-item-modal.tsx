@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import type { DemoItem, DemoItemStatus, DemoItemTag } from "../demo-items";
+import type { DemoItem, DemoItemStatus, DemoItemTag } from "../../../app/(demo)/demo/demo-items";
 
 interface EditItemModalProps {
   item: DemoItem | null;

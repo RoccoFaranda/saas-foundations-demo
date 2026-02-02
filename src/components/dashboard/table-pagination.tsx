@@ -47,7 +47,7 @@ export function TablePagination({
                 key={page}
                 type="button"
                 onClick={() => onPageChange(page)}
-                className={`min-w-[2rem] rounded px-2 py-1 transition-colors ${
+                className={`min-w-8 rounded px-2 py-1 transition-colors ${
                   page === currentPage
                     ? "bg-foreground/10 font-medium text-foreground"
                     : "text-foreground/50 hover:bg-foreground/5 hover:text-foreground/70"

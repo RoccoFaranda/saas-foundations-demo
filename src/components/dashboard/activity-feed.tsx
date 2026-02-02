@@ -1,4 +1,4 @@
-import type { ActivityEntry } from "../demo-items";
+import type { ActivityEntry } from "../../../app/(demo)/demo/demo-items";
 
 interface ActivityFeedProps {
   title?: string;

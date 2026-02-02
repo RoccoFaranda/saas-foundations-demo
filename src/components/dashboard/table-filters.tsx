@@ -1,7 +1,12 @@
 "use client";
 
-import type { DemoItemStatus, DemoItemTag, SortField, SortDirection } from "../demo-items";
-import { statusOptions, tagOptions, sortOptions } from "../demo-items";
+import type {
+  DemoItemStatus,
+  DemoItemTag,
+  SortField,
+  SortDirection,
+} from "../../../app/(demo)/demo/demo-items";
+import { statusOptions, tagOptions, sortOptions } from "../../../app/(demo)/demo/demo-items";
 
 interface TableFiltersProps {
   search: string;

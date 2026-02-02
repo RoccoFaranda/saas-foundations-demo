@@ -25,7 +25,7 @@ import {
   TablePagination,
   TableSkeleton,
   EditItemModal,
-} from "./_components";
+} from "@/src/components/dashboard";
 
 const PAGE_SIZE = 5;
 
