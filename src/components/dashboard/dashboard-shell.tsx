@@ -50,6 +50,8 @@ interface DashboardShellProps {
   activities: ActivityEntry[];
   /** Quick actions panel content */
   quickActionsContent?: ReactNode;
+  /** Optional analytics content (charts) */
+  analyticsContent?: ReactNode;
 }
 
 /**
@@ -70,6 +72,7 @@ export function DashboardShell({
   paginationControls,
   activities,
   quickActionsContent,
+  analyticsContent,
 }: DashboardShellProps) {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8" data-testid={testId}>
@@ -136,6 +139,16 @@ export function DashboardShell({
           )}
         </div>
       </div>
+
+      {/* Analytics Section */}
+      {analyticsContent && (
+        <div className="mt-6">
+          <div className="rounded-lg border border-foreground/10 bg-background p-6">
+            <h2 className="mb-4 font-medium">Analytics</h2>
+            {analyticsContent}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

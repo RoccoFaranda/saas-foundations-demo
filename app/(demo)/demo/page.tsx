@@ -23,8 +23,11 @@ import {
   TableFilters,
   TablePagination,
   generateId,
+  StatusDistributionChart,
+  TrendChart,
 } from "@/src/components/dashboard";
 import type { DashboardMutationHandlers } from "@/src/components/dashboard";
+import { computeStatusDistribution, computeCompletionTrend } from "@/src/lib/dashboard/analytics";
 
 const PAGE_SIZE = 5;
 
@@ -186,6 +189,30 @@ export default function DemoPage() {
     </>
   );
 
+  // Analytics data
+  const statusDistribution = useMemo(() => computeStatusDistribution(items), [items]);
+  const completionTrend = useMemo(() => computeCompletionTrend(items), [items]);
+
+  // Analytics content
+  const analyticsContent = useMemo(
+    () => (
+      <div className="grid gap-6 md:grid-cols-2">
+        <div>
+          <h3 className="mb-4 text-sm font-medium text-foreground/80">Status Distribution</h3>
+          <StatusDistributionChart data={statusDistribution} isEmpty={items.length === 0} />
+        </div>
+        <div>
+          <TrendChart
+            data={completionTrend}
+            title="Completion Trend"
+            isEmpty={items.length === 0}
+          />
+        </div>
+      </div>
+    ),
+    [statusDistribution, completionTrend, items.length]
+  );
+
   return (
     <DashboardShell
       testId="demo-page"
@@ -216,6 +243,7 @@ export default function DemoPage() {
       paginationControls={paginationControls}
       activities={activities}
       quickActionsContent={quickActionsContent}
+      analyticsContent={analyticsContent}
     />
   );
 }

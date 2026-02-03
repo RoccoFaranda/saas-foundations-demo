@@ -12,6 +12,8 @@ export { KpiCard } from "./kpi-card";
 export { TableFilters } from "./table-filters";
 export { TablePagination } from "./table-pagination";
 export { TableSkeleton } from "./table-skeleton";
+export { StatusDistributionChart } from "./status-distribution-chart";
+export { TrendChart } from "./trend-chart";
 
 // Model (types, utilities, options)
 export * from "./model";

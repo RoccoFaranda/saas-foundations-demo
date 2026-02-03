@@ -8,8 +8,14 @@ import {
   computeDashboardKpis,
   DASHBOARD_PAGE_SIZE,
 } from "@/src/lib/dashboard/queries";
+import { computeStatusDistribution, computeCompletionTrend } from "@/src/lib/dashboard/analytics";
 import { ItemStatus, ItemTag } from "@/src/generated/prisma/enums";
-import { DashboardShell, computeProgress } from "@/src/components/dashboard";
+import {
+  DashboardShell,
+  computeProgress,
+  StatusDistributionChart,
+  TrendChart,
+} from "@/src/components/dashboard";
 import type { SortField, SortDirection } from "@/src/components/dashboard/model";
 import { DashboardFilters, DashboardMutations, DashboardPagination } from "./_components";
 
@@ -114,6 +120,23 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     </>
   );
 
+  // Analytics data
+  const statusDistribution = computeStatusDistribution(allItems);
+  const completionTrend = computeCompletionTrend(allItems);
+
+  // Analytics content
+  const analyticsContent = (
+    <div className="grid gap-6 md:grid-cols-2">
+      <div>
+        <h3 className="mb-4 text-sm font-medium text-foreground/80">Status Distribution</h3>
+        <StatusDistributionChart data={statusDistribution} isEmpty={kpis.total === 0} />
+      </div>
+      <div>
+        <TrendChart data={completionTrend} title="Completion Trend" isEmpty={kpis.total === 0} />
+      </div>
+    </div>
+  );
+
   return (
     <DashboardShell
       testId="dashboard-page"
@@ -135,6 +158,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       paginationControls={paginationControls}
       activities={activities}
       quickActionsContent={quickActionsContent}
+      analyticsContent={analyticsContent}
     />
   );
 }
