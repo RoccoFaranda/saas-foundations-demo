@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type MouseEvent } from "react";
+import { Modal } from "@/src/components/ui/modal";
 
 interface DeleteConfirmModalProps {
   itemName: string;
@@ -21,33 +21,18 @@ export function DeleteConfirmModal({
   onConfirm,
   onCancel,
 }: DeleteConfirmModalProps) {
-  const mouseDownOnBackdrop = useRef(false);
-
   if (!isOpen) return null;
 
-  const handleBackdropMouseDown = (e: MouseEvent<HTMLDivElement>) => {
-    mouseDownOnBackdrop.current = e.target === e.currentTarget;
-  };
-
-  const handleBackdropClick = (e: MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget && mouseDownOnBackdrop.current && !isPending) {
-      onCancel();
-    }
-    mouseDownOnBackdrop.current = false;
-  };
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      data-testid="delete-modal-backdrop"
-      onMouseDown={handleBackdropMouseDown}
-      onClick={handleBackdropClick}
+    <Modal
+      isOpen={isOpen}
+      onClose={onCancel}
+      ariaLabelledBy="delete-modal-title"
+      isDismissible={!isPending}
+      backdropTestId="delete-modal-backdrop"
     >
       <div
-        className="w-full max-w-md rounded-lg border border-foreground/10 bg-background shadow-xl"
-        role="dialog"
-        aria-labelledby="delete-modal-title"
-        aria-modal="true"
+        className="w-[min(32rem,calc(100vw-2rem))] rounded-lg border border-foreground/10 bg-background shadow-xl"
         data-testid="delete-modal"
       >
         <div className="border-b border-foreground/10 px-4 py-3">
@@ -59,8 +44,8 @@ export function DeleteConfirmModal({
         <div className="p-4">
           <p className="text-sm text-foreground/70">
             Are you sure you want to delete{" "}
-            <span className="font-medium text-foreground">&quot;{itemName}&quot;</span>? This action
-            cannot be undone.
+            <span className="break-words font-medium text-foreground">&quot;{itemName}&quot;</span>?
+            This action cannot be undone.
           </p>
 
           <div className="mt-6 flex justify-end gap-2">
@@ -85,6 +70,6 @@ export function DeleteConfirmModal({
           </div>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type FormEvent, type RefObject } from "react";
 import type { DashboardItem, ItemStatus, ItemTag, ChecklistItem } from "./model";
 import { computeProgress, generateId } from "./model";
+import { Modal } from "@/src/components/ui/modal";
 
 interface EditItemModalProps {
   item: DashboardItem | null;
@@ -33,29 +34,20 @@ export function EditItemModal({
   saveLabel = "Save Changes",
   isPending = false,
 }: EditItemModalProps) {
-  // Track if mousedown started on backdrop (for proper click-to-close behavior)
-  const mouseDownOnBackdrop = useRef(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   // Only render when open and item exists
   if (!isOpen || !item) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      data-testid="edit-modal-backdrop"
-      onMouseDown={(e) => {
-        // Only set true if mousedown is directly on backdrop, not on modal content
-        mouseDownOnBackdrop.current = e.target === e.currentTarget;
-      }}
-      onClick={(e) => {
-        // Only close if both mousedown and mouseup (click) happened on backdrop
-        if (e.target === e.currentTarget && mouseDownOnBackdrop.current) {
-          onCancel();
-        }
-        mouseDownOnBackdrop.current = false;
-      }}
+    <Modal
+      isOpen={isOpen}
+      onClose={onCancel}
+      ariaLabelledBy="edit-modal-title"
+      initialFocusRef={nameInputRef}
+      isDismissible={!isPending}
+      backdropTestId="edit-modal-backdrop"
     >
-      {/* Inner form component - remounts when item changes, initializing state from props */}
       <EditItemForm
         key={item.id}
         item={item}
@@ -64,8 +56,9 @@ export function EditItemModal({
         title={title}
         saveLabel={saveLabel}
         isPending={isPending}
+        nameInputRef={nameInputRef}
       />
-    </div>
+    </Modal>
   );
 }
 
@@ -76,9 +69,18 @@ interface EditItemFormProps {
   title: string;
   saveLabel: string;
   isPending: boolean;
+  nameInputRef: RefObject<HTMLInputElement | null>;
 }
 
-function EditItemForm({ item, onSave, onCancel, title, saveLabel, isPending }: EditItemFormProps) {
+function EditItemForm({
+  item,
+  onSave,
+  onCancel,
+  title,
+  saveLabel,
+  isPending,
+  nameInputRef,
+}: EditItemFormProps) {
   // State initialized from props on mount (no effect needed)
   const [name, setName] = useState(item.name);
   const [status, setStatus] = useState<ItemStatus>(item.status);
@@ -86,7 +88,6 @@ function EditItemForm({ item, onSave, onCancel, title, saveLabel, isPending }: E
   const [summary, setSummary] = useState(item.summary);
   const [checklist, setChecklist] = useState<ChecklistItem[]>(item.checklist);
   const [newChecklistText, setNewChecklistText] = useState("");
-  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const toggleChecklistItem = (id: string) => {
     setChecklist((prev) =>
@@ -106,7 +107,7 @@ function EditItemForm({ item, onSave, onCancel, title, saveLabel, isPending }: E
     setChecklist((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     const trimmedName = name.trim();
     if (trimmedName.length === 0) {
@@ -148,10 +149,8 @@ function EditItemForm({ item, onSave, onCancel, title, saveLabel, isPending }: E
 
   return (
     <div
-      className="w-full max-w-md rounded-lg border border-foreground/10 bg-background shadow-xl"
+      className="w-[min(56rem,calc(100vw-2rem))] overflow-hidden rounded-lg border border-foreground/10 bg-background shadow-xl"
       data-testid="edit-modal"
-      role="dialog"
-      aria-labelledby="edit-modal-title"
     >
       {/* Header */}
       <div className="border-b border-foreground/10 px-4 py-3">
@@ -161,8 +160,8 @@ function EditItemForm({ item, onSave, onCancel, title, saveLabel, isPending }: E
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="p-4">
-        <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="flex max-h-[75vh] flex-col">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
           {/* Name */}
           <div>
             <label htmlFor="edit-name" className="block text-sm font-medium text-foreground/70">
@@ -229,7 +228,7 @@ function EditItemForm({ item, onSave, onCancel, title, saveLabel, isPending }: E
               id="edit-summary"
               value={summary}
               onChange={(e) => setSummary(e.target.value)}
-              rows={2}
+              rows={4}
               className="mt-1 w-full resize-none rounded-md border border-foreground/10 bg-background px-3 py-2 text-sm focus:border-foreground/30 focus:outline-none"
               data-testid="edit-summary-input"
             />
@@ -248,18 +247,18 @@ function EditItemForm({ item, onSave, onCancel, title, saveLabel, isPending }: E
                   {checklist.map((item) => (
                     <li
                       key={item.id}
-                      className="flex items-center gap-2 rounded border border-foreground/10 px-2 py-1.5"
+                      className="flex min-w-0 items-start gap-2 rounded border border-foreground/10 px-2 py-1.5"
                       data-testid={`checklist-item-${item.id}`}
                     >
                       <input
                         type="checkbox"
                         checked={item.done}
                         onChange={() => toggleChecklistItem(item.id)}
-                        className="h-4 w-4 cursor-pointer rounded border-foreground/20"
+                        className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-foreground/20"
                         data-testid={`checklist-checkbox-${item.id}`}
                       />
                       <span
-                        className={`flex-1 text-sm ${item.done ? "text-foreground/40 line-through" : "text-foreground"}`}
+                        className={`min-w-0 flex-1 whitespace-normal wrap-break-word text-sm ${item.done ? "text-foreground/40 line-through" : "text-foreground"}`}
                       >
                         {item.text}
                       </span>
@@ -267,7 +266,7 @@ function EditItemForm({ item, onSave, onCancel, title, saveLabel, isPending }: E
                         type="button"
                         onClick={() => removeChecklistItem(item.id)}
                         aria-label={`Remove checklist item: ${item.text}`}
-                        className="text-xs text-foreground/40 hover:text-foreground/70"
+                        className="shrink-0 text-xs text-foreground/40 hover:text-foreground/70"
                         data-testid={`checklist-remove-${item.id}`}
                       >
                         ×
@@ -277,7 +276,7 @@ function EditItemForm({ item, onSave, onCancel, title, saveLabel, isPending }: E
                 </ul>
               )}
               {/* Add new checklist item */}
-              <div className="flex gap-2">
+              <div className="flex min-w-0 gap-2">
                 <input
                   type="text"
                   placeholder="Add checklist item..."
@@ -306,7 +305,7 @@ function EditItemForm({ item, onSave, onCancel, title, saveLabel, isPending }: E
         </div>
 
         {/* Actions */}
-        <div className="mt-6 flex justify-end gap-2">
+        <div className="flex justify-end gap-2 border-t border-foreground/10 bg-background px-4 py-4">
           <button
             type="button"
             onClick={onCancel}
