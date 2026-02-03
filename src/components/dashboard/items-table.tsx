@@ -5,6 +5,7 @@ interface ItemsTableProps {
   items: DashboardItem[];
   emptyMessage?: string;
   onEdit?: (item: DashboardItem) => void;
+  onDelete?: (item: DashboardItem) => void;
 }
 
 const statusColors: Record<ItemStatus, string> = {
@@ -30,7 +31,13 @@ function formatDate(isoString: string): string {
   });
 }
 
-export function ItemsTable({ items, emptyMessage = "No items found", onEdit }: ItemsTableProps) {
+export function ItemsTable({
+  items,
+  emptyMessage = "No items found",
+  onEdit,
+  onDelete,
+}: ItemsTableProps) {
+  const hasActions = onEdit || onDelete;
   if (items.length === 0) {
     return (
       <div
@@ -52,7 +59,7 @@ export function ItemsTable({ items, emptyMessage = "No items found", onEdit }: I
             <th className="pb-3 pr-4 font-medium">Tag</th>
             <th className="pb-3 pr-4 font-medium">Progress</th>
             <th className="pb-3 pr-4 font-medium">Updated</th>
-            {onEdit && <th className="pb-3 pr-4 font-medium">Actions</th>}
+            {hasActions && <th className="pb-3 pr-4 font-medium">Actions</th>}
           </tr>
         </thead>
         <tbody>
@@ -102,16 +109,30 @@ export function ItemsTable({ items, emptyMessage = "No items found", onEdit }: I
                   </div>
                 </td>
                 <td className="py-3 pr-4 text-foreground/60">{formatDate(item.updatedAt)}</td>
-                {onEdit && (
+                {hasActions && (
                   <td className="py-3 pr-4">
-                    <button
-                      type="button"
-                      onClick={() => onEdit(item)}
-                      className="rounded-md px-2 py-1 text-xs font-medium text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
-                      data-testid={`edit-btn-${item.id}`}
-                    >
-                      Edit
-                    </button>
+                    <div className="flex items-center gap-1">
+                      {onEdit && (
+                        <button
+                          type="button"
+                          onClick={() => onEdit(item)}
+                          className="rounded-md px-2 py-1 text-xs font-medium text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                          data-testid={`edit-btn-${item.id}`}
+                        >
+                          Edit
+                        </button>
+                      )}
+                      {onDelete && (
+                        <button
+                          type="button"
+                          onClick={() => onDelete(item)}
+                          className="rounded-md px-2 py-1 text-xs font-medium text-red-600/70 transition-colors hover:bg-red-500/10 hover:text-red-600 dark:text-red-400/70 dark:hover:text-red-400"
+                          data-testid={`delete-btn-${item.id}`}
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
                   </td>
                 )}
               </tr>

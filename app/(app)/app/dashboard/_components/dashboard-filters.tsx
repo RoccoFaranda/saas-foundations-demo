@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { TableFilters } from "@/src/components/dashboard";
 import type {
   ItemStatus,
@@ -32,6 +32,8 @@ export function DashboardFilters({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [, startTransition] = useTransition();
+  const [searchInput, setSearchInput] = useState(search);
 
   // Build new URL with updated params
   const updateParams = useCallback(
@@ -56,16 +58,30 @@ export function DashboardFilters({
         params.delete("page");
       }
 
-      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+      startTransition(() => {
+        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+      });
     },
-    [router, pathname, searchParams]
+    [router, pathname, searchParams, startTransition]
   );
+
+  useEffect(() => {
+    if (searchInput === search) {
+      return;
+    }
+
+    const debounceTimer = setTimeout(() => {
+      updateParams({ search: searchInput || undefined });
+    }, 250);
+
+    return () => clearTimeout(debounceTimer);
+  }, [searchInput, search, updateParams]);
 
   const handleSearchChange = useCallback(
     (value: string) => {
-      updateParams({ search: value || undefined });
+      setSearchInput(value);
     },
-    [updateParams]
+    [setSearchInput]
   );
 
   const handleStatusChange = useCallback(
@@ -94,7 +110,7 @@ export function DashboardFilters({
 
   return (
     <TableFilters
-      search={search}
+      search={searchInput}
       onSearchChange={handleSearchChange}
       status={status}
       onStatusChange={handleStatusChange}

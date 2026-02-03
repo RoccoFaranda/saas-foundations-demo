@@ -9,13 +9,13 @@ import {
   DASHBOARD_PAGE_SIZE,
 } from "@/src/lib/dashboard/queries";
 import { ItemStatus, ItemTag } from "@/src/generated/prisma/enums";
-import { KpiCard, ItemsTable, ActivityFeed, TableSkeleton } from "@/src/components/dashboard";
+import { KpiCard, ActivityFeed, TableSkeleton } from "@/src/components/dashboard";
 import {
   computeProgress,
   type SortField,
   type SortDirection,
 } from "@/src/components/dashboard/model";
-import { DashboardFilters, DashboardPagination } from "./_components";
+import { DashboardFilters, DashboardMutations, DashboardPagination } from "./_components";
 
 interface PageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -120,39 +120,36 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             {/* Header with filters */}
             <div className="flex flex-col gap-3 border-b border-foreground/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="font-medium">Projects</h2>
-              <Suspense fallback={null}>
-                <DashboardFilters
-                  search={params.search}
-                  status={params.status}
-                  tag={params.tag}
-                  sortField={sortField}
-                  sortDirection={sortDirection}
-                />
-              </Suspense>
+              <DashboardFilters
+                search={params.search}
+                status={params.status}
+                tag={params.tag}
+                sortField={sortField}
+                sortDirection={sortDirection}
+              />
             </div>
 
-            {/* Table content */}
+            {/* Table content with mutations */}
             <div className="p-4">
               <Suspense fallback={<TableSkeleton rows={DASHBOARD_PAGE_SIZE} />}>
-                <ItemsTable
+                <DashboardMutations
                   items={items}
                   emptyMessage={
                     kpis.total === 0
-                      ? "No projects yet. Create your first project to get started!"
+                      ? "No projects yet."
                       : "No projects match your filters. Try adjusting your search or filters."
                   }
+                  hasItems={kpis.total > 0}
                 />
               </Suspense>
             </div>
 
             {/* Pagination */}
-            <Suspense fallback={null}>
-              <DashboardPagination
-                currentPage={currentPage}
-                totalItems={totalCount}
-                pageSize={DASHBOARD_PAGE_SIZE}
-              />
-            </Suspense>
+            <DashboardPagination
+              currentPage={currentPage}
+              totalItems={totalCount}
+              pageSize={DASHBOARD_PAGE_SIZE}
+            />
           </div>
         </div>
 
@@ -160,15 +157,14 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         <div className="space-y-6">
           <ActivityFeed activities={activities} />
 
-          {/* Quick Actions Panel (placeholder) */}
+          {/* Quick Actions Panel */}
           <div className="rounded-lg border border-foreground/10 bg-background">
             <div className="border-b border-foreground/10 px-4 py-3">
               <h2 className="font-medium">Quick Actions</h2>
             </div>
             <div className="space-y-2 p-4">
-              <PlaceholderButton label="Create Project" />
-              <PlaceholderButton label="Invite Team" />
-              <PlaceholderButton label="View Reports" />
+              <QuickActionLink href="/app/dashboard" label="View Dashboard" active />
+              <QuickActionLink href="/app/settings" label="Account Settings" />
             </div>
           </div>
         </div>
@@ -177,14 +173,25 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   );
 }
 
-function PlaceholderButton({ label }: { label: string }) {
+function QuickActionLink({
+  href,
+  label,
+  active = false,
+}: {
+  href: string;
+  label: string;
+  active?: boolean;
+}) {
   return (
-    <button
-      type="button"
-      disabled
-      className="w-full rounded-md border border-foreground/10 bg-foreground/5 px-3 py-2 text-left text-sm text-foreground/60 transition-colors hover:bg-foreground/10"
+    <a
+      href={href}
+      className={`block w-full rounded-md border px-3 py-2 text-left text-sm transition-colors ${
+        active
+          ? "border-foreground/20 bg-foreground/10 text-foreground"
+          : "border-foreground/10 bg-foreground/5 text-foreground/60 hover:bg-foreground/10"
+      }`}
     >
       {label}
-    </button>
+    </a>
   );
 }

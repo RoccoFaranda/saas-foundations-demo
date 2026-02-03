@@ -9,12 +9,30 @@ interface EditItemModalProps {
   isOpen: boolean;
   onSave: (updated: DashboardItem) => void;
   onCancel: () => void;
+  title?: string;
+  saveLabel?: string;
+  isPending?: boolean;
 }
 
 const statusOptions: ItemStatus[] = ["active", "pending", "completed", "archived"];
-const tagOptions: ItemTag[] = ["feature", "bugfix", "docs", "infra", "design"];
+const tagOptions: Array<{ value: ItemTag | ""; label: string }> = [
+  { value: "", label: "Untagged" },
+  { value: "feature", label: "Feature" },
+  { value: "bugfix", label: "Bugfix" },
+  { value: "docs", label: "Docs" },
+  { value: "infra", label: "Infra" },
+  { value: "design", label: "Design" },
+];
 
-export function EditItemModal({ item, isOpen, onSave, onCancel }: EditItemModalProps) {
+export function EditItemModal({
+  item,
+  isOpen,
+  onSave,
+  onCancel,
+  title = "Edit Project",
+  saveLabel = "Save Changes",
+  isPending = false,
+}: EditItemModalProps) {
   // Track if mousedown started on backdrop (for proper click-to-close behavior)
   const mouseDownOnBackdrop = useRef(false);
 
@@ -38,7 +56,15 @@ export function EditItemModal({ item, isOpen, onSave, onCancel }: EditItemModalP
       }}
     >
       {/* Inner form component - remounts when item changes, initializing state from props */}
-      <EditItemForm key={item.id} item={item} onSave={onSave} onCancel={onCancel} />
+      <EditItemForm
+        key={item.id}
+        item={item}
+        onSave={onSave}
+        onCancel={onCancel}
+        title={title}
+        saveLabel={saveLabel}
+        isPending={isPending}
+      />
     </div>
   );
 }
@@ -47,13 +73,16 @@ interface EditItemFormProps {
   item: DashboardItem;
   onSave: (updated: DashboardItem) => void;
   onCancel: () => void;
+  title: string;
+  saveLabel: string;
+  isPending: boolean;
 }
 
-function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
+function EditItemForm({ item, onSave, onCancel, title, saveLabel, isPending }: EditItemFormProps) {
   // State initialized from props on mount (no effect needed)
   const [name, setName] = useState(item.name);
   const [status, setStatus] = useState<ItemStatus>(item.status);
-  const [tag, setTag] = useState<ItemTag>(item.tag ?? "feature");
+  const [tag, setTag] = useState<ItemTag | null>(item.tag);
   const [summary, setSummary] = useState(item.summary);
   const [checklist, setChecklist] = useState<ChecklistItem[]>(item.checklist);
   const [newChecklistText, setNewChecklistText] = useState("");
@@ -127,7 +156,7 @@ function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
       {/* Header */}
       <div className="border-b border-foreground/10 px-4 py-3">
         <h2 id="edit-modal-title" className="font-medium">
-          Edit Project
+          {title}
         </h2>
       </div>
 
@@ -178,14 +207,14 @@ function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
             </label>
             <select
               id="edit-tag"
-              value={tag}
-              onChange={(e) => setTag(e.target.value as ItemTag)}
+              value={tag ?? ""}
+              onChange={(e) => setTag(e.target.value ? (e.target.value as ItemTag) : null)}
               className="mt-1 w-full rounded-md border border-foreground/10 bg-background px-3 py-2 text-sm capitalize focus:border-foreground/30 focus:outline-none"
               data-testid="edit-tag-select"
             >
-              {tagOptions.map((t) => (
-                <option key={t} value={t} className="capitalize">
-                  {t}
+              {tagOptions.map((tagOption) => (
+                <option key={tagOption.value || "untagged"} value={tagOption.value}>
+                  {tagOption.label}
                 </option>
               ))}
             </select>
@@ -281,17 +310,19 @@ function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-md border border-foreground/10 bg-background px-4 py-2 text-sm font-medium text-foreground/70 transition-colors hover:bg-foreground/5"
+            disabled={isPending}
+            className="rounded-md border border-foreground/10 bg-background px-4 py-2 text-sm font-medium text-foreground/70 transition-colors hover:bg-foreground/5 disabled:opacity-50"
             data-testid="edit-cancel-btn"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
+            disabled={isPending}
+            className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
             data-testid="edit-save-btn"
           >
-            Save Changes
+            {isPending ? "Saving..." : saveLabel}
           </button>
         </div>
       </form>
