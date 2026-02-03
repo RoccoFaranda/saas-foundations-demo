@@ -78,11 +78,17 @@ export function ItemsTable({ items, emptyMessage = "No items found", onEdit }: I
                   </span>
                 </td>
                 <td className="py-3 pr-4">
-                  <span
-                    className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${tagColors[item.tag]}`}
-                  >
-                    {item.tag}
-                  </span>
+                  {item.tag ? (
+                    <span
+                      className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${tagColors[item.tag]}`}
+                    >
+                      {item.tag}
+                    </span>
+                  ) : (
+                    <span className="inline-block rounded-full bg-foreground/10 px-2 py-0.5 text-xs font-medium text-foreground/60">
+                      Untagged
+                    </span>
+                  )}
                 </td>
                 <td className="py-3 pr-4">
                   <div className="flex items-center gap-2">

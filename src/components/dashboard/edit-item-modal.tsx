@@ -53,7 +53,7 @@ function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
   // State initialized from props on mount (no effect needed)
   const [name, setName] = useState(item.name);
   const [status, setStatus] = useState<ItemStatus>(item.status);
-  const [tag, setTag] = useState<ItemTag>(item.tag);
+  const [tag, setTag] = useState<ItemTag>(item.tag ?? "feature");
   const [summary, setSummary] = useState(item.summary);
   const [checklist, setChecklist] = useState<ChecklistItem[]>(item.checklist);
   const [newChecklistText, setNewChecklistText] = useState("");
@@ -241,7 +241,7 @@ function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
                         className="text-xs text-foreground/40 hover:text-foreground/70"
                         data-testid={`checklist-remove-${item.id}`}
                       >
-                        ✕
+                        ×
                       </button>
                     </li>
                   ))}

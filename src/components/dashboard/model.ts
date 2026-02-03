@@ -21,7 +21,7 @@ export interface DashboardItem {
   id: string;
   name: string;
   status: ItemStatus;
-  tag: ItemTag;
+  tag: ItemTag | null;
   updatedAt: string; // ISO timestamp
   summary: string;
   checklist: ChecklistItem[];

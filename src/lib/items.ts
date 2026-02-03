@@ -48,17 +48,29 @@ export async function createItem(
   });
 }
 
+/** Sort field options for listing items */
+export type ItemSortField = "createdAt" | "updatedAt" | "name";
+
+/** Sort direction options */
+export type ItemSortDirection = "asc" | "desc";
+
+/** Options for listing items */
+export interface ListItemsOptions {
+  status?: ItemStatus;
+  tag?: ItemTag;
+  search?: string;
+  sortBy?: ItemSortField;
+  sortDirection?: ItemSortDirection;
+  limit?: number;
+  offset?: number;
+}
+
 /**
- * List items for a user with optional filtering
+ * List items for a user with optional filtering, search, and sorting
  */
 export async function listItems(
   userId: string,
-  options?: {
-    status?: ItemStatus;
-    tag?: ItemTag;
-    limit?: number;
-    offset?: number;
-  }
+  options?: ListItemsOptions
 ): Promise<ItemWithChecklist[]> {
   const where: Prisma.ItemWhereInput = {
     userId,
@@ -72,9 +84,24 @@ export async function listItems(
     where.tag = options.tag;
   }
 
+  // Search by name (case-insensitive contains)
+  if (options?.search) {
+    where.name = {
+      contains: options.search,
+      mode: "insensitive",
+    };
+  }
+
+  // Determine sort order
+  const sortBy = options?.sortBy ?? "createdAt";
+  const sortDirection = options?.sortDirection ?? "desc";
+  const orderBy: Prisma.ItemOrderByWithRelationInput = {
+    [sortBy]: sortDirection,
+  };
+
   return await prisma.item.findMany({
     where,
-    orderBy: { createdAt: "desc" },
+    orderBy,
     take: options?.limit,
     skip: options?.offset,
     include: {
@@ -83,6 +110,36 @@ export async function listItems(
       },
     },
   });
+}
+
+/**
+ * Count items for a user with optional filtering and search.
+ * Useful for pagination total count.
+ */
+export async function countItems(
+  userId: string,
+  options?: Pick<ListItemsOptions, "status" | "tag" | "search">
+): Promise<number> {
+  const where: Prisma.ItemWhereInput = {
+    userId,
+  };
+
+  if (options?.status) {
+    where.status = options.status;
+  }
+
+  if (options?.tag) {
+    where.tag = options.tag;
+  }
+
+  if (options?.search) {
+    where.name = {
+      contains: options.search,
+      mode: "insensitive",
+    };
+  }
+
+  return await prisma.item.count({ where });
 }
 
 /**

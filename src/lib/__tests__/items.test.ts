@@ -1,7 +1,7 @@
 // @vitest-environment node
 import "dotenv/config";
 import { describe, it, expect, beforeEach, afterAll } from "vitest";
-import { createItem, listItems, getItem, updateItem, deleteItem } from "../items";
+import { createItem, listItems, getItem, updateItem, deleteItem, countItems } from "../items";
 import { ItemStatus, ItemTag } from "../../generated/prisma/enums";
 import prisma from "../db";
 import { vi } from "vitest";
@@ -186,6 +186,179 @@ describe("Items data layer", () => {
       const items = await listItems(TEST_USER_1);
       expect(items[0].id).toBe(item2.id);
       expect(items[1].id).toBe(item1.id);
+    });
+
+    it("should search items by name (case-insensitive)", async () => {
+      await createItem(TEST_USER_1, { name: "Alpha Project" });
+      await createItem(TEST_USER_1, { name: "Beta Test" });
+      await createItem(TEST_USER_1, { name: "Gamma alpha" });
+
+      const results = await listItems(TEST_USER_1, { search: "alpha" });
+
+      expect(results).toHaveLength(2);
+      expect(results.map((i) => i.name).sort()).toEqual(["Alpha Project", "Gamma alpha"]);
+    });
+
+    it("should search items with partial match", async () => {
+      await createItem(TEST_USER_1, { name: "Dashboard Analytics" });
+      await createItem(TEST_USER_1, { name: "API Documentation" });
+      await createItem(TEST_USER_1, { name: "User Authentication" });
+
+      const results = await listItems(TEST_USER_1, { search: "tion" });
+
+      expect(results).toHaveLength(2);
+      expect(results.map((i) => i.name).sort()).toEqual([
+        "API Documentation",
+        "User Authentication",
+      ]);
+    });
+
+    it("should combine search with status filter", async () => {
+      await createItem(TEST_USER_1, { name: "Auth Flow", status: ItemStatus.active });
+      await createItem(TEST_USER_1, { name: "Auth Tests", status: ItemStatus.completed });
+      await createItem(TEST_USER_1, { name: "Dashboard", status: ItemStatus.active });
+
+      const results = await listItems(TEST_USER_1, {
+        search: "Auth",
+        status: ItemStatus.active,
+      });
+
+      expect(results).toHaveLength(1);
+      expect(results[0].name).toBe("Auth Flow");
+    });
+
+    it("should sort items by name ascending", async () => {
+      await createItem(TEST_USER_1, { name: "Charlie" });
+      await createItem(TEST_USER_1, { name: "Alpha" });
+      await createItem(TEST_USER_1, { name: "Bravo" });
+
+      const items = await listItems(TEST_USER_1, {
+        sortBy: "name",
+        sortDirection: "asc",
+      });
+
+      expect(items.map((i) => i.name)).toEqual(["Alpha", "Bravo", "Charlie"]);
+    });
+
+    it("should sort items by name descending", async () => {
+      await createItem(TEST_USER_1, { name: "Alpha" });
+      await createItem(TEST_USER_1, { name: "Charlie" });
+      await createItem(TEST_USER_1, { name: "Bravo" });
+
+      const items = await listItems(TEST_USER_1, {
+        sortBy: "name",
+        sortDirection: "desc",
+      });
+
+      expect(items.map((i) => i.name)).toEqual(["Charlie", "Bravo", "Alpha"]);
+    });
+
+    it("should sort items by updatedAt", async () => {
+      const item1 = await prisma.item.create({
+        data: {
+          userId: TEST_USER_1,
+          name: "Old Item",
+          updatedAt: new Date("2026-01-01T00:00:00Z"),
+        },
+        include: { checklistItems: true },
+      });
+      const item2 = await prisma.item.create({
+        data: {
+          userId: TEST_USER_1,
+          name: "New Item",
+          updatedAt: new Date("2026-01-15T00:00:00Z"),
+        },
+        include: { checklistItems: true },
+      });
+
+      const ascItems = await listItems(TEST_USER_1, {
+        sortBy: "updatedAt",
+        sortDirection: "asc",
+      });
+      expect(ascItems[0].id).toBe(item1.id);
+      expect(ascItems[1].id).toBe(item2.id);
+
+      const descItems = await listItems(TEST_USER_1, {
+        sortBy: "updatedAt",
+        sortDirection: "desc",
+      });
+      expect(descItems[0].id).toBe(item2.id);
+      expect(descItems[1].id).toBe(item1.id);
+    });
+  });
+
+  describe("countItems", () => {
+    it("should count all items for a user", async () => {
+      await createItem(TEST_USER_1, { name: "Item 1" });
+      await createItem(TEST_USER_1, { name: "Item 2" });
+      await createItem(TEST_USER_1, { name: "Item 3" });
+      await createItem(TEST_USER_2, { name: "Other User Item" });
+
+      const count = await countItems(TEST_USER_1);
+
+      expect(count).toBe(3);
+    });
+
+    it("should count items with status filter", async () => {
+      await createItem(TEST_USER_1, { name: "Active 1", status: ItemStatus.active });
+      await createItem(TEST_USER_1, { name: "Active 2", status: ItemStatus.active });
+      await createItem(TEST_USER_1, { name: "Completed", status: ItemStatus.completed });
+
+      const activeCount = await countItems(TEST_USER_1, { status: ItemStatus.active });
+      const completedCount = await countItems(TEST_USER_1, { status: ItemStatus.completed });
+
+      expect(activeCount).toBe(2);
+      expect(completedCount).toBe(1);
+    });
+
+    it("should count items with tag filter", async () => {
+      await createItem(TEST_USER_1, { name: "Feature 1", tag: ItemTag.feature });
+      await createItem(TEST_USER_1, { name: "Feature 2", tag: ItemTag.feature });
+      await createItem(TEST_USER_1, { name: "Bugfix", tag: ItemTag.bugfix });
+
+      const featureCount = await countItems(TEST_USER_1, { tag: ItemTag.feature });
+
+      expect(featureCount).toBe(2);
+    });
+
+    it("should count items with search filter", async () => {
+      await createItem(TEST_USER_1, { name: "Alpha Project" });
+      await createItem(TEST_USER_1, { name: "Beta Project" });
+      await createItem(TEST_USER_1, { name: "Gamma Test" });
+
+      const projectCount = await countItems(TEST_USER_1, { search: "project" });
+
+      expect(projectCount).toBe(2);
+    });
+
+    it("should combine multiple filters for count", async () => {
+      await createItem(TEST_USER_1, {
+        name: "Auth Feature",
+        status: ItemStatus.active,
+        tag: ItemTag.feature,
+      });
+      await createItem(TEST_USER_1, {
+        name: "Auth Bug",
+        status: ItemStatus.active,
+        tag: ItemTag.bugfix,
+      });
+      await createItem(TEST_USER_1, {
+        name: "Dashboard Feature",
+        status: ItemStatus.completed,
+        tag: ItemTag.feature,
+      });
+
+      const count = await countItems(TEST_USER_1, {
+        search: "Auth",
+        status: ItemStatus.active,
+      });
+
+      expect(count).toBe(2);
+    });
+
+    it("should return 0 for user with no items", async () => {
+      const count = await countItems(TEST_USER_1);
+      expect(count).toBe(0);
     });
   });
 
