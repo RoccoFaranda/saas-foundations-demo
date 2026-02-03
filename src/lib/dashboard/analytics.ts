@@ -15,7 +15,7 @@ const monthYearFormatter = new Intl.DateTimeFormat("en-US", {
  * Status distribution for pie/bar charts.
  */
 export interface StatusDistribution {
-  status: "active" | "pending" | "completed" | "archived";
+  status: "active" | "pending" | "completed";
   count: number;
   percentage: number;
 }
@@ -37,7 +37,6 @@ export function computeStatusDistribution(items: DashboardItem[]): StatusDistrib
       { status: "active", count: 0, percentage: 0 },
       { status: "pending", count: 0, percentage: 0 },
       { status: "completed", count: 0, percentage: 0 },
-      { status: "archived", count: 0, percentage: 0 },
     ];
   }
 
@@ -45,7 +44,6 @@ export function computeStatusDistribution(items: DashboardItem[]): StatusDistrib
     active: 0,
     pending: 0,
     completed: 0,
-    archived: 0,
   };
 
   for (const item of items) {
@@ -69,11 +67,6 @@ export function computeStatusDistribution(items: DashboardItem[]): StatusDistrib
       status: "completed",
       count: counts.completed,
       percentage: Math.round((counts.completed / total) * 100),
-    },
-    {
-      status: "archived",
-      count: counts.archived,
-      percentage: Math.round((counts.archived / total) * 100),
     },
   ];
 }

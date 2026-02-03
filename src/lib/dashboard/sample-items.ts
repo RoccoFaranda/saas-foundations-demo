@@ -137,7 +137,7 @@ const sampleDashboardItems: DashboardItem[] = [
   {
     id: "proj-010",
     name: "Accessibility Audit",
-    status: "archived",
+    status: "completed",
     tag: "design",
     updatedAt: "2026-01-08T10:00:00Z",
     summary: "WCAG 2.1 AA compliance review and fixes",

@@ -12,7 +12,6 @@ const statusColors: Record<ItemStatus, string> = {
   active: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
   pending: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
   completed: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
-  archived: "bg-foreground/10 text-foreground/50",
 };
 
 const tagColors: Record<ItemTag, string> = {

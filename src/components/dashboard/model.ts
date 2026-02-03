@@ -4,7 +4,7 @@
  */
 
 // Core item types
-export type ItemStatus = "active" | "pending" | "completed" | "archived";
+export type ItemStatus = "active" | "pending" | "completed";
 export type ItemTag = "feature" | "bugfix" | "docs" | "infra" | "design";
 export type SortField = "name" | "updatedAt" | "progress";
 export type SortDirection = "asc" | "desc";
@@ -40,7 +40,6 @@ export const statusOptions = [
   { value: "active" as const, label: "Active" },
   { value: "pending" as const, label: "Pending" },
   { value: "completed" as const, label: "Completed" },
-  { value: "archived" as const, label: "Archived" },
 ];
 
 export const tagOptions = [

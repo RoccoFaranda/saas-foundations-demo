@@ -15,7 +15,7 @@ interface EditItemModalProps {
   isPending?: boolean;
 }
 
-const statusOptions: ItemStatus[] = ["active", "pending", "completed", "archived"];
+const statusOptions: ItemStatus[] = ["active", "pending", "completed"];
 const tagOptions: Array<{ value: ItemTag | ""; label: string }> = [
   { value: "", label: "Untagged" },
   { value: "feature", label: "Feature" },

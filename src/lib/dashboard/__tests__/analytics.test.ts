@@ -15,7 +15,6 @@ describe("analytics", () => {
         { status: "active", count: 0, percentage: 0 },
         { status: "pending", count: 0, percentage: 0 },
         { status: "completed", count: 0, percentage: 0 },
-        { status: "archived", count: 0, percentage: 0 },
       ]);
     });
 
@@ -27,7 +26,7 @@ describe("analytics", () => {
         createItem("4", "completed"),
         createItem("5", "completed"),
         createItem("6", "completed"),
-        createItem("7", "archived"),
+        createItem("7", "completed"),
       ];
 
       const result = computeStatusDistribution(items);
@@ -35,8 +34,7 @@ describe("analytics", () => {
       expect(result).toEqual([
         { status: "active", count: 2, percentage: 29 }, // 2/7 = 28.57 -> 29
         { status: "pending", count: 1, percentage: 14 }, // 1/7 = 14.28 -> 14
-        { status: "completed", count: 3, percentage: 43 }, // 3/7 = 42.85 -> 43
-        { status: "archived", count: 1, percentage: 14 }, // 1/7 = 14.28 -> 14
+        { status: "completed", count: 4, percentage: 57 }, // 4/7 = 57.14 -> 57
       ]);
     });
 
@@ -49,7 +47,6 @@ describe("analytics", () => {
         { status: "active", count: 2, percentage: 100 },
         { status: "pending", count: 0, percentage: 0 },
         { status: "completed", count: 0, percentage: 0 },
-        { status: "archived", count: 0, percentage: 0 },
       ]);
     });
   });
@@ -156,10 +153,7 @@ describe("analytics", () => {
 });
 
 // Test helpers
-function createItem(
-  id: string,
-  status: "active" | "pending" | "completed" | "archived"
-): DashboardItem {
+function createItem(id: string, status: "active" | "pending" | "completed"): DashboardItem {
   return {
     id,
     name: `Item ${id}`,
@@ -173,7 +167,7 @@ function createItem(
 
 function createItemWithDate(
   id: string,
-  status: "active" | "pending" | "completed" | "archived",
+  status: "active" | "pending" | "completed",
   date: string
 ): DashboardItem {
   return {

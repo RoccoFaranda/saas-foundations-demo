@@ -17,14 +17,12 @@ export function StatusDistributionChart({ data, isEmpty = false }: StatusDistrib
     active: "bg-blue-500",
     pending: "bg-yellow-500",
     completed: "bg-green-500",
-    archived: "bg-gray-500",
   };
 
   const statusLabels = {
     active: "Active",
     pending: "Pending",
     completed: "Completed",
-    archived: "Archived",
   };
 
   if (isEmpty) {

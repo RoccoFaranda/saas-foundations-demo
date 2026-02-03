@@ -92,7 +92,7 @@ describe("Dashboard queries", () => {
     });
 
     it("should handle all valid status values", () => {
-      const statuses = ["all", "active", "pending", "completed", "archived"];
+      const statuses = ["all", "active", "pending", "completed"];
 
       for (const status of statuses) {
         const result = parseDashboardSearchParams({ status });
@@ -136,9 +136,9 @@ describe("Dashboard queries", () => {
       expect(kpis.avgProgress).toBe(0);
     });
 
-    it("should count archived items in total but not in active/completed", () => {
+    it("should count pending items in total but not in active/completed", () => {
       const items: DashboardItem[] = [
-        createMockItem({ status: "archived" }),
+        createMockItem({ status: "pending" }),
         createMockItem({ status: "active" }),
       ];
 

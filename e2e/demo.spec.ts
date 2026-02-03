@@ -77,7 +77,7 @@ test.describe("Demo page - Guest mode reset flow", () => {
     await expect(modal).toBeVisible();
 
     // Change status
-    await page.getByTestId("edit-status-select").selectOption("archived");
+    await page.getByTestId("edit-status-select").selectOption("completed");
 
     // Cancel instead of save
     await page.getByTestId("edit-cancel-btn").click();
@@ -87,7 +87,7 @@ test.describe("Demo page - Guest mode reset flow", () => {
 
     // Verify row still shows original "active" status (no change)
     await expect(targetRow).toContainText("active");
-    await expect(targetRow).not.toContainText("archived");
+    await expect(targetRow).not.toContainText("completed");
   });
 
   test("create new project appears in table and activity feed", async ({ page }) => {

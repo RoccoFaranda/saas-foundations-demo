@@ -120,7 +120,7 @@ async function main() {
     {
       id: "item_demo_010",
       name: "Refactor database queries",
-      status: "archived" as const,
+      status: "completed" as const,
       tag: "infra" as const,
       summary: "Optimized queries for better performance (completed in previous sprint)",
       metricValue: 100,
