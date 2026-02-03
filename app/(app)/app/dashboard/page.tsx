@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import Link from "next/link";
 import { requireVerifiedUser } from "@/src/lib/auth";
 import { listItems, countItems } from "@/src/lib/items";
 import { listActivityLogs } from "@/src/lib/activity-log";
@@ -9,12 +9,8 @@ import {
   DASHBOARD_PAGE_SIZE,
 } from "@/src/lib/dashboard/queries";
 import { ItemStatus, ItemTag } from "@/src/generated/prisma/enums";
-import { KpiCard, ActivityFeed, TableSkeleton } from "@/src/components/dashboard";
-import {
-  computeProgress,
-  type SortField,
-  type SortDirection,
-} from "@/src/components/dashboard/model";
+import { DashboardShell, computeProgress } from "@/src/components/dashboard";
+import type { SortField, SortDirection } from "@/src/components/dashboard/model";
 import { DashboardFilters, DashboardMutations, DashboardPagination } from "./_components";
 
 interface PageProps {
@@ -90,86 +86,56 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const sortField: SortField = params.sortBy;
   const sortDirection: SortDirection = params.sortDir;
 
+  // Filter controls component
+  const filterControls = (
+    <DashboardFilters
+      search={params.search}
+      status={params.status}
+      tag={params.tag}
+      sortField={sortField}
+      sortDirection={sortDirection}
+    />
+  );
+
+  // Pagination controls component
+  const paginationControls = (
+    <DashboardPagination
+      currentPage={currentPage}
+      totalItems={totalCount}
+      pageSize={DASHBOARD_PAGE_SIZE}
+    />
+  );
+
+  // Quick actions content
+  const quickActionsContent = (
+    <>
+      <QuickActionLink href="/app/dashboard" label="View Dashboard" active />
+      <QuickActionLink href="/app/settings" label="Account Settings" />
+    </>
+  );
+
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-8" data-testid="dashboard-page">
-      {/* Page Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="mt-1 text-sm text-foreground/60">
-          Welcome back! Here&apos;s an overview of your projects.
-        </p>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label="Total Projects" value={kpis.total} subtitle="All projects" />
-        <KpiCard label="Active" value={kpis.active} subtitle="In progress" />
-        <KpiCard label="Completed" value={kpis.completed} subtitle="Finished" />
-        <KpiCard
-          label="Avg Progress"
-          value={`${kpis.avgProgress}%`}
-          subtitle="Across all projects"
+    <DashboardShell
+      testId="dashboard-page"
+      title="Dashboard"
+      subtitle="Welcome back! Here's an overview of your projects."
+      kpis={kpis}
+      filterControls={filterControls}
+      tableContent={
+        <DashboardMutations
+          items={items}
+          emptyMessage={
+            kpis.total === 0
+              ? "No projects yet."
+              : "No projects match your filters. Try adjusting your search or filters."
+          }
+          hasItems={kpis.total > 0}
         />
-      </div>
-
-      {/* Main Content Grid */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Primary Panel - Table */}
-        <div className="lg:col-span-2">
-          <div className="rounded-lg border border-foreground/10 bg-background">
-            {/* Header with filters */}
-            <div className="flex flex-col gap-3 border-b border-foreground/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="font-medium">Projects</h2>
-              <DashboardFilters
-                search={params.search}
-                status={params.status}
-                tag={params.tag}
-                sortField={sortField}
-                sortDirection={sortDirection}
-              />
-            </div>
-
-            {/* Table content with mutations */}
-            <div className="p-4">
-              <Suspense fallback={<TableSkeleton rows={DASHBOARD_PAGE_SIZE} />}>
-                <DashboardMutations
-                  items={items}
-                  emptyMessage={
-                    kpis.total === 0
-                      ? "No projects yet."
-                      : "No projects match your filters. Try adjusting your search or filters."
-                  }
-                  hasItems={kpis.total > 0}
-                />
-              </Suspense>
-            </div>
-
-            {/* Pagination */}
-            <DashboardPagination
-              currentPage={currentPage}
-              totalItems={totalCount}
-              pageSize={DASHBOARD_PAGE_SIZE}
-            />
-          </div>
-        </div>
-
-        {/* Side Panel - Activity */}
-        <div className="space-y-6">
-          <ActivityFeed activities={activities} />
-
-          {/* Quick Actions Panel */}
-          <div className="rounded-lg border border-foreground/10 bg-background">
-            <div className="border-b border-foreground/10 px-4 py-3">
-              <h2 className="font-medium">Quick Actions</h2>
-            </div>
-            <div className="space-y-2 p-4">
-              <QuickActionLink href="/app/dashboard" label="View Dashboard" active />
-              <QuickActionLink href="/app/settings" label="Account Settings" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+      }
+      paginationControls={paginationControls}
+      activities={activities}
+      quickActionsContent={quickActionsContent}
+    />
   );
 }
 
@@ -183,7 +149,7 @@ function QuickActionLink({
   active?: boolean;
 }) {
   return (
-    <a
+    <Link
       href={href}
       className={`block w-full rounded-md border px-3 py-2 text-left text-sm transition-colors ${
         active
@@ -192,6 +158,6 @@ function QuickActionLink({
       }`}
     >
       {label}
-    </a>
+    </Link>
   );
 }

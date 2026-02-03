@@ -2,12 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { requireVerifiedUser } from "@/src/lib/auth";
-import { createItem, updateItem, deleteItem, getItem, listItems } from "@/src/lib/items";
+import prisma from "@/src/lib/db";
+import { createItem, updateItem, deleteItem, getItem } from "@/src/lib/items";
 import { createActivityLog } from "@/src/lib/activity-log";
 import { createItemSchema, updateItemSchema } from "@/src/lib/validation/item";
 import { ItemStatus, ItemTag } from "@/src/generated/prisma/enums";
 import type { ChecklistItem as UIChecklistItem } from "@/src/components/dashboard/model";
-import { demoItems } from "@/app/(demo)/demo/demo-items";
+import { getSampleDashboardItems } from "@/src/lib/dashboard/sample-items";
 
 /**
  * Action result type for dashboard mutations
@@ -170,43 +171,59 @@ export async function deleteItemAction(itemId: string): Promise<DashboardActionR
  */
 export async function importSampleDataAction(): Promise<DashboardActionResult> {
   const user = await requireVerifiedUser();
+  const sampleItems = getSampleDashboardItems();
 
   try {
-    // Check if user already has items (idempotency guard)
-    const existingItems = await listItems(user.id, { limit: 1 });
-    if (existingItems.length > 0) {
+    await prisma.$transaction(async (tx) => {
+      // Check if user already has items (idempotency guard)
+      const existingCount = await tx.item.count({
+        where: { userId: user.id },
+      });
+
+      if (existingCount > 0) {
+        throw new Error("SAMPLE_IMPORT_REQUIRES_EMPTY_STATE");
+      }
+
+      // Create sample items + activity logs in one atomic transaction
+      for (const sampleItem of sampleItems) {
+        const item = await tx.item.create({
+          data: {
+            userId: user.id,
+            name: sampleItem.name,
+            status: sampleItem.status as ItemStatus,
+            tag: sampleItem.tag as ItemTag | null,
+            summary: sampleItem.summary || undefined,
+            checklistItems: {
+              create: sampleItem.checklist.map((checklistItem, index) => ({
+                text: checklistItem.text,
+                done: checklistItem.done,
+                position: index,
+              })),
+            },
+          },
+        });
+
+        await tx.activityLog.create({
+          data: {
+            userId: user.id,
+            action: "item.created",
+            entityType: "item",
+            entityId: item.id,
+            metadata: { itemName: item.name, source: "sample_import" },
+          },
+        });
+      }
+    });
+
+    revalidatePath("/app/dashboard");
+    return { success: true };
+  } catch (error) {
+    if (error instanceof Error && error.message === "SAMPLE_IMPORT_REQUIRES_EMPTY_STATE") {
       return {
         success: false,
         error: "Sample data can only be imported when you have no existing projects.",
       };
     }
-
-    // Create sample items
-    for (const sampleItem of demoItems) {
-      const item = await createItem(user.id, {
-        name: sampleItem.name,
-        status: sampleItem.status,
-        tag: sampleItem.tag ?? undefined,
-        summary: sampleItem.summary || undefined,
-        checklist: sampleItem.checklist.map((checklistItem, index) => ({
-          text: checklistItem.text,
-          done: checklistItem.done,
-          position: index,
-        })),
-      });
-
-      // Log activity for each created item
-      await createActivityLog(user.id, {
-        action: "item.created",
-        entityType: "item",
-        entityId: item.id,
-        metadata: { itemName: item.name, source: "sample_import" },
-      });
-    }
-
-    revalidatePath("/app/dashboard");
-    return { success: true };
-  } catch (error) {
     console.error("[dashboard] importSampleDataAction failed:", error);
     return { success: false, error: "Failed to import sample data. Please try again." };
   }

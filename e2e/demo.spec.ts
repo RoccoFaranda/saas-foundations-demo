@@ -89,4 +89,171 @@ test.describe("Demo page - Guest mode reset flow", () => {
     await expect(targetRow).toContainText("active");
     await expect(targetRow).not.toContainText("archived");
   });
+
+  test("create new project appears in table and activity feed", async ({ page }) => {
+    await page.goto("/demo");
+
+    // Wait for table to load
+    await expect(page.getByTestId("edit-btn-proj-001")).toBeVisible({ timeout: 5000 });
+
+    // Click Create Project button
+    const createBtn = page.getByRole("button", { name: "Create Project" });
+    await expect(createBtn).toBeVisible();
+    await createBtn.click();
+
+    // Verify edit modal opens for creation
+    const modal = page.getByTestId("edit-modal");
+    await expect(modal).toBeVisible();
+
+    // Fill in project details
+    const nameInput = page.getByTestId("edit-name-input");
+    await nameInput.fill("E2E Test Project");
+
+    const summaryInput = page.getByTestId("edit-summary-input");
+    await summaryInput.fill("A test project created by E2E");
+
+    // Select status
+    await page.getByTestId("edit-status-select").selectOption("pending");
+
+    // Create the project
+    await page.getByTestId("edit-save-btn").click();
+
+    // Verify modal closes
+    await expect(modal).not.toBeVisible();
+
+    // Verify activity shows creation
+    const activityList = page.getByTestId("activity-list");
+    await expect(activityList).toContainText("E2E Test Project");
+
+    // Reset filters to see the new project
+    await page.reload();
+
+    // Wait for table to load
+    await expect(page.getByTestId("edit-btn-proj-001")).toBeVisible({ timeout: 5000 });
+
+    // The page refresh should reset demo data - new project should be gone
+    const table = page.getByTestId("items-table");
+    await expect(table).not.toContainText("E2E Test Project");
+  });
+
+  test("delete project removes from table and import restores demo data", async ({ page }) => {
+    await page.goto("/demo");
+
+    // Wait for table to load (demo has 10 items, showing 5 per page)
+    await expect(page.getByTestId("edit-btn-proj-002")).toBeVisible({ timeout: 5000 });
+
+    // Verify initial row count on first page (5 items + 1 header)
+    const itemsTable = page.getByTestId("items-table");
+    await expect(itemsTable.locator("tr")).toHaveCount(6); // 1 header + 5 items
+
+    // Find a visible delete button (proj-002 "Dashboard Analytics" is on first page)
+    const deleteBtn = page.getByTestId("delete-btn-proj-002");
+    await expect(deleteBtn).toBeVisible();
+
+    // Click delete button
+    await deleteBtn.click();
+
+    // Verify delete modal appears
+    const deleteModal = page.getByTestId("delete-modal");
+    await expect(deleteModal).toBeVisible({ timeout: 5000 });
+    await expect(deleteModal).toContainText("Dashboard Analytics");
+
+    // Confirm deletion
+    const confirmBtn = page.getByTestId("delete-confirm-btn");
+    await confirmBtn.click();
+
+    // Verify modal closes
+    await expect(deleteModal).not.toBeVisible({ timeout: 5000 });
+
+    // Verify item was removed - the proj-002 row should be gone
+    await expect(page.getByTestId("table-row-proj-002")).not.toBeVisible({ timeout: 5000 });
+
+    // Verify activity shows deletion
+    const activityList = page.getByTestId("activity-list");
+    await expect(activityList).toContainText("Deleted");
+    await expect(activityList).toContainText("Dashboard Analytics");
+
+    // Refresh the page - should reset to original demo data
+    await page.reload();
+
+    // Wait for table to load
+    await expect(page.getByTestId("edit-btn-proj-002")).toBeVisible({ timeout: 5000 });
+
+    // Verify the deleted item is back on the first page
+    await expect(itemsTable).toContainText("Dashboard Analytics");
+  });
+
+  test("import sample data restores demo items after deleting all", async ({ page }) => {
+    await page.goto("/demo");
+
+    // Wait for table to load (10 items, 5 per page = 2 pages)
+    await expect(page.getByTestId("edit-btn-proj-002")).toBeVisible({ timeout: 5000 });
+
+    // Delete items page by page - need to delete all 10 items
+    // Delete 5 from first page, then 5 more after pagination updates
+    for (let i = 0; i < 10; i++) {
+      // Find any visible delete button and click it
+      const deleteBtn = page.locator('[data-testid^="delete-btn-"]').first();
+
+      // Check if there are still items to delete
+      const isVisible = await deleteBtn.isVisible().catch(() => false);
+      if (!isVisible) {
+        // No more items visible
+        break;
+      }
+
+      await deleteBtn.click();
+
+      // Wait for modal and confirm
+      const deleteModal = page.getByTestId("delete-modal");
+      await expect(deleteModal).toBeVisible({ timeout: 5000 });
+      await page.getByTestId("delete-confirm-btn").click();
+      await expect(deleteModal).not.toBeVisible({ timeout: 5000 });
+    }
+
+    // After deleting all items, empty state should show with Import Sample Data button
+    const importBtn = page.getByRole("button", { name: "Import Sample Data" });
+    await expect(importBtn).toBeVisible({ timeout: 10000 });
+
+    // Click import sample data
+    await importBtn.click();
+
+    // Wait for table to reload with data
+    await expect(page.getByTestId("items-table")).toBeVisible({ timeout: 5000 });
+    await expect(page.getByTestId("edit-btn-proj-002")).toBeVisible({ timeout: 5000 });
+
+    // Verify activity shows import
+    const activityList = page.getByTestId("activity-list");
+    await expect(activityList).toContainText("Imported sample data");
+  });
+
+  test("delete cancel button closes modal without deleting", async ({ page }) => {
+    await page.goto("/demo");
+
+    // Wait for table to load
+    await expect(page.getByTestId("edit-btn-proj-002")).toBeVisible({ timeout: 5000 });
+
+    // Verify initial row count on first page
+    const itemsTable = page.getByTestId("items-table");
+    await expect(itemsTable.locator("tr")).toHaveCount(6); // 1 header + 5 items
+
+    // Open delete modal for Dashboard Analytics
+    const deleteBtn = page.getByTestId("delete-btn-proj-002");
+    await deleteBtn.click();
+
+    // Verify delete modal appears
+    const deleteModal = page.getByTestId("delete-modal");
+    await expect(deleteModal).toBeVisible();
+    await expect(deleteModal).toContainText("Dashboard Analytics");
+
+    // Cancel deletion
+    await page.getByTestId("delete-cancel-btn").click();
+
+    // Verify modal closes
+    await expect(deleteModal).not.toBeVisible();
+
+    // Verify item was NOT removed
+    await expect(itemsTable.locator("tr")).toHaveCount(6);
+    await expect(itemsTable).toContainText("Dashboard Analytics");
+  });
 });
