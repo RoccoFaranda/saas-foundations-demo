@@ -6,6 +6,8 @@ interface ItemsTableProps {
   emptyMessage?: string;
   onEdit?: (item: DashboardItem) => void;
   onDelete?: (item: DashboardItem) => void;
+  onArchive?: (item: DashboardItem) => void;
+  onUnarchive?: (item: DashboardItem) => void;
 }
 
 const statusColors: Record<ItemStatus, string> = {
@@ -35,8 +37,10 @@ export function ItemsTable({
   emptyMessage = "No items found",
   onEdit,
   onDelete,
+  onArchive,
+  onUnarchive,
 }: ItemsTableProps) {
-  const hasActions = onEdit || onDelete;
+  const hasActions = onEdit || onDelete || onArchive || onUnarchive;
   if (items.length === 0) {
     return (
       <div
@@ -111,7 +115,7 @@ export function ItemsTable({
                 {hasActions && (
                   <td className="py-3 pr-4">
                     <div className="flex items-center gap-1">
-                      {onEdit && (
+                      {!item.archivedAt && onEdit && (
                         <button
                           type="button"
                           onClick={() => onEdit(item)}
@@ -121,7 +125,27 @@ export function ItemsTable({
                           Edit
                         </button>
                       )}
-                      {onDelete && (
+                      {!item.archivedAt && onArchive && (
+                        <button
+                          type="button"
+                          onClick={() => onArchive(item)}
+                          className="rounded-md px-2 py-1 text-xs font-medium text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                          data-testid={`archive-btn-${item.id}`}
+                        >
+                          Archive
+                        </button>
+                      )}
+                      {item.archivedAt && onUnarchive && (
+                        <button
+                          type="button"
+                          onClick={() => onUnarchive(item)}
+                          className="rounded-md px-2 py-1 text-xs font-medium text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                          data-testid={`unarchive-btn-${item.id}`}
+                        >
+                          Unarchive
+                        </button>
+                      )}
+                      {item.archivedAt && onDelete && (
                         <button
                           type="button"
                           onClick={() => onDelete(item)}

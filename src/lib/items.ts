@@ -22,6 +22,9 @@ export async function createItem(
 ): Promise<ItemWithChecklist> {
   const validated = createItemSchema.parse(input);
 
+  // Set completedAt if status is completed
+  const completedAt = validated.status === ItemStatus.completed ? new Date() : null;
+
   return await prisma.item.create({
     data: {
       userId,
@@ -30,6 +33,7 @@ export async function createItem(
       tag: validated.tag,
       summary: validated.summary,
       metricValue: validated.metricValue,
+      completedAt,
       checklistItems: validated.checklist
         ? {
             create: validated.checklist.map((item) => ({
@@ -63,6 +67,8 @@ export interface ListItemsOptions {
   sortDirection?: ItemSortDirection;
   limit?: number;
   offset?: number;
+  /** Include archived items. Default: false (excludes archived) */
+  includeArchived?: boolean;
 }
 
 /**
@@ -75,6 +81,11 @@ export async function listItems(
   const where: Prisma.ItemWhereInput = {
     userId,
   };
+
+  // Exclude archived items by default
+  if (!options?.includeArchived) {
+    where.archivedAt = null;
+  }
 
   if (options?.status) {
     where.status = options.status;
@@ -118,11 +129,16 @@ export async function listItems(
  */
 export async function countItems(
   userId: string,
-  options?: Pick<ListItemsOptions, "status" | "tag" | "search">
+  options?: Pick<ListItemsOptions, "status" | "tag" | "search" | "includeArchived">
 ): Promise<number> {
   const where: Prisma.ItemWhereInput = {
     userId,
   };
+
+  // Exclude archived items by default
+  if (!options?.includeArchived) {
+    where.archivedAt = null;
+  }
 
   if (options?.status) {
     where.status = options.status;
@@ -181,6 +197,9 @@ export async function updateItem(
   if (!existing) {
     throw new Error("Item not found or access denied");
   }
+  if (existing.archivedAt) {
+    throw new Error("Archived items must be unarchived before editing");
+  }
 
   // Build update data, handling null values for optional fields
   const updateData: Prisma.ItemUpdateInput = {};
@@ -190,6 +209,15 @@ export async function updateItem(
   }
   if (validated.status !== undefined) {
     updateData.status = validated.status;
+
+    // Handle completedAt lifecycle transitions
+    if (validated.status === ItemStatus.completed && !existing.completedAt) {
+      // Transitioning TO completed: set completedAt
+      updateData.completedAt = new Date();
+    } else if (validated.status !== ItemStatus.completed && existing.completedAt) {
+      // Transitioning AWAY FROM completed: clear completedAt
+      updateData.completedAt = null;
+    }
   }
   if (validated.tag !== undefined) {
     updateData.tag = validated.tag;
@@ -225,7 +253,61 @@ export async function updateItem(
 }
 
 /**
- * Delete an item, scoped to the user
+ * Archive an item (soft delete), scoped to the user
+ */
+export async function archiveItem(userId: string, itemId: string): Promise<ItemWithChecklist> {
+  // Verify the item belongs to the user
+  const existing = await prisma.item.findFirst({
+    where: {
+      id: itemId,
+      userId,
+    },
+  });
+
+  if (!existing) {
+    throw new Error("Item not found or access denied");
+  }
+
+  return await prisma.item.update({
+    where: { id: itemId },
+    data: { archivedAt: new Date() },
+    include: {
+      checklistItems: {
+        orderBy: { position: "asc" },
+      },
+    },
+  });
+}
+
+/**
+ * Unarchive an item (restore from archive), scoped to the user
+ */
+export async function unarchiveItem(userId: string, itemId: string): Promise<ItemWithChecklist> {
+  // Verify the item belongs to the user
+  const existing = await prisma.item.findFirst({
+    where: {
+      id: itemId,
+      userId,
+    },
+  });
+
+  if (!existing) {
+    throw new Error("Item not found or access denied");
+  }
+
+  return await prisma.item.update({
+    where: { id: itemId },
+    data: { archivedAt: null },
+    include: {
+      checklistItems: {
+        orderBy: { position: "asc" },
+      },
+    },
+  });
+}
+
+/**
+ * Delete an item (hard delete), scoped to the user
  * Checklist items are cascade deleted automatically via FK constraint
  */
 export async function deleteItem(userId: string, itemId: string): Promise<void> {

@@ -37,6 +37,13 @@ export const dashboardSearchParamsSchema = z.object({
 
   // Page number (optional, defaults to 1, min 1)
   page: z.coerce.number().int().min(1).optional().default(1),
+
+  // Show archived items (optional, defaults to false)
+  showArchived: z
+    .enum(["true", "false"])
+    .optional()
+    .default("false")
+    .transform((val) => val === "true"),
 });
 
 export type DashboardSearchParams = z.infer<typeof dashboardSearchParamsSchema>;
@@ -61,6 +68,9 @@ export function parseDashboardSearchParams(
   const parsedSortBy = dashboardSearchParamsSchema.shape.sortBy.safeParse(normalized.sortBy);
   const parsedSortDir = dashboardSearchParamsSchema.shape.sortDir.safeParse(normalized.sortDir);
   const parsedPage = dashboardSearchParamsSchema.shape.page.safeParse(normalized.page);
+  const parsedShowArchived = dashboardSearchParamsSchema.shape.showArchived.safeParse(
+    normalized.showArchived
+  );
 
   return {
     search: parsedSearch.success ? parsedSearch.data : "",
@@ -69,6 +79,7 @@ export function parseDashboardSearchParams(
     sortBy: parsedSortBy.success ? parsedSortBy.data : "updatedAt",
     sortDir: parsedSortDir.success ? parsedSortDir.data : "desc",
     page: parsedPage.success ? parsedPage.data : 1,
+    showArchived: parsedShowArchived.success ? parsedShowArchived.data : false,
   };
 }
 

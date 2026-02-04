@@ -27,8 +27,14 @@ vi.mock("@/src/lib/auth", () => ({
 }));
 
 // Import actions after mocks are set up
-const { createItemAction, updateItemAction, deleteItemAction, importSampleDataAction } =
-  await import("../actions");
+const {
+  createItemAction,
+  updateItemAction,
+  deleteItemAction,
+  archiveItemAction,
+  unarchiveItemAction,
+  importSampleDataAction,
+} = await import("../actions");
 
 describe("Dashboard actions", () => {
   beforeEach(async () => {
@@ -178,13 +184,31 @@ describe("Dashboard actions", () => {
       expect(result.success).toBe(false);
       expect(result).toHaveProperty("error");
     });
+
+    it("should reject update for archived item", async () => {
+      const item = await createItem(TEST_USER_ID, {
+        name: "Archived Item",
+      });
+      await archiveItemAction(item.id);
+
+      const result = await updateItemAction(item.id, {
+        name: "Updated Name",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result).toHaveProperty("error");
+      if (!result.success) {
+        expect(result.error).toContain("Unarchive");
+      }
+    });
   });
 
   describe("deleteItemAction", () => {
-    it("should delete an item and log activity", async () => {
+    it("should delete an archived item and log activity", async () => {
       const item = await createItem(TEST_USER_ID, {
         name: "To Be Deleted",
       });
+      await archiveItemAction(item.id);
 
       const result = await deleteItemAction(item.id);
 
@@ -202,8 +226,92 @@ describe("Dashboard actions", () => {
       expect(deleteLog?.metadata).toEqual({ itemName: "To Be Deleted" });
     });
 
+    it("should reject delete for non-archived item", async () => {
+      const item = await createItem(TEST_USER_ID, {
+        name: "Not Archived",
+      });
+
+      const result = await deleteItemAction(item.id);
+
+      expect(result.success).toBe(false);
+      expect(result).toHaveProperty("error");
+      if (!result.success) {
+        expect(result.error).toContain("Archive");
+      }
+    });
+
     it("should reject delete for non-existent item", async () => {
       const result = await deleteItemAction("non-existent-id");
+
+      expect(result.success).toBe(false);
+      expect(result).toHaveProperty("error");
+    });
+  });
+
+  describe("archiveItemAction", () => {
+    it("should archive an item and log activity", async () => {
+      const item = await createItem(TEST_USER_ID, {
+        name: "Item to Archive",
+      });
+
+      const result = await archiveItemAction(item.id);
+
+      expect(result.success).toBe(true);
+
+      // Verify item was archived
+      const items = await listItems(TEST_USER_ID, { includeArchived: true });
+      expect(items).toHaveLength(1);
+      expect(items[0].archivedAt).toBeDefined();
+
+      // Verify not in default list (archived excluded by default)
+      const nonArchivedItems = await listItems(TEST_USER_ID);
+      expect(nonArchivedItems).toHaveLength(0);
+
+      // Verify activity log was created
+      const logs = await listActivityLogs(TEST_USER_ID);
+      const archiveLog = logs.find((l) => l.action === "item.archived");
+      expect(archiveLog).toBeDefined();
+      expect(archiveLog?.entityId).toBe(item.id);
+      expect(archiveLog?.metadata).toEqual({ itemName: "Item to Archive" });
+    });
+
+    it("should reject archive for non-existent item", async () => {
+      const result = await archiveItemAction("non-existent-id");
+
+      expect(result.success).toBe(false);
+      expect(result).toHaveProperty("error");
+    });
+  });
+
+  describe("unarchiveItemAction", () => {
+    it("should unarchive an item and log activity", async () => {
+      const item = await createItem(TEST_USER_ID, {
+        name: "Item to Unarchive",
+      });
+
+      // First archive it
+      await archiveItemAction(item.id);
+
+      // Then unarchive it
+      const result = await unarchiveItemAction(item.id);
+
+      expect(result.success).toBe(true);
+
+      // Verify item was unarchived
+      const items = await listItems(TEST_USER_ID);
+      expect(items).toHaveLength(1);
+      expect(items[0].archivedAt).toBeNull();
+
+      // Verify activity log was created
+      const logs = await listActivityLogs(TEST_USER_ID);
+      const unarchiveLog = logs.find((l) => l.action === "item.unarchived");
+      expect(unarchiveLog).toBeDefined();
+      expect(unarchiveLog?.entityId).toBe(item.id);
+      expect(unarchiveLog?.metadata).toEqual({ itemName: "Item to Unarchive" });
+    });
+
+    it("should reject unarchive for non-existent item", async () => {
+      const result = await unarchiveItemAction("non-existent-id");
 
       expect(result.success).toBe(false);
       expect(result).toHaveProperty("error");

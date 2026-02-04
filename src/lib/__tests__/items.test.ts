@@ -1,7 +1,16 @@
 // @vitest-environment node
 import "dotenv/config";
 import { describe, it, expect, beforeEach, afterAll } from "vitest";
-import { createItem, listItems, getItem, updateItem, deleteItem, countItems } from "../items";
+import {
+  createItem,
+  listItems,
+  getItem,
+  updateItem,
+  deleteItem,
+  countItems,
+  archiveItem,
+  unarchiveItem,
+} from "../items";
 import { ItemStatus, ItemTag } from "../../generated/prisma/enums";
 import prisma from "../db";
 import { vi } from "vitest";
@@ -54,6 +63,246 @@ describe("Items data layer", () => {
 
   afterAll(async () => {
     await prisma.$disconnect();
+  });
+
+  describe("completedAt lifecycle", () => {
+    it("should set completedAt when creating item with completed status", async () => {
+      const item = await createItem(TEST_USER_1, {
+        name: "Completed Item",
+        status: ItemStatus.completed,
+      });
+
+      expect(item.completedAt).toBeDefined();
+      expect(item.completedAt).toBeInstanceOf(Date);
+      expect(item.status).toBe(ItemStatus.completed);
+    });
+
+    it("should not set completedAt when creating item with non-completed status", async () => {
+      const item = await createItem(TEST_USER_1, {
+        name: "Active Item",
+        status: ItemStatus.active,
+      });
+
+      expect(item.completedAt).toBeNull();
+      expect(item.status).toBe(ItemStatus.active);
+    });
+
+    it("should set completedAt when transitioning TO completed status", async () => {
+      const item = await createItem(TEST_USER_1, {
+        name: "Item to Complete",
+        status: ItemStatus.active,
+      });
+
+      expect(item.completedAt).toBeNull();
+
+      const updated = await updateItem(TEST_USER_1, item.id, {
+        status: ItemStatus.completed,
+      });
+
+      expect(updated.completedAt).toBeDefined();
+      expect(updated.completedAt).toBeInstanceOf(Date);
+      expect(updated.status).toBe(ItemStatus.completed);
+    });
+
+    it("should clear completedAt when transitioning AWAY FROM completed status", async () => {
+      const item = await createItem(TEST_USER_1, {
+        name: "Completed Item",
+        status: ItemStatus.completed,
+      });
+
+      expect(item.completedAt).toBeDefined();
+
+      const updated = await updateItem(TEST_USER_1, item.id, {
+        status: ItemStatus.active,
+      });
+
+      expect(updated.completedAt).toBeNull();
+      expect(updated.status).toBe(ItemStatus.active);
+    });
+
+    it("should not change completedAt if already set and status remains completed", async () => {
+      const item = await createItem(TEST_USER_1, {
+        name: "Completed Item",
+        status: ItemStatus.completed,
+      });
+
+      const originalCompletedAt = item.completedAt;
+      expect(originalCompletedAt).toBeDefined();
+
+      // Update name but keep completed status
+      const updated = await updateItem(TEST_USER_1, item.id, {
+        name: "Updated Name",
+        status: ItemStatus.completed,
+      });
+
+      // completedAt should remain the same
+      expect(updated.completedAt?.getTime()).toBe(originalCompletedAt?.getTime());
+    });
+
+    it("should not affect completedAt when updating other fields", async () => {
+      const item = await createItem(TEST_USER_1, {
+        name: "Test Item",
+        status: ItemStatus.active,
+      });
+
+      expect(item.completedAt).toBeNull();
+
+      const updated = await updateItem(TEST_USER_1, item.id, {
+        name: "Updated Name",
+        summary: "New summary",
+      });
+
+      expect(updated.completedAt).toBeNull();
+    });
+  });
+
+  describe("archived filtering", () => {
+    it("should exclude archived items by default in listItems", async () => {
+      // Create non-archived items
+      await createItem(TEST_USER_1, { name: "Active Item 1" });
+      await createItem(TEST_USER_1, { name: "Active Item 2" });
+
+      // Create archived item manually via raw query
+      const archived = await prisma.item.create({
+        data: {
+          userId: TEST_USER_1,
+          name: "Archived Item",
+          status: ItemStatus.active,
+          archivedAt: new Date(),
+        },
+      });
+
+      const items = await listItems(TEST_USER_1);
+
+      expect(items).toHaveLength(2);
+      expect(items.find((i) => i.id === archived.id)).toBeUndefined();
+      expect(items.every((i) => i.archivedAt === null)).toBe(true);
+    });
+
+    it("should include archived items when includeArchived=true in listItems", async () => {
+      // Create non-archived items
+      await createItem(TEST_USER_1, { name: "Active Item" });
+
+      // Create archived item
+      await prisma.item.create({
+        data: {
+          userId: TEST_USER_1,
+          name: "Archived Item",
+          status: ItemStatus.completed,
+          archivedAt: new Date(),
+        },
+      });
+
+      const allItems = await listItems(TEST_USER_1, { includeArchived: true });
+      const nonArchivedItems = await listItems(TEST_USER_1, { includeArchived: false });
+
+      expect(allItems).toHaveLength(2);
+      expect(nonArchivedItems).toHaveLength(1);
+    });
+
+    it("should exclude archived items by default in countItems", async () => {
+      // Create non-archived items
+      await createItem(TEST_USER_1, { name: "Active Item 1" });
+      await createItem(TEST_USER_1, { name: "Active Item 2" });
+
+      // Create archived item
+      await prisma.item.create({
+        data: {
+          userId: TEST_USER_1,
+          name: "Archived Item",
+          status: ItemStatus.active,
+          archivedAt: new Date(),
+        },
+      });
+
+      const count = await countItems(TEST_USER_1);
+
+      expect(count).toBe(2);
+    });
+
+    it("should include archived items when includeArchived=true in countItems", async () => {
+      // Create non-archived items
+      await createItem(TEST_USER_1, { name: "Active Item" });
+
+      // Create archived item
+      await prisma.item.create({
+        data: {
+          userId: TEST_USER_1,
+          name: "Archived Item",
+          status: ItemStatus.completed,
+          archivedAt: new Date(),
+        },
+      });
+
+      const allCount = await countItems(TEST_USER_1, { includeArchived: true });
+      const nonArchivedCount = await countItems(TEST_USER_1, { includeArchived: false });
+
+      expect(allCount).toBe(2);
+      expect(nonArchivedCount).toBe(1);
+    });
+
+    it("should respect archived filtering with other filters", async () => {
+      // Create non-archived completed item
+      await createItem(TEST_USER_1, {
+        name: "Completed Item",
+        status: ItemStatus.completed,
+      });
+
+      // Create archived completed item
+      await prisma.item.create({
+        data: {
+          userId: TEST_USER_1,
+          name: "Archived Completed Item",
+          status: ItemStatus.completed,
+          archivedAt: new Date(),
+        },
+      });
+
+      const completedNonArchived = await listItems(TEST_USER_1, {
+        status: ItemStatus.completed,
+        includeArchived: false,
+      });
+
+      const completedAll = await listItems(TEST_USER_1, {
+        status: ItemStatus.completed,
+        includeArchived: true,
+      });
+
+      expect(completedNonArchived).toHaveLength(1);
+      expect(completedAll).toHaveLength(2);
+    });
+
+    it("should maintain user isolation with archived filtering", async () => {
+      // User 1 items
+      await createItem(TEST_USER_1, { name: "User 1 Item" });
+      await prisma.item.create({
+        data: {
+          userId: TEST_USER_1,
+          name: "User 1 Archived",
+          status: ItemStatus.active,
+          archivedAt: new Date(),
+        },
+      });
+
+      // User 2 items
+      await createItem(TEST_USER_2, { name: "User 2 Item" });
+      await prisma.item.create({
+        data: {
+          userId: TEST_USER_2,
+          name: "User 2 Archived",
+          status: ItemStatus.active,
+          archivedAt: new Date(),
+        },
+      });
+
+      const user1Items = await listItems(TEST_USER_1, { includeArchived: true });
+      const user2Items = await listItems(TEST_USER_2, { includeArchived: true });
+
+      expect(user1Items).toHaveLength(2);
+      expect(user2Items).toHaveLength(2);
+      expect(user1Items.every((i) => i.userId === TEST_USER_1)).toBe(true);
+      expect(user2Items.every((i) => i.userId === TEST_USER_2)).toBe(true);
+    });
   });
 
   describe("createItem", () => {
@@ -443,6 +692,15 @@ describe("Items data layer", () => {
       );
     });
 
+    it("should throw error when updating archived item", async () => {
+      const item = await createItem(TEST_USER_1, { name: "Archived Item" });
+      await archiveItem(TEST_USER_1, item.id);
+
+      await expect(updateItem(TEST_USER_1, item.id, { name: "Attempted update" })).rejects.toThrow(
+        "Archived items must be unarchived before editing"
+      );
+    });
+
     it("should reject checklist with duplicate positions on update", async () => {
       const item = await createItem(TEST_USER_1, { name: "Duplicate positions update target" });
 
@@ -504,6 +762,126 @@ describe("Items data layer", () => {
         where: { itemId: item.id },
       });
       expect(remainingChecklistItems).toHaveLength(0);
+    });
+  });
+
+  describe("archiveItem / unarchiveItem", () => {
+    it("should archive an item (set archivedAt)", async () => {
+      const item = await createItem(TEST_USER_1, { name: "Item to Archive" });
+
+      expect(item.archivedAt).toBeNull();
+
+      const archived = await archiveItem(TEST_USER_1, item.id);
+
+      expect(archived.id).toBe(item.id);
+      expect(archived.archivedAt).toBeDefined();
+      expect(archived.archivedAt).toBeInstanceOf(Date);
+    });
+
+    it("should unarchive an item (clear archivedAt)", async () => {
+      // Create and archive an item
+      const item = await createItem(TEST_USER_1, { name: "Item to Unarchive" });
+      const archived = await archiveItem(TEST_USER_1, item.id);
+
+      expect(archived.archivedAt).toBeDefined();
+
+      const unarchived = await unarchiveItem(TEST_USER_1, item.id);
+
+      expect(unarchived.id).toBe(item.id);
+      expect(unarchived.archivedAt).toBeNull();
+    });
+
+    it("should throw error if archiving item that does not belong to user", async () => {
+      const item = await createItem(TEST_USER_1, { name: "User 1 Item" });
+
+      await expect(archiveItem(TEST_USER_2, item.id)).rejects.toThrow(
+        "Item not found or access denied"
+      );
+    });
+
+    it("should throw error if unarchiving item that does not belong to user", async () => {
+      const item = await createItem(TEST_USER_1, { name: "User 1 Item" });
+      await archiveItem(TEST_USER_1, item.id);
+
+      await expect(unarchiveItem(TEST_USER_2, item.id)).rejects.toThrow(
+        "Item not found or access denied"
+      );
+    });
+
+    it("should throw error if archiving non-existent item", async () => {
+      await expect(archiveItem(TEST_USER_1, "non-existent-id")).rejects.toThrow(
+        "Item not found or access denied"
+      );
+    });
+
+    it("should throw error if unarchiving non-existent item", async () => {
+      await expect(unarchiveItem(TEST_USER_1, "non-existent-id")).rejects.toThrow(
+        "Item not found or access denied"
+      );
+    });
+
+    it("should be able to archive already archived item (idempotent)", async () => {
+      const item = await createItem(TEST_USER_1, { name: "Item" });
+      const firstArchive = await archiveItem(TEST_USER_1, item.id);
+      const secondArchive = await archiveItem(TEST_USER_1, item.id);
+
+      expect(secondArchive.archivedAt).toBeDefined();
+      // Second archive updates timestamp
+      expect(secondArchive.archivedAt?.getTime()).toBeGreaterThanOrEqual(
+        firstArchive.archivedAt?.getTime() ?? 0
+      );
+    });
+
+    it("should be able to unarchive non-archived item (idempotent)", async () => {
+      const item = await createItem(TEST_USER_1, { name: "Item" });
+
+      expect(item.archivedAt).toBeNull();
+
+      const unarchived = await unarchiveItem(TEST_USER_1, item.id);
+
+      expect(unarchived.archivedAt).toBeNull();
+    });
+
+    it("should preserve checklist when archiving", async () => {
+      const item = await createItem(TEST_USER_1, {
+        name: "Item with Checklist",
+        checklist: [
+          { text: "Task 1", done: false, position: 0 },
+          { text: "Task 2", done: true, position: 1 },
+        ],
+      });
+
+      const archived = await archiveItem(TEST_USER_1, item.id);
+
+      expect(archived.checklistItems).toHaveLength(2);
+      expect(archived.checklistItems[0].text).toBe("Task 1");
+      expect(archived.checklistItems[1].done).toBe(true);
+    });
+
+    it("should preserve all item fields when archiving/unarchiving", async () => {
+      const item = await createItem(TEST_USER_1, {
+        name: "Full Item",
+        status: ItemStatus.active,
+        tag: ItemTag.feature,
+        summary: "Test summary",
+        metricValue: 42,
+      });
+
+      const archived = await archiveItem(TEST_USER_1, item.id);
+
+      expect(archived.name).toBe("Full Item");
+      expect(archived.status).toBe(ItemStatus.active);
+      expect(archived.tag).toBe(ItemTag.feature);
+      expect(archived.summary).toBe("Test summary");
+      expect(archived.metricValue).toBe(42);
+
+      const unarchived = await unarchiveItem(TEST_USER_1, item.id);
+
+      expect(unarchived.name).toBe("Full Item");
+      expect(unarchived.status).toBe(ItemStatus.active);
+      expect(unarchived.tag).toBe(ItemTag.feature);
+      expect(unarchived.summary).toBe("Test summary");
+      expect(unarchived.metricValue).toBe(42);
     });
   });
 

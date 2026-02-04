@@ -10,6 +10,8 @@ import {
   createItemAction,
   updateItemAction,
   deleteItemAction,
+  archiveItemAction,
+  unarchiveItemAction,
   importSampleDataAction,
 } from "../actions";
 
@@ -74,6 +76,12 @@ export function DashboardMutations({ items, emptyMessage, hasItems }: DashboardM
       },
       onDelete: async (item: DashboardItem) => {
         await runMutation(async () => deleteItemAction(item.id));
+      },
+      onArchive: async (item: DashboardItem) => {
+        await runMutation(async () => archiveItemAction(item.id));
+      },
+      onUnarchive: async (item: DashboardItem) => {
+        await runMutation(async () => unarchiveItemAction(item.id));
       },
       onImportSampleData: async () => {
         await runMutation(importSampleDataAction);

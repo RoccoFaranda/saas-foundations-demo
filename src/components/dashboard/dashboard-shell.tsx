@@ -111,8 +111,11 @@ export function DashboardShell({
         <div className="lg:col-span-2">
           <div className="rounded-lg border border-foreground/10 bg-background">
             {/* Header with filters */}
-            <div className="flex flex-col gap-3 border-b border-foreground/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="font-medium">Projects</h2>
+            <div className="border-b border-foreground/10 px-4 py-3">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h2 className="font-medium">Projects</h2>
+                <div id="dashboard-table-actions-slot" />
+              </div>
               {filterControls}
             </div>
 

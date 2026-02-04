@@ -28,6 +28,7 @@ export function mapDbItemToUi(dbItem: ItemWithChecklist): DashboardItem {
     updatedAt: dbItem.updatedAt.toISOString(),
     summary: dbItem.summary ?? "",
     checklist,
+    archivedAt: dbItem.archivedAt?.toISOString() ?? null,
   };
 }
 
@@ -56,6 +57,10 @@ function formatActivityMessage(log: ActivityLog): string {
       return itemName ? `Updated "${itemName}"` : "Updated an item";
     case "item.deleted":
       return itemName ? `Deleted "${itemName}"` : "Deleted an item";
+    case "item.archived":
+      return itemName ? `Archived "${itemName}"` : "Archived an item";
+    case "item.unarchived":
+      return itemName ? `Unarchived "${itemName}"` : "Unarchived an item";
     case "checklist.updated":
       return itemName ? `Updated checklist on "${itemName}"` : "Updated a checklist";
     default:

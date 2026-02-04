@@ -43,6 +43,7 @@ export default function DemoPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<DemoItemStatus | "all">("all");
   const [tagFilter, setTagFilter] = useState<DemoItemTag | "all">("all");
+  const [showArchived, setShowArchived] = useState(false);
 
   // Sort state
   const [sortField, setSortField] = useState<SortField>("updatedAt");
@@ -81,15 +82,21 @@ export default function DemoPage() {
     setCurrentPage(1);
   }, []);
 
+  const handleShowArchivedChange = useCallback((value: boolean) => {
+    setShowArchived(value);
+    setCurrentPage(1);
+  }, []);
+
   // Compute filtered & sorted data from local items
   const filteredItems = useMemo(() => {
     const filtered = filterItems(items, {
       search,
       status: statusFilter,
       tag: tagFilter,
+      showArchived,
     });
     return sortItems(filtered, { field: sortField, direction: sortDirection });
-  }, [items, search, statusFilter, tagFilter, sortField, sortDirection]);
+  }, [items, search, statusFilter, tagFilter, showArchived, sortField, sortDirection]);
 
   // KPIs computed from full local dataset
   const kpis = useMemo(() => getDemoKpis(items), [items]);
@@ -122,6 +129,7 @@ export default function DemoPage() {
           ...newItem,
           id: generateId("proj"),
           updatedAt: new Date().toISOString(),
+          archivedAt: null,
         };
         setItems((prev) => [itemWithId, ...prev]);
         addActivity(`Created "${newItem.name}"`);
@@ -147,6 +155,24 @@ export default function DemoPage() {
         setItems((prev) => prev.filter((i) => i.id !== item.id));
         addActivity(`Deleted "${item.name}"`);
       },
+      onArchive: (item) => {
+        setItems((prev) =>
+          prev.map((i) =>
+            i.id === item.id
+              ? { ...i, archivedAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+              : i
+          )
+        );
+        addActivity(`Archived "${item.name}"`);
+      },
+      onUnarchive: (item) => {
+        setItems((prev) =>
+          prev.map((i) =>
+            i.id === item.id ? { ...i, archivedAt: null, updatedAt: new Date().toISOString() } : i
+          )
+        );
+        addActivity(`Unarchived "${item.name}"`);
+      },
       onImportSampleData: () => {
         setItems(cloneItems(demoItems));
         addActivity("Imported sample data");
@@ -167,6 +193,8 @@ export default function DemoPage() {
       sortField={sortField}
       sortDirection={sortDirection}
       onSortChange={handleSortChange}
+      showArchived={showArchived}
+      onShowArchivedChange={handleShowArchivedChange}
     />
   );
 

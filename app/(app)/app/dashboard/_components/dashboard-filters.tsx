@@ -16,6 +16,7 @@ interface DashboardFiltersProps {
   tag: ItemTag | "all";
   sortField: SortField;
   sortDirection: SortDirection;
+  showArchived: boolean;
 }
 
 /**
@@ -28,6 +29,7 @@ export function DashboardFilters({
   tag,
   sortField,
   sortDirection,
+  showArchived,
 }: DashboardFiltersProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -108,6 +110,13 @@ export function DashboardFilters({
     [updateParams]
   );
 
+  const handleShowArchivedChange = useCallback(
+    (value: boolean) => {
+      updateParams({ showArchived: value ? "true" : undefined });
+    },
+    [updateParams]
+  );
+
   return (
     <TableFilters
       search={searchInput}
@@ -119,6 +128,8 @@ export function DashboardFilters({
       sortField={sortField}
       sortDirection={sortDirection}
       onSortChange={handleSortChange}
+      showArchived={showArchived}
+      onShowArchivedChange={handleShowArchivedChange}
     />
   );
 }

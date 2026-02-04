@@ -25,6 +25,7 @@ export interface DashboardItem {
   updatedAt: string; // ISO timestamp
   summary: string;
   checklist: ChecklistItem[];
+  archivedAt?: string | null; // ISO timestamp or null
 }
 
 // Activity log entry

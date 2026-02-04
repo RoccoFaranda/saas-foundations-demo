@@ -59,6 +59,7 @@ describe("Dashboard mappers", () => {
           { id: "check-1", text: "Task 1", done: true },
           { id: "check-2", text: "Task 2", done: false },
         ],
+        archivedAt: null,
       });
     });
 

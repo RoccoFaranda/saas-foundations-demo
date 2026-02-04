@@ -3,7 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { requireVerifiedUser } from "@/src/lib/auth";
 import prisma from "@/src/lib/db";
-import { createItem, updateItem, deleteItem, getItem } from "@/src/lib/items";
+import {
+  createItem,
+  updateItem,
+  deleteItem,
+  getItem,
+  archiveItem,
+  unarchiveItem,
+} from "@/src/lib/items";
 import { createActivityLog } from "@/src/lib/activity-log";
 import { createItemSchema, updateItemSchema } from "@/src/lib/validation/item";
 import { ItemStatus, ItemTag } from "@/src/generated/prisma/enums";
@@ -121,8 +128,79 @@ export async function updateItemAction(
     if (error instanceof Error && error.message.includes("not found or access denied")) {
       return { success: false, error: "Item not found or you don't have permission to edit it." };
     }
+    if (
+      error instanceof Error &&
+      error.message.includes("Archived items must be unarchived before editing")
+    ) {
+      return {
+        success: false,
+        error: "Unarchive the item before editing it.",
+      };
+    }
     console.error("[dashboard] updateItemAction failed:", error);
     return { success: false, error: "Failed to update item. Please try again." };
+  }
+}
+
+/**
+ * Archive an item for the authenticated user
+ */
+export async function archiveItemAction(itemId: string): Promise<DashboardActionResult> {
+  const user = await requireVerifiedUser();
+
+  try {
+    const item = await archiveItem(user.id, itemId);
+
+    // Log activity
+    await createActivityLog(user.id, {
+      action: "item.archived",
+      entityType: "item",
+      entityId: item.id,
+      metadata: { itemName: item.name },
+    });
+
+    revalidatePath("/app/dashboard");
+    return { success: true, itemId: item.id };
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("not found or access denied")) {
+      return {
+        success: false,
+        error: "Item not found or you don't have permission to archive it.",
+      };
+    }
+    console.error("[dashboard] archiveItemAction failed:", error);
+    return { success: false, error: "Failed to archive item. Please try again." };
+  }
+}
+
+/**
+ * Unarchive an item for the authenticated user
+ */
+export async function unarchiveItemAction(itemId: string): Promise<DashboardActionResult> {
+  const user = await requireVerifiedUser();
+
+  try {
+    const item = await unarchiveItem(user.id, itemId);
+
+    // Log activity
+    await createActivityLog(user.id, {
+      action: "item.unarchived",
+      entityType: "item",
+      entityId: item.id,
+      metadata: { itemName: item.name },
+    });
+
+    revalidatePath("/app/dashboard");
+    return { success: true, itemId: item.id };
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("not found or access denied")) {
+      return {
+        success: false,
+        error: "Item not found or you don't have permission to unarchive it.",
+      };
+    }
+    console.error("[dashboard] unarchiveItemAction failed:", error);
+    return { success: false, error: "Failed to unarchive item. Please try again." };
   }
 }
 
@@ -138,6 +216,12 @@ export async function deleteItemAction(itemId: string): Promise<DashboardActionR
       return {
         success: false,
         error: "Item not found or you don't have permission to delete it.",
+      };
+    }
+    if (!existingItem.archivedAt) {
+      return {
+        success: false,
+        error: "Archive the item before deleting it permanently.",
       };
     }
 
@@ -191,6 +275,7 @@ export async function importSampleDataAction(): Promise<DashboardActionResult> {
             userId: user.id,
             name: sampleItem.name,
             status: sampleItem.status as ItemStatus,
+            completedAt: sampleItem.status === ItemStatus.completed ? new Date() : null,
             tag: sampleItem.tag as ItemTag | null,
             summary: sampleItem.summary || undefined,
             checklistItems: {

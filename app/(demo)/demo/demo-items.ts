@@ -48,6 +48,7 @@ export interface FilterOptions {
   search: string;
   status: ItemStatus | "all";
   tag: ItemTag | "all";
+  showArchived?: boolean;
 }
 
 /** Sort options */
@@ -56,9 +57,14 @@ export interface SortOptions {
   direction: SortDirection;
 }
 
-/** Filter items by search, status, and tag */
+/** Filter items by search, status, tag, and archive state */
 export function filterItems(items: DashboardItem[], filters: FilterOptions): DashboardItem[] {
   return items.filter((item) => {
+    // Archive filter (default: exclude archived)
+    if (!filters.showArchived && item.archivedAt) {
+      return false;
+    }
+
     // Search filter (case-insensitive name match)
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();

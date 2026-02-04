@@ -153,5 +153,6 @@ export function getSampleDashboardItems(): DashboardItem[] {
   return sampleDashboardItems.map((item) => ({
     ...item,
     checklist: item.checklist.map((checklistItem) => ({ ...checklistItem })),
+    archivedAt: null,
   }));
 }

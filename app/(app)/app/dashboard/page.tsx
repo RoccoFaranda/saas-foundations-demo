@@ -37,21 +37,26 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     status: params.status !== "all" ? (params.status as ItemStatus) : undefined,
     tag: params.tag !== "all" ? (params.tag as ItemTag) : undefined,
     search: params.search || undefined,
+    includeArchived: params.showArchived,
   };
 
   // Fetch global data in parallel - user scoped
-  const [totalCount, allItemsForKpis, dbActivityLogs] = await Promise.all([
+  const [totalCount, userItemCount, allItemsForKpis, dbActivityLogs] = await Promise.all([
     // Total count for pagination (same filters)
     countItems(userId, {
       status: filterOptions.status,
       tag: filterOptions.tag,
       search: filterOptions.search,
+      includeArchived: filterOptions.includeArchived,
     }),
-    // All items (no filters) for KPIs
-    listItems(userId),
+    // Any items for this user (regardless of current filters)
+    countItems(userId, { includeArchived: true }),
+    // All items (no filters) for KPIs - exclude archived for accurate metrics
+    listItems(userId, { includeArchived: false }),
     // Recent activity logs
     listActivityLogs(userId, { limit: 10 }),
   ]);
+  const hasAnyItems = userItemCount > 0;
 
   // Clamp page to valid range to avoid empty out-of-range pages
   const totalPages = Math.max(1, Math.ceil(totalCount / DASHBOARD_PAGE_SIZE));
@@ -100,6 +105,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       tag={params.tag}
       sortField={sortField}
       sortDirection={sortDirection}
+      showArchived={params.showArchived}
     />
   );
 
@@ -148,11 +154,11 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         <DashboardMutations
           items={items}
           emptyMessage={
-            kpis.total === 0
-              ? "No projects yet."
-              : "No projects match your filters. Try adjusting your search or filters."
+            hasAnyItems
+              ? "No projects match your filters. Try adjusting your search or filters."
+              : "No projects yet."
           }
-          hasItems={kpis.total > 0}
+          hasItems={hasAnyItems}
         />
       }
       paginationControls={paginationControls}

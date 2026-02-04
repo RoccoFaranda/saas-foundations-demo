@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import type { DashboardItem } from "./model";
 import { ItemsTable } from "./items-table";
 import { EditItemModal } from "./edit-item-modal";
@@ -14,6 +15,8 @@ export interface DashboardMutationHandlers {
   onCreate: (item: DashboardItem) => void | Promise<void>;
   onUpdate: (item: DashboardItem) => void | Promise<void>;
   onDelete: (item: DashboardItem) => void | Promise<void>;
+  onArchive?: (item: DashboardItem) => void | Promise<void>;
+  onUnarchive?: (item: DashboardItem) => void | Promise<void>;
   onImportSampleData: () => void | Promise<void>;
 }
 
@@ -58,6 +61,10 @@ export function DashboardContent({
   const [editingItem, setEditingItem] = useState<DashboardItem | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [itemPendingDelete, setItemPendingDelete] = useState<DashboardItem | null>(null);
+  const actionsHost =
+    typeof document !== "undefined"
+      ? document.getElementById("dashboard-table-actions-slot")
+      : null;
 
   // Open edit modal
   const handleEditClick = useCallback(
@@ -121,6 +128,25 @@ export function DashboardContent({
     setItemPendingDelete(null);
   }, [isPending]);
 
+  // Archive/Unarchive handlers
+  const handleArchiveClick = useCallback(
+    async (item: DashboardItem) => {
+      if (!handlers.onArchive) return;
+      onClearError?.();
+      await handlers.onArchive(item);
+    },
+    [handlers, onClearError]
+  );
+
+  const handleUnarchiveClick = useCallback(
+    async (item: DashboardItem) => {
+      if (!handlers.onUnarchive) return;
+      onClearError?.();
+      await handlers.onUnarchive(item);
+    },
+    [handlers, onClearError]
+  );
+
   // Import sample data handler
   const handleImportSampleData = useCallback(async () => {
     onClearError?.();
@@ -139,6 +165,17 @@ export function DashboardContent({
         updatedAt: new Date().toISOString(),
       }
     : editingItem;
+
+  const createProjectButton = hasItems ? (
+    <button
+      type="button"
+      onClick={handleCreateClick}
+      disabled={isPending}
+      className="h-8 rounded-md bg-foreground px-3 text-sm font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
+    >
+      + Create Project
+    </button>
+  ) : null;
 
   return (
     <>
@@ -184,18 +221,12 @@ export function DashboardContent({
       )}
 
       {/* Create button when has items */}
-      {hasItems && (
-        <div className="mb-4 flex justify-end">
-          <button
-            type="button"
-            onClick={handleCreateClick}
-            disabled={isPending}
-            className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
-          >
-            Create Project
-          </button>
-        </div>
-      )}
+      {createProjectButton &&
+        (actionsHost ? (
+          createPortal(createProjectButton, actionsHost)
+        ) : (
+          <div className="mb-4 flex justify-end">{createProjectButton}</div>
+        ))}
 
       {/* Items table */}
       <ItemsTable
@@ -203,6 +234,8 @@ export function DashboardContent({
         emptyMessage={emptyMessage}
         onEdit={handleEditClick}
         onDelete={handleDeleteClick}
+        onArchive={handlers.onArchive ? handleArchiveClick : undefined}
+        onUnarchive={handlers.onUnarchive ? handleUnarchiveClick : undefined}
       />
 
       {/* Edit/Create Modal */}

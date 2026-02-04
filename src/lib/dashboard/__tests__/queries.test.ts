@@ -14,6 +14,7 @@ describe("Dashboard queries", () => {
         sortBy: "updatedAt",
         sortDir: "desc",
         page: 1,
+        showArchived: false,
       });
     });
 
@@ -34,6 +35,7 @@ describe("Dashboard queries", () => {
         sortBy: "name",
         sortDir: "asc",
         page: 3,
+        showArchived: false,
       });
     });
 
@@ -62,6 +64,7 @@ describe("Dashboard queries", () => {
         sortBy: "updatedAt",
         sortDir: "desc",
         page: 1,
+        showArchived: false,
       });
     });
 
@@ -80,6 +83,7 @@ describe("Dashboard queries", () => {
         sortBy: "updatedAt",
         sortDir: "asc",
         page: 2,
+        showArchived: false,
       });
     });
 
