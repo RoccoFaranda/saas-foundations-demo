@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback, type ReactNode } from "react";
-import { createPortal } from "react-dom";
 import type { DashboardItem } from "./model";
 import { ItemsTable } from "./items-table";
 import { EditItemModal } from "./edit-item-modal";
@@ -29,6 +28,10 @@ interface DashboardContentProps {
   hasItems: boolean;
   /** Whether a mutation is in progress */
   isPending?: boolean;
+  /** Controlled create modal visibility (optional) */
+  isCreateModalOpen?: boolean;
+  /** Controlled create modal visibility handler (optional) */
+  onCreateModalOpenChange?: (open: boolean) => void;
   /** Error message to display */
   error?: string | null;
   /** Whether import sample data is available */
@@ -50,6 +53,8 @@ export function DashboardContent({
   emptyMessage,
   hasItems,
   isPending = false,
+  isCreateModalOpen,
+  onCreateModalOpenChange,
   error = null,
   canImportSampleData = true,
   emptyStateContent,
@@ -57,57 +62,67 @@ export function DashboardContent({
   onClearError,
 }: DashboardContentProps) {
   // Modal state
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isCreateModalOpenLocal, setIsCreateModalOpenLocal] = useState(false);
   const [editingItem, setEditingItem] = useState<DashboardItem | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
   const [itemPendingDelete, setItemPendingDelete] = useState<DashboardItem | null>(null);
-  const actionsHost =
-    typeof document !== "undefined"
-      ? document.getElementById("dashboard-table-actions-slot")
-      : null;
+  const isCreateModalControlled = typeof isCreateModalOpen === "boolean";
+  const createModalOpen = isCreateModalControlled ? isCreateModalOpen : isCreateModalOpenLocal;
+
+  const setCreateModalOpen = useCallback(
+    (open: boolean) => {
+      if (isCreateModalControlled) {
+        onCreateModalOpenChange?.(open);
+        return;
+      }
+      setIsCreateModalOpenLocal(open);
+    },
+    [isCreateModalControlled, onCreateModalOpenChange]
+  );
 
   // Open edit modal
   const handleEditClick = useCallback(
     (item: DashboardItem) => {
       setEditingItem(item);
-      setIsCreating(false);
-      setIsModalOpen(true);
+      setCreateModalOpen(false);
+      setIsEditModalOpen(true);
       onClearError?.();
     },
-    [onClearError]
+    [onClearError, setCreateModalOpen]
   );
 
   // Open create modal
   const handleCreateClick = useCallback(() => {
+    setCreateModalOpen(true);
+    setIsEditModalOpen(false);
     setEditingItem(null);
-    setIsCreating(true);
-    setIsModalOpen(true);
     onClearError?.();
-  }, [onClearError]);
+  }, [onClearError, setCreateModalOpen]);
 
   // Close modal
   const handleCancel = useCallback(() => {
-    setIsModalOpen(false);
+    if (createModalOpen) {
+      setCreateModalOpen(false);
+    }
+    setIsEditModalOpen(false);
     setEditingItem(null);
-    setIsCreating(false);
-  }, []);
+  }, [createModalOpen, setCreateModalOpen]);
 
   // Save handler (create or update)
   const handleSave = useCallback(
     async (updatedItem: DashboardItem) => {
       onClearError?.();
 
-      if (isCreating) {
+      if (createModalOpen) {
         await handlers.onCreate(updatedItem);
+        setCreateModalOpen(false);
       } else {
         await handlers.onUpdate(updatedItem);
+        setIsEditModalOpen(false);
+        setEditingItem(null);
       }
-
-      setIsModalOpen(false);
-      setEditingItem(null);
-      setIsCreating(false);
     },
-    [isCreating, handlers, onClearError]
+    [createModalOpen, handlers, onClearError, setCreateModalOpen]
   );
 
   // Delete handlers
@@ -154,7 +169,7 @@ export function DashboardContent({
   }, [handlers, onClearError]);
 
   // Derive the item for modal (either existing or new placeholder)
-  const modalItem: DashboardItem | null = isCreating
+  const modalItem: DashboardItem | null = createModalOpen
     ? {
         id: "new",
         name: "",
@@ -165,17 +180,7 @@ export function DashboardContent({
         updatedAt: new Date().toISOString(),
       }
     : editingItem;
-
-  const createProjectButton = hasItems ? (
-    <button
-      type="button"
-      onClick={handleCreateClick}
-      disabled={isPending}
-      className="h-8 rounded-md bg-foreground px-3 text-sm font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
-    >
-      + Create Project
-    </button>
-  ) : null;
+  const isModalOpen = createModalOpen || isEditModalOpen;
 
   return (
     <>
@@ -220,14 +225,6 @@ export function DashboardContent({
         </div>
       )}
 
-      {/* Create button when has items */}
-      {createProjectButton &&
-        (actionsHost ? (
-          createPortal(createProjectButton, actionsHost)
-        ) : (
-          <div className="mb-4 flex justify-end">{createProjectButton}</div>
-        ))}
-
       {/* Items table */}
       <ItemsTable
         items={items}
@@ -244,8 +241,8 @@ export function DashboardContent({
         isOpen={isModalOpen}
         onSave={handleSave}
         onCancel={handleCancel}
-        title={isCreating ? "Create Project" : "Edit Project"}
-        saveLabel={isCreating ? "Create" : "Save Changes"}
+        title={createModalOpen ? "Create Project" : "Edit Project"}
+        saveLabel={createModalOpen ? "Create" : "Save Changes"}
         isPending={isPending}
       />
 

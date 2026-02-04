@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { DashboardContent } from "@/src/components/dashboard";
 import type { DashboardItem } from "@/src/components/dashboard/model";
 import type { DashboardMutationHandlers } from "@/src/components/dashboard";
+import { useCreateProjectModal } from "./create-project-modal-context";
 import {
   type DashboardActionResult,
   createItemAction,
@@ -27,6 +28,7 @@ interface DashboardMutationsProps {
  */
 export function DashboardMutations({ items, emptyMessage, hasItems }: DashboardMutationsProps) {
   const router = useRouter();
+  const { isCreateModalOpen, setCreateModalOpen } = useCreateProjectModal();
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,10 +102,30 @@ export function DashboardMutations({ items, emptyMessage, hasItems }: DashboardM
       emptyMessage={emptyMessage}
       hasItems={hasItems}
       isPending={isPending}
+      isCreateModalOpen={isCreateModalOpen}
+      onCreateModalOpenChange={setCreateModalOpen}
       error={error}
       canImportSampleData={!hasItems}
       handlers={handlers}
       onClearError={handleClearError}
     />
+  );
+}
+
+export function DashboardCreateProjectButton({ hasItems }: { hasItems: boolean }) {
+  const { setCreateModalOpen } = useCreateProjectModal();
+
+  if (!hasItems) {
+    return null;
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => setCreateModalOpen(true)}
+      className="h-8 rounded-md bg-foreground px-3 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
+    >
+      + Create Project
+    </button>
   );
 }

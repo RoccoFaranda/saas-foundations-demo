@@ -51,6 +51,7 @@ export default function DemoPage() {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   // Simulate initial loading
   useEffect(() => {
@@ -230,6 +231,17 @@ export default function DemoPage() {
     </>
   );
 
+  const tableActions =
+    items.length > 0 ? (
+      <button
+        type="button"
+        onClick={() => setIsCreateModalOpen(true)}
+        className="h-8 rounded-md bg-foreground px-3 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
+      >
+        + Create Project
+      </button>
+    ) : null;
+
   // Analytics data
   const statusDistribution = useMemo(
     () => computeStatusDistribution(nonArchivedItems),
@@ -270,11 +282,14 @@ export default function DemoPage() {
       kpis={kpis}
       isLoadingKpis={isLoading}
       filterControls={filterControls}
+      tableActions={tableActions}
       tableContent={
         <DashboardContent
           items={paginatedItems}
           emptyMessage="No projects match your filters. Try adjusting your search or filters."
           hasItems={items.length > 0}
+          isCreateModalOpen={isCreateModalOpen}
+          onCreateModalOpenChange={setIsCreateModalOpen}
           canImportSampleData={true}
           handlers={mutationHandlers}
           emptyStateContent={

@@ -41,6 +41,8 @@ interface DashboardShellProps {
   isLoadingKpis?: boolean;
   /** Filter controls component */
   filterControls: ReactNode;
+  /** Optional actions shown in the table header row */
+  tableActions?: ReactNode;
   /** Main table content (DashboardContent) */
   tableContent: ReactNode;
   /** Whether to show loading state for table */
@@ -68,6 +70,7 @@ export function DashboardShell({
   kpis,
   isLoadingKpis = false,
   filterControls,
+  tableActions,
   tableContent,
   isLoadingTable = false,
   paginationControls,
@@ -120,7 +123,7 @@ export function DashboardShell({
             <div className="border-b border-foreground/10 px-4 py-3">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <h2 className="font-medium">Projects</h2>
-                <div id="dashboard-table-actions-slot" />
+                {tableActions}
               </div>
               {filterControls}
             </div>

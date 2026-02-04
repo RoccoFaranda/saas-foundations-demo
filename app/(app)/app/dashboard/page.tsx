@@ -17,7 +17,13 @@ import {
   TrendChart,
 } from "@/src/components/dashboard";
 import type { SortField, SortDirection } from "@/src/components/dashboard/model";
-import { DashboardFilters, DashboardMutations, DashboardPagination } from "./_components";
+import {
+  CreateProjectModalProvider,
+  DashboardCreateProjectButton,
+  DashboardFilters,
+  DashboardMutations,
+  DashboardPagination,
+} from "./_components";
 
 interface PageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -173,28 +179,31 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   );
 
   return (
-    <DashboardShell
-      testId="dashboard-page"
-      title="Dashboard"
-      subtitle="Welcome back! Here's an overview of your projects."
-      kpis={kpis}
-      filterControls={filterControls}
-      tableContent={
-        <DashboardMutations
-          items={items}
-          emptyMessage={
-            hasAnyItems
-              ? "No projects match your filters. Try adjusting your search or filters."
-              : "No projects yet."
-          }
-          hasItems={hasAnyItems}
-        />
-      }
-      paginationControls={paginationControls}
-      activities={activities}
-      quickActionsContent={quickActionsContent}
-      analyticsContent={analyticsContent}
-    />
+    <CreateProjectModalProvider>
+      <DashboardShell
+        testId="dashboard-page"
+        title="Dashboard"
+        subtitle="Welcome back! Here's an overview of your projects."
+        kpis={kpis}
+        filterControls={filterControls}
+        tableActions={<DashboardCreateProjectButton hasItems={hasAnyItems} />}
+        tableContent={
+          <DashboardMutations
+            items={items}
+            emptyMessage={
+              hasAnyItems
+                ? "No projects match your filters. Try adjusting your search or filters."
+                : "No projects yet."
+            }
+            hasItems={hasAnyItems}
+          />
+        }
+        paginationControls={paginationControls}
+        activities={activities}
+        quickActionsContent={quickActionsContent}
+        analyticsContent={analyticsContent}
+      />
+    </CreateProjectModalProvider>
   );
 }
 
