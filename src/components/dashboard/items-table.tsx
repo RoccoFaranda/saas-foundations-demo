@@ -13,9 +13,9 @@ interface ItemsTableProps {
 }
 
 const statusColors: Record<ItemStatus, string> = {
-  active: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  active: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
   pending: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-  completed: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
+  completed: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
 };
 
 const tagColors: Record<ItemTag, string> = {

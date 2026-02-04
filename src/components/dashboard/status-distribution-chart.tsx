@@ -33,8 +33,6 @@ export function StatusDistributionChart({ data, isEmpty = false }: StatusDistrib
     );
   }
 
-  const maxCount = Math.max(...data.map((d) => d.count), 1);
-
   return (
     <div className="space-y-4">
       {data.map((item) => (
@@ -48,7 +46,7 @@ export function StatusDistributionChart({ data, isEmpty = false }: StatusDistrib
           <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/5">
             <div
               className={`h-full rounded-full transition-all ${statusColors[item.status]}`}
-              style={{ width: `${(item.count / maxCount) * 100}%` }}
+              style={{ width: `${item.percentage}%` }}
             />
           </div>
         </div>

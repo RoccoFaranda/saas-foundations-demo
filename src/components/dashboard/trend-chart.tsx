@@ -60,14 +60,14 @@ export function TrendChart({ data, title, isEmpty = false }: TrendChartProps) {
           className="absolute inset-0 h-full w-full"
         >
           {/* Area fill */}
-          <path d={areaPath} fill="currentColor" className="text-blue-500/20" />
+          <path d={areaPath} fill="currentColor" className="text-emerald-500/20" />
           {/* Line */}
           <path
             d={linePath}
             fill="none"
             stroke="currentColor"
             strokeWidth="0.5"
-            className="text-blue-500"
+            className="text-emerald-500"
           />
         </svg>
 
@@ -82,7 +82,7 @@ export function TrendChart({ data, title, isEmpty = false }: TrendChartProps) {
               transform: "translate(-50%, -50%)",
             }}
           >
-            <div className="h-2 w-2 rounded-full bg-blue-500 ring-2 ring-background" />
+            <div className="h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-background" />
             {/* Tooltip on hover */}
             <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-foreground px-2 py-1 text-xs text-background opacity-0 transition-opacity group-hover:opacity-100">
               {point.label}: {point.value}
