@@ -12,6 +12,7 @@ export interface DashboardKpis {
   active: number;
   completed: number;
   avgProgress: number;
+  archived: number;
 }
 
 /**
@@ -86,11 +87,11 @@ export function DashboardShell({
       </div>
 
       {/* KPI Cards */}
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <KpiCard
           label="Total Projects"
           value={isLoadingKpis ? "—" : kpis.total}
-          subtitle="All projects"
+          subtitle="Excludes archived"
         />
         <KpiCard label="Active" value={isLoadingKpis ? "—" : kpis.active} subtitle="In progress" />
         <KpiCard
@@ -101,7 +102,12 @@ export function DashboardShell({
         <KpiCard
           label="Avg Progress"
           value={isLoadingKpis ? "—" : `${kpis.avgProgress}%`}
-          subtitle="Across all projects"
+          subtitle="Across non-archived"
+        />
+        <KpiCard
+          label="Archived"
+          value={isLoadingKpis ? "—" : kpis.archived}
+          subtitle="Hidden from main list"
         />
       </div>
 

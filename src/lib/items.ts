@@ -53,7 +53,7 @@ export async function createItem(
 }
 
 /** Sort field options for listing items */
-export type ItemSortField = "createdAt" | "updatedAt" | "name";
+export type ItemSortField = "createdAt" | "updatedAt" | "archivedAt" | "name";
 
 /** Sort direction options */
 export type ItemSortDirection = "asc" | "desc";
@@ -106,9 +106,18 @@ export async function listItems(
   // Determine sort order
   const sortBy = options?.sortBy ?? "createdAt";
   const sortDirection = options?.sortDirection ?? "desc";
-  const orderBy: Prisma.ItemOrderByWithRelationInput = {
-    [sortBy]: sortDirection,
-  };
+  const orderBy: Prisma.ItemOrderByWithRelationInput[] =
+    sortBy === "archivedAt"
+      ? [
+          {
+            archivedAt: {
+              sort: sortDirection,
+              nulls: "last",
+            },
+          },
+          { updatedAt: "desc" },
+        ]
+      : [{ [sortBy]: sortDirection }];
 
   return await prisma.item.findMany({
     where,

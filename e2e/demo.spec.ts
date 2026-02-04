@@ -94,7 +94,7 @@ test.describe("Demo page - Guest mode reset flow", () => {
     await page.goto("/demo");
 
     // Wait for table to load
-    await expect(page.getByTestId("edit-btn-proj-001")).toBeVisible({ timeout: 5000 });
+    await expect(page.getByTestId("edit-btn-proj-002")).toBeVisible({ timeout: 5000 });
 
     // Click Create Project button
     const createBtn = page.getByRole("button", { name: "Create Project" });
@@ -129,7 +129,7 @@ test.describe("Demo page - Guest mode reset flow", () => {
     await page.reload();
 
     // Wait for table to load
-    await expect(page.getByTestId("edit-btn-proj-001")).toBeVisible({ timeout: 5000 });
+    await expect(page.getByTestId("edit-btn-proj-002")).toBeVisible({ timeout: 5000 });
 
     // The page refresh should reset demo data - new project should be gone
     const table = page.getByTestId("items-table");
@@ -146,7 +146,14 @@ test.describe("Demo page - Guest mode reset flow", () => {
     const itemsTable = page.getByTestId("items-table");
     await expect(itemsTable.locator("tr")).toHaveCount(6); // 1 header + 5 items
 
-    // Find a visible delete button (proj-002 "Dashboard Analytics" is on first page)
+    // Show archived rows so archived item remains visible for delete
+    await page.getByLabel("Show archived").check();
+
+    // Archive first (delete is only available for archived items)
+    const archiveBtn = page.getByTestId("archive-btn-proj-002");
+    await expect(archiveBtn).toBeVisible();
+    await archiveBtn.click();
+
     const deleteBtn = page.getByTestId("delete-btn-proj-002");
     await expect(deleteBtn).toBeVisible();
 
@@ -189,26 +196,30 @@ test.describe("Demo page - Guest mode reset flow", () => {
     // Wait for table to load (10 items, 5 per page = 2 pages)
     await expect(page.getByTestId("edit-btn-proj-002")).toBeVisible({ timeout: 5000 });
 
-    // Delete items page by page - need to delete all 10 items
-    // Delete 5 from first page, then 5 more after pagination updates
-    for (let i = 0; i < 10; i++) {
-      // Find any visible delete button and click it
-      const deleteBtn = page.locator('[data-testid^="delete-btn-"]').first();
+    // Show archived rows and delete everything:
+    // non-archived rows are archived first, archived rows are then deleted
+    await page.getByLabel("Show archived").check();
 
-      // Check if there are still items to delete
-      const isVisible = await deleteBtn.isVisible().catch(() => false);
-      if (!isVisible) {
-        // No more items visible
-        break;
+    for (let i = 0; i < 30; i++) {
+      const archiveBtn = page.locator('[data-testid^="archive-btn-"]').first();
+      if (await archiveBtn.isVisible().catch(() => false)) {
+        await archiveBtn.click();
+        continue;
       }
 
-      await deleteBtn.click();
+      const deleteBtn = page.locator('[data-testid^="delete-btn-"]').first();
+      if (await deleteBtn.isVisible().catch(() => false)) {
+        await deleteBtn.click();
 
-      // Wait for modal and confirm
-      const deleteModal = page.getByTestId("delete-modal");
-      await expect(deleteModal).toBeVisible({ timeout: 5000 });
-      await page.getByTestId("delete-confirm-btn").click();
-      await expect(deleteModal).not.toBeVisible({ timeout: 5000 });
+        const deleteModal = page.getByTestId("delete-modal");
+        await expect(deleteModal).toBeVisible({ timeout: 5000 });
+        await page.getByTestId("delete-confirm-btn").click();
+        await expect(deleteModal).not.toBeVisible({ timeout: 5000 });
+        continue;
+      }
+
+      // No archive/delete actions left on page, exit loop
+      break;
     }
 
     // After deleting all items, empty state should show with Import Sample Data button
@@ -236,6 +247,10 @@ test.describe("Demo page - Guest mode reset flow", () => {
     // Verify initial row count on first page
     const itemsTable = page.getByTestId("items-table");
     await expect(itemsTable.locator("tr")).toHaveCount(6); // 1 header + 5 items
+
+    // Show archived rows and archive the item first (delete requires archived)
+    await page.getByLabel("Show archived").check();
+    await page.getByTestId("archive-btn-proj-002").click();
 
     // Open delete modal for Dashboard Analytics
     const deleteBtn = page.getByTestId("delete-btn-proj-002");

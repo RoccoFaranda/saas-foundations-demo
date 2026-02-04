@@ -30,7 +30,10 @@ export const dashboardSearchParamsSchema = z.object({
     .default("all"),
 
   // Sort field (optional, defaults to "updatedAt")
-  sortBy: z.enum(["updatedAt", "name", "progress"]).optional().default("updatedAt"),
+  sortBy: z
+    .enum(["updatedAt", "createdAt", "archivedAt", "name", "progress"])
+    .optional()
+    .default("updatedAt"),
 
   // Sort direction (optional, defaults to "desc")
   sortDir: z.enum(["asc", "desc"]).optional().default("desc"),
@@ -91,13 +94,14 @@ export interface DashboardKpis {
   active: number;
   completed: number;
   avgProgress: number;
+  archived: number;
 }
 
 /**
  * Compute KPI values from dashboard items.
  * Note: For accurate total counts, use the full dataset (not paginated).
  */
-export function computeDashboardKpis(items: DashboardItem[]): DashboardKpis {
+export function computeDashboardKpis(items: DashboardItem[], archivedCount = 0): DashboardKpis {
   const total = items.length;
   const active = items.filter((i) => i.status === "active").length;
   const completed = items.filter((i) => i.status === "completed").length;
@@ -107,7 +111,7 @@ export function computeDashboardKpis(items: DashboardItem[]): DashboardKpis {
       ? 0
       : Math.round(items.reduce((sum, i) => sum + computeProgress(i.checklist), 0) / total);
 
-  return { total, active, completed, avgProgress };
+  return { total, active, completed, avgProgress, archived: archivedCount };
 }
 
 /** Page size constant for dashboard pagination */

@@ -29,6 +29,8 @@ export function mapDbItemToUi(dbItem: ItemWithChecklist): DashboardItem {
     summary: dbItem.summary ?? "",
     checklist,
     archivedAt: dbItem.archivedAt?.toISOString() ?? null,
+    completedAt: dbItem.completedAt?.toISOString() ?? null,
+    createdAt: dbItem.createdAt.toISOString(),
   };
 }
 

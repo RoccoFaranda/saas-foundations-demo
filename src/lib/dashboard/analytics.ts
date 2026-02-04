@@ -73,35 +73,33 @@ export function computeStatusDistribution(items: DashboardItem[]): StatusDistrib
 
 /**
  * Compute completion trend over time.
- * Groups items by month based on updatedAt and counts completed items.
+ * Groups items by month based on completedAt and counts completed items.
+ * Only includes items that have a completedAt timestamp (ignores items with null completedAt).
  */
 export function computeCompletionTrend(items: DashboardItem[]): TrendDataPoint[] {
   if (items.length === 0) {
     return [];
   }
 
-  // Group items by month
-  const monthGroups = new Map<string, { completed: number; total: number }>();
+  // Group items by completion month (only items with completedAt)
+  const monthGroups = new Map<string, number>();
 
   for (const item of items) {
-    const date = new Date(item.updatedAt);
+    // Skip items without completedAt
+    if (!item.completedAt) {
+      continue;
+    }
+
+    const date = new Date(item.completedAt);
     const monthKey = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
 
-    if (!monthGroups.has(monthKey)) {
-      monthGroups.set(monthKey, { completed: 0, total: 0 });
-    }
-
-    const group = monthGroups.get(monthKey)!;
-    group.total++;
-    if (item.status === "completed") {
-      group.completed++;
-    }
+    monthGroups.set(monthKey, (monthGroups.get(monthKey) || 0) + 1);
   }
 
   // Sort by month and format
   const sortedMonths = Array.from(monthGroups.entries()).sort((a, b) => a[0].localeCompare(b[0]));
 
-  return sortedMonths.map(([monthKey, data]) => {
+  return sortedMonths.map(([monthKey, count]) => {
     const [year, month] = monthKey.split("-");
     const monthName = monthYearFormatter.format(
       new Date(Date.UTC(Number(year), Number(month) - 1, 1))
@@ -109,7 +107,7 @@ export function computeCompletionTrend(items: DashboardItem[]): TrendDataPoint[]
 
     return {
       label: monthName,
-      value: data.completed,
+      value: count,
     };
   });
 }

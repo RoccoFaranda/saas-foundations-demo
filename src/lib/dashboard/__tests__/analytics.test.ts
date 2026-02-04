@@ -57,13 +57,11 @@ describe("analytics", () => {
       expect(result).toEqual([]);
     });
 
-    it("groups items by month and counts completed", () => {
+    it("groups items by completedAt month and counts them", () => {
       const items: DashboardItem[] = [
-        createItemWithDate("1", "completed", "2024-01-15"),
-        createItemWithDate("2", "active", "2024-01-20"),
-        createItemWithDate("3", "completed", "2024-01-25"),
-        createItemWithDate("4", "completed", "2024-02-10"),
-        createItemWithDate("5", "pending", "2024-02-15"),
+        createItemWithCompletedAt("1", "2024-01-15T10:00:00Z"),
+        createItemWithCompletedAt("2", "2024-01-25T14:30:00Z"),
+        createItemWithCompletedAt("3", "2024-02-10T09:15:00Z"),
       ];
 
       const result = computeCompletionTrend(items);
@@ -74,11 +72,26 @@ describe("analytics", () => {
       ]);
     });
 
+    it("ignores items without completedAt (null)", () => {
+      const items: DashboardItem[] = [
+        createItemWithCompletedAt("1", "2024-01-15T10:00:00Z"),
+        createItemWithCompletedAt("2", null), // Active or pending, no completedAt
+        createItemWithCompletedAt("3", "2024-01-20T12:00:00Z"),
+        createItemWithCompletedAt("4", null),
+      ];
+
+      const result = computeCompletionTrend(items);
+
+      expect(result).toEqual([
+        { label: "Jan 2024", value: 2 }, // Only 2 with completedAt
+      ]);
+    });
+
     it("sorts months chronologically", () => {
       const items: DashboardItem[] = [
-        createItemWithDate("1", "completed", "2024-03-15"),
-        createItemWithDate("2", "completed", "2024-01-15"),
-        createItemWithDate("3", "completed", "2024-02-15"),
+        createItemWithCompletedAt("1", "2024-03-15T10:00:00Z"),
+        createItemWithCompletedAt("2", "2024-01-15T10:00:00Z"),
+        createItemWithCompletedAt("3", "2024-02-15T10:00:00Z"),
       ];
 
       const result = computeCompletionTrend(items);
@@ -86,16 +99,42 @@ describe("analytics", () => {
       expect(result.map((r) => r.label)).toEqual(["Jan 2024", "Feb 2024", "Mar 2024"]);
     });
 
-    it("handles items all in same month", () => {
+    it("handles items all completed in same month", () => {
       const items: DashboardItem[] = [
-        createItemWithDate("1", "completed", "2024-05-01"),
-        createItemWithDate("2", "active", "2024-05-15"),
-        createItemWithDate("3", "completed", "2024-05-30"),
+        createItemWithCompletedAt("1", "2024-05-01T08:00:00Z"),
+        createItemWithCompletedAt("2", "2024-05-15T12:00:00Z"),
+        createItemWithCompletedAt("3", "2024-05-30T16:00:00Z"),
       ];
 
       const result = computeCompletionTrend(items);
 
-      expect(result).toEqual([{ label: "May 2024", value: 2 }]);
+      expect(result).toEqual([{ label: "May 2024", value: 3 }]);
+    });
+
+    it("returns empty array when all items have null completedAt", () => {
+      const items: DashboardItem[] = [
+        createItemWithCompletedAt("1", null),
+        createItemWithCompletedAt("2", null),
+        createItemWithCompletedAt("3", null),
+      ];
+
+      const result = computeCompletionTrend(items);
+
+      expect(result).toEqual([]);
+    });
+
+    it("uses UTC timezone for month grouping", () => {
+      const items: DashboardItem[] = [
+        createItemWithCompletedAt("1", "2024-01-31T23:00:00Z"), // Jan 31 UTC
+        createItemWithCompletedAt("2", "2024-02-01T01:00:00Z"), // Feb 1 UTC
+      ];
+
+      const result = computeCompletionTrend(items);
+
+      expect(result).toEqual([
+        { label: "Jan 2024", value: 1 },
+        { label: "Feb 2024", value: 1 },
+      ]);
     });
   });
 
@@ -165,19 +204,16 @@ function createItem(id: string, status: "active" | "pending" | "completed"): Das
   };
 }
 
-function createItemWithDate(
-  id: string,
-  status: "active" | "pending" | "completed",
-  date: string
-): DashboardItem {
+function createItemWithCompletedAt(id: string, completedAt: string | null): DashboardItem {
   return {
     id,
     name: `Item ${id}`,
-    status,
+    status: completedAt ? "completed" : "active",
     tag: null,
     summary: "",
     checklist: [],
-    updatedAt: new Date(date).toISOString(),
+    updatedAt: new Date().toISOString(),
+    completedAt,
   };
 }
 

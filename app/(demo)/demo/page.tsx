@@ -82,10 +82,19 @@ export default function DemoPage() {
     setCurrentPage(1);
   }, []);
 
-  const handleShowArchivedChange = useCallback((value: boolean) => {
-    setShowArchived(value);
-    setCurrentPage(1);
-  }, []);
+  const handleShowArchivedChange = useCallback(
+    (value: boolean) => {
+      setShowArchived(value);
+
+      if (!value && sortField === "archivedAt") {
+        setSortField("updatedAt");
+        setSortDirection("desc");
+      }
+
+      setCurrentPage(1);
+    },
+    [sortField]
+  );
 
   // Compute filtered & sorted data from local items
   const filteredItems = useMemo(() => {
@@ -97,6 +106,9 @@ export default function DemoPage() {
     });
     return sortItems(filtered, { field: sortField, direction: sortDirection });
   }, [items, search, statusFilter, tagFilter, showArchived, sortField, sortDirection]);
+
+  // Non-archived items for workload KPIs and status analytics
+  const nonArchivedItems = useMemo(() => items.filter((item) => !item.archivedAt), [items]);
 
   // KPIs computed from full local dataset
   const kpis = useMemo(() => getDemoKpis(items), [items]);
@@ -194,6 +206,7 @@ export default function DemoPage() {
       sortDirection={sortDirection}
       onSortChange={handleSortChange}
       showArchived={showArchived}
+      hasArchivedItems={kpis.archived > 0}
       onShowArchivedChange={handleShowArchivedChange}
     />
   );
@@ -218,7 +231,10 @@ export default function DemoPage() {
   );
 
   // Analytics data
-  const statusDistribution = useMemo(() => computeStatusDistribution(items), [items]);
+  const statusDistribution = useMemo(
+    () => computeStatusDistribution(nonArchivedItems),
+    [nonArchivedItems]
+  );
   const completionTrend = useMemo(() => computeCompletionTrend(items), [items]);
 
   // Analytics content
@@ -226,19 +242,23 @@ export default function DemoPage() {
     () => (
       <div className="grid gap-6 md:grid-cols-2">
         <div>
-          <h3 className="mb-4 text-sm font-medium text-foreground/80">Status Distribution</h3>
-          <StatusDistributionChart data={statusDistribution} isEmpty={items.length === 0} />
+          <h3 className="mb-1 text-sm font-medium text-foreground/80">Status Distribution</h3>
+          <p className="mb-4 text-xs text-foreground/50">Excludes archived projects</p>
+          <StatusDistributionChart
+            data={statusDistribution}
+            isEmpty={nonArchivedItems.length === 0}
+          />
         </div>
         <div>
           <TrendChart
             data={completionTrend}
-            title="Completion Trend"
-            isEmpty={items.length === 0}
+            title="Completion Trend (incl. archived)"
+            isEmpty={completionTrend.length === 0}
           />
         </div>
       </div>
     ),
-    [statusDistribution, completionTrend, items.length]
+    [statusDistribution, completionTrend, nonArchivedItems.length]
   );
 
   return (

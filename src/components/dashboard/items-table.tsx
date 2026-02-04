@@ -1,5 +1,7 @@
 import type { DashboardItem, ItemStatus, ItemTag } from "./model";
 import { computeProgress } from "./model";
+import { HoverDetailsCard } from "./hover-details-card";
+import { LifecycleDetails } from "./lifecycle-details";
 
 interface ItemsTableProps {
   items: DashboardItem[];
@@ -102,16 +104,62 @@ export function ItemsTable({
                 </td>
                 <td className="py-3 pr-4">
                   <div className="flex items-center gap-2">
-                    <div className="h-1.5 w-16 overflow-hidden rounded-full bg-foreground/10">
-                      <div
-                        className="h-full rounded-full bg-foreground/40"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                    <span className="text-xs text-foreground/50">{progress}%</span>
+                    <HoverDetailsCard
+                      label={`Progress details for ${item.name}`}
+                      trigger={
+                        <div className="flex items-center gap-2">
+                          <div className="h-1.5 w-16 overflow-hidden rounded-full bg-foreground/10">
+                            <div
+                              className="h-full rounded-full bg-foreground/40"
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                          <span className="text-xs text-foreground/50">{progress}%</span>
+                        </div>
+                      }
+                    >
+                      <div className="space-y-2 text-xs">
+                        <p className="font-medium text-foreground/80">
+                          Checklist (
+                          {item.checklist.filter((checklistItem) => checklistItem.done).length}/
+                          {item.checklist.length})
+                        </p>
+                        {item.checklist.length === 0 ? (
+                          <p className="text-foreground/50">No checklist items yet.</p>
+                        ) : (
+                          <ul className="space-y-1">
+                            {item.checklist.map((checklistItem) => (
+                              <li
+                                key={checklistItem.id}
+                                className="flex items-start gap-2 rounded border border-foreground/10 px-2 py-1"
+                              >
+                                <span
+                                  className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${checklistItem.done ? "bg-emerald-500" : "bg-foreground/30"}`}
+                                />
+                                <span
+                                  className={`min-w-0 flex-1 whitespace-normal wrap-break-word ${checklistItem.done ? "text-foreground/50 line-through" : "text-foreground/80"}`}
+                                >
+                                  {checklistItem.text}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </HoverDetailsCard>
                   </div>
                 </td>
-                <td className="py-3 pr-4 text-foreground/60">{formatDate(item.updatedAt)}</td>
+                <td className="py-3 pr-4 text-foreground/60">
+                  <HoverDetailsCard
+                    label={`Lifecycle details for ${item.name}`}
+                    trigger={
+                      <span className="text-foreground/60">{formatDate(item.updatedAt)}</span>
+                    }
+                    align="right"
+                  >
+                    <LifecycleDetails item={item} />
+                  </HoverDetailsCard>
+                </td>
                 {hasActions && (
                   <td className="py-3 pr-4">
                     <div className="flex items-center gap-1">

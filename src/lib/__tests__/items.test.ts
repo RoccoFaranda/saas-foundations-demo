@@ -534,6 +534,78 @@ describe("Items data layer", () => {
       expect(descItems[0].id).toBe(item2.id);
       expect(descItems[1].id).toBe(item1.id);
     });
+
+    it("should sort archivedAt with nulls last (desc)", async () => {
+      const olderArchived = await prisma.item.create({
+        data: {
+          userId: TEST_USER_1,
+          name: "Older archived",
+          archivedAt: new Date("2026-01-01T00:00:00Z"),
+        },
+      });
+      const newerArchived = await prisma.item.create({
+        data: {
+          userId: TEST_USER_1,
+          name: "Newer archived",
+          archivedAt: new Date("2026-01-10T00:00:00Z"),
+        },
+      });
+      const notArchived = await prisma.item.create({
+        data: {
+          userId: TEST_USER_1,
+          name: "Not archived",
+          archivedAt: null,
+        },
+      });
+
+      const items = await listItems(TEST_USER_1, {
+        includeArchived: true,
+        sortBy: "archivedAt",
+        sortDirection: "desc",
+      });
+
+      expect(items.map((item) => item.id)).toEqual([
+        newerArchived.id,
+        olderArchived.id,
+        notArchived.id,
+      ]);
+    });
+
+    it("should sort archivedAt with nulls last (asc)", async () => {
+      const olderArchived = await prisma.item.create({
+        data: {
+          userId: TEST_USER_1,
+          name: "Older archived",
+          archivedAt: new Date("2026-01-01T00:00:00Z"),
+        },
+      });
+      const newerArchived = await prisma.item.create({
+        data: {
+          userId: TEST_USER_1,
+          name: "Newer archived",
+          archivedAt: new Date("2026-01-10T00:00:00Z"),
+        },
+      });
+      const notArchived = await prisma.item.create({
+        data: {
+          userId: TEST_USER_1,
+          name: "Not archived",
+          archivedAt: null,
+        },
+      });
+
+      const items = await listItems(TEST_USER_1, {
+        includeArchived: true,
+        sortBy: "archivedAt",
+        sortDirection: "asc",
+      });
+
+      expect(items.map((item) => item.id)).toEqual([
+        olderArchived.id,
+        newerArchived.id,
+        notArchived.id,
+      ]);
+    });
   });
 
   describe("countItems", () => {

@@ -337,6 +337,41 @@ describe("Dashboard actions", () => {
       expect(createLogs[0].metadata).toHaveProperty("source", "sample_import");
     });
 
+    it("should preserve varied timestamps from sample data", async () => {
+      const result = await importSampleDataAction();
+
+      expect(result.success).toBe(true);
+
+      // Fetch all items
+      const items = await listItems(TEST_USER_ID, { includeArchived: true });
+
+      // Verify timestamps are varied (not all the same)
+      const uniqueMonths = new Set(
+        items.map((item) => item.updatedAt.toISOString().substring(0, 7))
+      );
+      expect(uniqueMonths.size).toBeGreaterThan(1); // Should span multiple months
+
+      // Verify completed items have completedAt
+      const completedItems = items.filter((item) => item.status === ItemStatus.completed);
+      expect(completedItems.length).toBeGreaterThan(0);
+      for (const item of completedItems) {
+        expect(item.completedAt).not.toBeNull();
+        expect(item.completedAt).toBeInstanceOf(Date);
+      }
+
+      // Verify non-completed items don't have completedAt
+      const nonCompletedItems = items.filter((item) => item.status !== ItemStatus.completed);
+      for (const item of nonCompletedItems) {
+        expect(item.completedAt).toBeNull();
+      }
+
+      // Verify createdAt dates are preserved and varied
+      const uniqueCreatedMonths = new Set(
+        items.map((item) => item.createdAt.toISOString().substring(0, 7))
+      );
+      expect(uniqueCreatedMonths.size).toBeGreaterThan(1); // Should span multiple months
+    });
+
     it("should reject import when user already has items (idempotency)", async () => {
       // Create an existing item
       await createItem(TEST_USER_ID, { name: "Existing Item" });

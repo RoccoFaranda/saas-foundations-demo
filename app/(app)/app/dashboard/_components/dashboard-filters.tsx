@@ -17,6 +17,7 @@ interface DashboardFiltersProps {
   sortField: SortField;
   sortDirection: SortDirection;
   showArchived: boolean;
+  hasArchivedItems: boolean;
 }
 
 /**
@@ -30,6 +31,7 @@ export function DashboardFilters({
   sortField,
   sortDirection,
   showArchived,
+  hasArchivedItems,
 }: DashboardFiltersProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -112,9 +114,18 @@ export function DashboardFilters({
 
   const handleShowArchivedChange = useCallback(
     (value: boolean) => {
+      if (!value && sortField === "archivedAt") {
+        updateParams({
+          showArchived: undefined,
+          sortBy: undefined,
+          sortDir: undefined,
+        });
+        return;
+      }
+
       updateParams({ showArchived: value ? "true" : undefined });
     },
-    [updateParams]
+    [sortField, updateParams]
   );
 
   return (
@@ -129,6 +140,7 @@ export function DashboardFilters({
       sortDirection={sortDirection}
       onSortChange={handleSortChange}
       showArchived={showArchived}
+      hasArchivedItems={hasArchivedItems}
       onShowArchivedChange={handleShowArchivedChange}
     />
   );

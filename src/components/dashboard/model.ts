@@ -6,7 +6,7 @@
 // Core item types
 export type ItemStatus = "active" | "pending" | "completed";
 export type ItemTag = "feature" | "bugfix" | "docs" | "infra" | "design";
-export type SortField = "name" | "updatedAt" | "progress";
+export type SortField = "name" | "createdAt" | "updatedAt" | "archivedAt" | "progress";
 export type SortDirection = "asc" | "desc";
 
 // Checklist model for progress tracking
@@ -26,6 +26,8 @@ export interface DashboardItem {
   summary: string;
   checklist: ChecklistItem[];
   archivedAt?: string | null; // ISO timestamp or null
+  completedAt?: string | null; // ISO timestamp or null - when item was marked completed
+  createdAt?: string; // ISO timestamp - when item was created
 }
 
 // Activity log entry
@@ -52,34 +54,18 @@ export const tagOptions = [
   { value: "design" as const, label: "Design" },
 ];
 
-export const sortOptions = [
-  {
-    value: "updatedAt-desc",
-    label: "Recently Updated",
-    field: "updatedAt" as const,
-    direction: "desc" as const,
-  },
-  {
-    value: "updatedAt-asc",
-    label: "Oldest First",
-    field: "updatedAt" as const,
-    direction: "asc" as const,
-  },
-  { value: "name-asc", label: "Name (A-Z)", field: "name" as const, direction: "asc" as const },
-  { value: "name-desc", label: "Name (Z-A)", field: "name" as const, direction: "desc" as const },
-  {
-    value: "progress-desc",
-    label: "Progress (High-Low)",
-    field: "progress" as const,
-    direction: "desc" as const,
-  },
-  {
-    value: "progress-asc",
-    label: "Progress (Low-High)",
-    field: "progress" as const,
-    direction: "asc" as const,
-  },
+export const sortFieldOptions = [
+  { value: "updatedAt" as const, label: "Updated" },
+  { value: "createdAt" as const, label: "Created" },
+  { value: "name" as const, label: "Name" },
+  { value: "progress" as const, label: "Progress" },
+  { value: "archivedAt" as const, label: "Archived Date" },
 ];
+
+export function getDefaultSortDirection(field: SortField): SortDirection {
+  if (field === "name") return "asc";
+  return "desc";
+}
 
 /**
  * Compute progress percentage from checklist completion.

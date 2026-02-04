@@ -32,15 +32,19 @@ export const demoItems: DashboardItem[] = getSampleDashboardItems();
 
 /** Derive simple KPI values from demo items */
 export function getDemoKpis(items: DashboardItem[]) {
-  const total = items.length;
-  const active = items.filter((i) => i.status === "active").length;
-  const completed = items.filter((i) => i.status === "completed").length;
+  const archived = items.filter((i) => Boolean(i.archivedAt)).length;
+  const nonArchivedItems = items.filter((i) => !i.archivedAt);
+  const total = nonArchivedItems.length;
+  const active = nonArchivedItems.filter((i) => i.status === "active").length;
+  const completed = nonArchivedItems.filter((i) => i.status === "completed").length;
   const avgProgress =
     total === 0
       ? 0
-      : Math.round(items.reduce((sum, i) => sum + computeProgress(i.checklist), 0) / total);
+      : Math.round(
+          nonArchivedItems.reduce((sum, i) => sum + computeProgress(i.checklist), 0) / total
+        );
 
-  return { total, active, completed, avgProgress };
+  return { total, active, completed, avgProgress, archived };
 }
 
 /** Filter options */
@@ -96,6 +100,20 @@ export function sortItems(items: DashboardItem[], sort: SortOptions): DashboardI
 
     if (sort.field === "updatedAt") {
       comparison = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
+    } else if (sort.field === "createdAt") {
+      const aCreatedTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bCreatedTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      comparison = aCreatedTime - bCreatedTime;
+    } else if (sort.field === "archivedAt") {
+      const aArchivedTime = a.archivedAt ? new Date(a.archivedAt).getTime() : null;
+      const bArchivedTime = b.archivedAt ? new Date(b.archivedAt).getTime() : null;
+
+      // Always place non-archived (null archivedAt) after real archived dates
+      if (aArchivedTime === null && bArchivedTime !== null) return 1;
+      if (aArchivedTime !== null && bArchivedTime === null) return -1;
+      if (aArchivedTime === null && bArchivedTime === null) return 0;
+
+      comparison = (aArchivedTime ?? 0) - (bArchivedTime ?? 0);
     } else if (sort.field === "name") {
       comparison = a.name.localeCompare(b.name);
     } else if (sort.field === "progress") {

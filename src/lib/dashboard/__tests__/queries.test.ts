@@ -112,6 +112,15 @@ describe("Dashboard queries", () => {
         expect(result.tag).toBe(tag);
       }
     });
+
+    it("should handle all valid sort field values", () => {
+      const sortFields = ["updatedAt", "createdAt", "archivedAt", "name", "progress"];
+
+      for (const sortBy of sortFields) {
+        const result = parseDashboardSearchParams({ sortBy });
+        expect(result.sortBy).toBe(sortBy);
+      }
+    });
   });
 
   describe("computeDashboardKpis", () => {
@@ -129,6 +138,7 @@ describe("Dashboard queries", () => {
       expect(kpis.active).toBe(2);
       expect(kpis.completed).toBe(1);
       expect(kpis.avgProgress).toBe(63); // (50+100+100+0)/4 = 62.5 rounded to 63
+      expect(kpis.archived).toBe(0);
     });
 
     it("should handle empty items array", () => {
@@ -138,6 +148,7 @@ describe("Dashboard queries", () => {
       expect(kpis.active).toBe(0);
       expect(kpis.completed).toBe(0);
       expect(kpis.avgProgress).toBe(0);
+      expect(kpis.archived).toBe(0);
     });
 
     it("should count pending items in total but not in active/completed", () => {
@@ -151,6 +162,16 @@ describe("Dashboard queries", () => {
       expect(kpis.total).toBe(2);
       expect(kpis.active).toBe(1);
       expect(kpis.completed).toBe(0);
+      expect(kpis.archived).toBe(0);
+    });
+
+    it("should include archived count when provided", () => {
+      const items: DashboardItem[] = [createMockItem({ status: "active" })];
+
+      const kpis = computeDashboardKpis(items, 3);
+
+      expect(kpis.total).toBe(1);
+      expect(kpis.archived).toBe(3);
     });
   });
 

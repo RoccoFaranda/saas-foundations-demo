@@ -275,9 +275,11 @@ export async function importSampleDataAction(): Promise<DashboardActionResult> {
             userId: user.id,
             name: sampleItem.name,
             status: sampleItem.status as ItemStatus,
-            completedAt: sampleItem.status === ItemStatus.completed ? new Date() : null,
+            completedAt: sampleItem.completedAt ? new Date(sampleItem.completedAt) : null,
             tag: sampleItem.tag as ItemTag | null,
             summary: sampleItem.summary || undefined,
+            createdAt: sampleItem.createdAt ? new Date(sampleItem.createdAt) : undefined,
+            updatedAt: sampleItem.updatedAt ? new Date(sampleItem.updatedAt) : undefined,
             checklistItems: {
               create: sampleItem.checklist.map((checklistItem, index) => ({
                 text: checklistItem.text,

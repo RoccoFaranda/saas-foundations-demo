@@ -4,6 +4,7 @@ import { useRef, useState, type FormEvent, type RefObject } from "react";
 import type { DashboardItem, ItemStatus, ItemTag, ChecklistItem } from "./model";
 import { computeProgress, generateId } from "./model";
 import { Modal } from "@/src/components/ui/modal";
+import { LifecycleDetails } from "./lifecycle-details";
 
 interface EditItemModalProps {
   item: DashboardItem | null;
@@ -233,6 +234,13 @@ function EditItemForm({
               data-testid="edit-summary-input"
             />
           </div>
+
+          {/* Lifecycle */}
+          {item.id !== "new" && (
+            <div className="rounded-md border border-foreground/10 bg-foreground/2 p-3">
+              <LifecycleDetails item={item} />
+            </div>
+          )}
 
           {/* Checklist / Progress */}
           <div>

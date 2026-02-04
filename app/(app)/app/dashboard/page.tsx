@@ -41,21 +41,24 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   };
 
   // Fetch global data in parallel - user scoped
-  const [totalCount, userItemCount, allItemsForKpis, dbActivityLogs] = await Promise.all([
-    // Total count for pagination (same filters)
-    countItems(userId, {
-      status: filterOptions.status,
-      tag: filterOptions.tag,
-      search: filterOptions.search,
-      includeArchived: filterOptions.includeArchived,
-    }),
-    // Any items for this user (regardless of current filters)
-    countItems(userId, { includeArchived: true }),
-    // All items (no filters) for KPIs - exclude archived for accurate metrics
-    listItems(userId, { includeArchived: false }),
-    // Recent activity logs
-    listActivityLogs(userId, { limit: 10 }),
-  ]);
+  const [totalCount, userItemCount, allItemsForKpis, allItemsForTrend, dbActivityLogs] =
+    await Promise.all([
+      // Total count for pagination (same filters)
+      countItems(userId, {
+        status: filterOptions.status,
+        tag: filterOptions.tag,
+        search: filterOptions.search,
+        includeArchived: filterOptions.includeArchived,
+      }),
+      // Any items for this user (regardless of current filters)
+      countItems(userId, { includeArchived: true }),
+      // All items (no filters) for KPIs - exclude archived for accurate metrics
+      listItems(userId, { includeArchived: false }),
+      // All items (including archived) for historical completion trend
+      listItems(userId, { includeArchived: true }),
+      // Recent activity logs
+      listActivityLogs(userId, { limit: 10 }),
+    ]);
   const hasAnyItems = userItemCount > 0;
 
   // Clamp page to valid range to avoid empty out-of-range pages
@@ -63,14 +66,32 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const currentPage = Math.min(params.page, totalPages);
   const offset = (currentPage - 1) * DASHBOARD_PAGE_SIZE;
 
-  // Fetch table items (supports progress sort in-memory)
+  // Fetch table items (supports progress and archived-date sort in-memory)
   const dbItems =
-    params.sortBy === "progress"
+    params.sortBy === "progress" || params.sortBy === "archivedAt"
       ? (() => {
           return listItems(userId, filterOptions).then((filteredItems) => {
             const sorted = [...filteredItems].sort((a, b) => {
-              const comparison =
-                computeProgress(a.checklistItems) - computeProgress(b.checklistItems);
+              if (params.sortBy === "progress") {
+                const comparison =
+                  computeProgress(a.checklistItems) - computeProgress(b.checklistItems);
+                return params.sortDir === "desc" ? -comparison : comparison;
+              }
+
+              const aArchivedTime = a.archivedAt ? new Date(a.archivedAt).getTime() : null;
+              const bArchivedTime = b.archivedAt ? new Date(b.archivedAt).getTime() : null;
+
+              if (aArchivedTime === null && bArchivedTime === null) {
+                return 0;
+              }
+              if (aArchivedTime === null) {
+                return 1;
+              }
+              if (bArchivedTime === null) {
+                return -1;
+              }
+
+              const comparison = aArchivedTime - bArchivedTime;
               return params.sortDir === "desc" ? -comparison : comparison;
             });
             return sorted.slice(offset, offset + DASHBOARD_PAGE_SIZE);
@@ -78,7 +99,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         })()
       : listItems(userId, {
           ...filterOptions,
-          sortBy: params.sortBy === "name" ? "name" : "updatedAt",
+          sortBy: params.sortBy,
           sortDirection: params.sortDir,
           limit: DASHBOARD_PAGE_SIZE,
           offset,
@@ -88,10 +109,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   // Map DB models to UI models
   const items = mapDbItemsToUi(resolvedDbItems);
   const allItems = mapDbItemsToUi(allItemsForKpis);
+  const allItemsIncludingArchived = mapDbItemsToUi(allItemsForTrend);
   const activities = mapDbActivityLogsToUi(dbActivityLogs);
 
   // Compute KPIs from all user items (unfiltered)
-  const kpis = computeDashboardKpis(allItems);
+  const archivedCount = Math.max(0, userItemCount - allItems.length);
+  const kpis = computeDashboardKpis(allItems, archivedCount);
 
   // Determine current sort for UI
   const sortField: SortField = params.sortBy;
@@ -106,6 +129,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       sortField={sortField}
       sortDirection={sortDirection}
       showArchived={params.showArchived}
+      hasArchivedItems={archivedCount > 0}
     />
   );
 
@@ -128,17 +152,22 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
   // Analytics data
   const statusDistribution = computeStatusDistribution(allItems);
-  const completionTrend = computeCompletionTrend(allItems);
+  const completionTrend = computeCompletionTrend(allItemsIncludingArchived);
 
   // Analytics content
   const analyticsContent = (
     <div className="grid gap-6 md:grid-cols-2">
       <div>
-        <h3 className="mb-4 text-sm font-medium text-foreground/80">Status Distribution</h3>
+        <h3 className="mb-1 text-sm font-medium text-foreground/80">Status Distribution</h3>
+        <p className="mb-4 text-xs text-foreground/50">Excludes archived projects</p>
         <StatusDistributionChart data={statusDistribution} isEmpty={kpis.total === 0} />
       </div>
       <div>
-        <TrendChart data={completionTrend} title="Completion Trend" isEmpty={kpis.total === 0} />
+        <TrendChart
+          data={completionTrend}
+          title="Completion Trend (incl. archived)"
+          isEmpty={completionTrend.length === 0}
+        />
       </div>
     </div>
   );
