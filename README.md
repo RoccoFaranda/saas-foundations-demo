@@ -4,27 +4,29 @@ A Next.js App Router demo application showcasing SaaS foundations and best pract
 
 ## Prerequisites
 
-- Node.js (see `.nvmrc` for version)
-- pnpm
+- Node.js 24.12.0 (see `.nvmrc`)
+- pnpm 10.27.0 (see `packageManager` in `package.json`)
 - Docker and Docker Compose (for local Postgres database)
+
+## Local Setup
+
+Use Volta or Corepack to install the pinned pnpm version. With Corepack:
+
+```bash
+corepack enable
+```
+
+Steps:
+
+1. `pnpm install`
+2. `docker compose up -d`
+3. `cp .env.example .env.local`
+4. `pnpm dev`
 
 ## Getting Started
 
-```bash
-# Install dependencies
-pnpm install
-
-# Start Postgres database (required for app and integration tests)
-docker compose up -d
-
-# Copy environment variables
-cp .env.example .env.local
-
-# Start development server
-pnpm dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Follow the steps in the Local Setup section above. Then open
+[http://localhost:3000](http://localhost:3000) in your browser.
 
 For detailed database setup instructions, see [Architecture Documentation](./docs/architecture.md#local-development-setup).
 
