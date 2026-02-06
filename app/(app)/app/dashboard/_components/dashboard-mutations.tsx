@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { DashboardContent } from "@/src/components/dashboard";
 import type { DashboardItem } from "@/src/components/dashboard/model";
 import type { DashboardMutationHandlers } from "@/src/components/dashboard";
 import { useCreateProjectModal } from "./create-project-modal-context";
+import { useToast } from "@/src/components/ui/toast";
 import {
   type DashboardActionResult,
   createItemAction,
@@ -27,8 +28,11 @@ interface DashboardMutationsProps {
  * Provides server action implementations to the shared DashboardContent.
  */
 export function DashboardMutations({ items, emptyMessage, hasItems }: DashboardMutationsProps) {
+  const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { isCreateModalOpen, setCreateModalOpen } = useCreateProjectModal();
+  const { pushToast } = useToast();
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,17 +43,28 @@ export function DashboardMutations({ items, emptyMessage, hasItems }: DashboardM
         const result = await operation();
         if (result.success) {
           router.refresh();
-          return;
+          return true;
         }
         setError(result.error);
+        return false;
       } catch {
         setError("Something went wrong. Please try again.");
+        return false;
       } finally {
         setIsPending(false);
       }
     },
     [router]
   );
+
+  const viewArchived = useCallback(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("showArchived", "true");
+    params.set("sortBy", "archivedAt");
+    params.set("sortDir", "desc");
+    params.set("page", "1");
+    router.push(`${pathname}?${params.toString()}`);
+  }, [pathname, router, searchParams]);
 
   // Create mutation handlers that wrap server actions
   const handlers: DashboardMutationHandlers = useMemo(
@@ -80,7 +95,25 @@ export function DashboardMutations({ items, emptyMessage, hasItems }: DashboardM
         await runMutation(async () => deleteItemAction(item.id));
       },
       onArchive: async (item: DashboardItem) => {
-        await runMutation(async () => archiveItemAction(item.id));
+        const success = await runMutation(async () => archiveItemAction(item.id));
+        if (!success) return;
+
+        pushToast({
+          title: "Project archived",
+          description: item.name,
+          actions: [
+            {
+              label: "Undo",
+              onClick: () => {
+                void runMutation(async () => unarchiveItemAction(item.id));
+              },
+            },
+            {
+              label: "View archived",
+              onClick: viewArchived,
+            },
+          ],
+        });
       },
       onUnarchive: async (item: DashboardItem) => {
         await runMutation(async () => unarchiveItemAction(item.id));
@@ -89,7 +122,7 @@ export function DashboardMutations({ items, emptyMessage, hasItems }: DashboardM
         await runMutation(importSampleDataAction);
       },
     }),
-    [runMutation]
+    [runMutation, pushToast, viewArchived]
   );
 
   const handleClearError = useCallback(() => {

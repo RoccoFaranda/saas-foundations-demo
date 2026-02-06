@@ -27,6 +27,7 @@ import {
   TrendChart,
 } from "@/src/components/dashboard";
 import type { DashboardMutationHandlers } from "@/src/components/dashboard";
+import { useToast } from "@/src/components/ui/toast";
 import { computeStatusDistribution, computeCompletionTrend } from "@/src/lib/dashboard/analytics";
 
 const PAGE_SIZE = 5;
@@ -52,6 +53,7 @@ export default function DemoPage() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const { pushToast } = useToast();
 
   // Simulate initial loading
   useEffect(() => {
@@ -177,6 +179,34 @@ export default function DemoPage() {
           )
         );
         addActivity(`Archived "${item.name}"`);
+        pushToast({
+          title: "Project archived",
+          description: item.name,
+          actions: [
+            {
+              label: "Undo",
+              onClick: () => {
+                setItems((prev) =>
+                  prev.map((i) =>
+                    i.id === item.id
+                      ? { ...i, archivedAt: null, updatedAt: new Date().toISOString() }
+                      : i
+                  )
+                );
+                addActivity(`Unarchived "${item.name}"`);
+              },
+            },
+            {
+              label: "View archived",
+              onClick: () => {
+                setShowArchived(true);
+                setSortField("archivedAt");
+                setSortDirection("desc");
+                setCurrentPage(1);
+              },
+            },
+          ],
+        });
       },
       onUnarchive: (item) => {
         setItems((prev) =>
@@ -191,7 +221,7 @@ export default function DemoPage() {
         addActivity("Imported sample data");
       },
     }),
-    [items, addActivity]
+    [items, addActivity, pushToast]
   );
 
   // Filter controls component

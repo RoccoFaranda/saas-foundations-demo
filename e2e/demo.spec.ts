@@ -271,4 +271,26 @@ test.describe("Demo page - Guest mode reset flow", () => {
     await expect(itemsTable.locator("tr")).toHaveCount(6);
     await expect(itemsTable).toContainText("Dashboard Analytics");
   });
+
+  test("archive toast allows viewing archived items", async ({ page }) => {
+    await page.goto("/demo");
+
+    await expect(page.getByTestId("edit-btn-proj-002")).toBeVisible({ timeout: 5000 });
+
+    const showArchivedCheckbox = page.getByLabel("Show archived");
+    await expect(showArchivedCheckbox).not.toBeChecked();
+
+    const archiveBtn = page.getByTestId("archive-btn-proj-002");
+    await expect(archiveBtn).toBeVisible();
+    await archiveBtn.click();
+
+    const toast = page.getByText("Project archived");
+    await expect(toast).toBeVisible({ timeout: 5000 });
+
+    const viewArchivedBtn = page.getByRole("button", { name: "View archived" });
+    await viewArchivedBtn.click();
+
+    await expect(showArchivedCheckbox).toBeChecked();
+    await expect(page.getByTestId("table-row-proj-002")).toBeVisible({ timeout: 5000 });
+  });
 });
