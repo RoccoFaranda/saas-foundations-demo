@@ -12,8 +12,10 @@
     "pnpm": "10.27.0"
   },
   "scripts": {
+    "predev": "node scripts/check-docker.js",
     "dev": "next dev",
     "build": "next build",
+    "prestart": "node scripts/check-docker.js",
     "start": "next start",
     "lint": "eslint . --cache --cache-location .eslintcache",
     "format": "prettier . --write",
