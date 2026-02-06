@@ -63,7 +63,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       // All items (including archived) for historical completion trend
       listItems(userId, { includeArchived: true }),
       // Recent activity logs
-      listActivityLogs(userId, { limit: 10 }),
+      listActivityLogs(userId, { limit: 20 }),
     ]);
   const hasAnyItems = userItemCount > 0;
 

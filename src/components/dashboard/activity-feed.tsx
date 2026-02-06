@@ -3,6 +3,7 @@ import type { ActivityEntry } from "./model";
 interface ActivityFeedProps {
   title?: string;
   activities?: ActivityEntry[];
+  helperText?: string;
 }
 
 function formatTime(isoString: string): string {
@@ -13,7 +14,11 @@ function formatTime(isoString: string): string {
   });
 }
 
-export function ActivityFeed({ title = "Recent Activity", activities = [] }: ActivityFeedProps) {
+export function ActivityFeed({
+  title = "Recent Activity",
+  activities = [],
+  helperText = "Showing latest 20 events.",
+}: ActivityFeedProps) {
   return (
     <div
       className="rounded-lg border border-foreground/10 bg-background"
@@ -21,6 +26,7 @@ export function ActivityFeed({ title = "Recent Activity", activities = [] }: Act
     >
       <div className="border-b border-foreground/10 px-4 py-3">
         <h2 className="font-medium">{title}</h2>
+        {activities.length > 0 && <p className="mt-1 text-xs text-foreground/50">{helperText}</p>}
       </div>
       {activities.length === 0 ? (
         <div className="flex h-40 items-center justify-center p-4">
