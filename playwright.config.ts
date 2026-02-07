@@ -33,6 +33,7 @@ export default defineConfig({
     env: {
       ...process.env,
       PORT: "3001",
+      NEXT_DIST_DIR: ".next-e2e",
     },
   },
 });
