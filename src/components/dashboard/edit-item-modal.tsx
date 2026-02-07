@@ -92,11 +92,16 @@ function EditItemForm({
   const [showCompletionConfirm, setShowCompletionConfirm] = useState(false);
   const [pendingSave, setPendingSave] = useState<DashboardItem | null>(null);
   const isFormLocked = showCompletionConfirm || isPending;
+  const [dismissedSuggestCompleteKey, setDismissedSuggestCompleteKey] = useState<string | null>(
+    null
+  );
+  const [checklistVersion, setChecklistVersion] = useState(0);
 
   const toggleChecklistItem = (id: string) => {
     setChecklist((prev) =>
       prev.map((item) => (item.id === id ? { ...item, done: !item.done } : item))
     );
+    setChecklistVersion((prev) => prev + 1);
   };
 
   const addChecklistItem = () => {
@@ -105,10 +110,38 @@ function EditItemForm({
 
     setChecklist((prev) => [...prev, { id: generateId("check"), text, done: false }]);
     setNewChecklistText("");
+    setChecklistVersion((prev) => prev + 1);
   };
 
   const removeChecklistItem = (id: string) => {
     setChecklist((prev) => prev.filter((item) => item.id !== id));
+    setChecklistVersion((prev) => prev + 1);
+  };
+
+  const hasMeaningfulChanges = (candidate: DashboardItem) =>
+    candidate.name !== item.name ||
+    candidate.status !== item.status ||
+    candidate.tag !== item.tag ||
+    candidate.summary !== item.summary ||
+    JSON.stringify(candidate.checklist) !== JSON.stringify(item.checklist);
+
+  const saveIfChanged = (candidate: DashboardItem) => {
+    const normalizedCandidate: DashboardItem = {
+      ...candidate,
+      name: candidate.name.trim(),
+      summary: candidate.summary.trim(),
+      updatedAt: item.updatedAt,
+    };
+
+    if (!hasMeaningfulChanges(normalizedCandidate)) {
+      onCancel();
+      return;
+    }
+
+    onSave({
+      ...normalizedCandidate,
+      updatedAt: new Date().toISOString(),
+    });
   };
 
   const handleSubmit = (e: FormEvent) => {
@@ -125,19 +158,6 @@ function EditItemForm({
 
     const trimmedSummary = summary.trim();
 
-    // Check if anything changed (deep equality for checklist)
-    const hasChanges =
-      trimmedName !== item.name ||
-      status !== item.status ||
-      tag !== item.tag ||
-      trimmedSummary !== item.summary ||
-      JSON.stringify(checklist) !== JSON.stringify(item.checklist);
-
-    if (!hasChanges) {
-      onCancel();
-      return;
-    }
-
     const nextItem: DashboardItem = {
       ...item,
       name: trimmedName,
@@ -145,7 +165,7 @@ function EditItemForm({
       tag,
       summary: trimmedSummary,
       checklist,
-      updatedAt: new Date().toISOString(),
+      updatedAt: item.updatedAt,
     };
 
     const hasIncompleteChecklist =
@@ -157,24 +177,50 @@ function EditItemForm({
       return;
     }
 
-    onSave(nextItem);
+    saveIfChanged(nextItem);
   };
 
   const progress = computeProgress(checklist);
+  const completedCount = checklist.filter((entry) => entry.done).length;
+  const isChecklistComplete = checklist.length > 0 && completedCount === checklist.length;
+  const suggestCompleteKey = `${checklistVersion}-${status}`;
+  const shouldSuggestComplete =
+    !showCompletionConfirm &&
+    isChecklistComplete &&
+    status !== "completed" &&
+    dismissedSuggestCompleteKey !== suggestCompleteKey;
 
   const handleBackToEdit = () => {
     setShowCompletionConfirm(false);
     setPendingSave(null);
   };
 
+  const handleMarkStatusActive = () => {
+    if (!pendingSave) return;
+    setStatus("active");
+    saveIfChanged({
+      ...pendingSave,
+      status: "active",
+    });
+  };
+
   const handleMarkAllComplete = () => {
     if (!pendingSave) return;
     const updatedChecklist = pendingSave.checklist.map((entry) => ({ ...entry, done: true }));
     setChecklist(updatedChecklist);
-    onSave({
+    saveIfChanged({
       ...pendingSave,
       checklist: updatedChecklist,
     });
+  };
+
+  const handleMarkProjectCompleted = () => {
+    setStatus("completed");
+    setDismissedSuggestCompleteKey(suggestCompleteKey);
+  };
+
+  const handleKeepStatus = () => {
+    setDismissedSuggestCompleteKey(suggestCompleteKey);
   };
 
   return (
@@ -355,6 +401,31 @@ function EditItemForm({
 
         {/* Actions */}
         <div className="border-t border-foreground/10 bg-background px-4 py-4">
+          {shouldSuggestComplete && (
+            <div className="mb-3 flex flex-col gap-2 rounded-md border border-foreground/10 bg-foreground/5 px-3 py-2 text-sm text-foreground/80 sm:flex-row sm:items-center sm:justify-between">
+              <span>All checklist items are complete. Mark project as completed?</span>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleKeepStatus}
+                  disabled={isPending}
+                  className="rounded-md border border-foreground/10 bg-background px-3 py-1.5 text-xs font-medium text-foreground/70 transition-colors hover:bg-foreground/5 disabled:opacity-50"
+                  data-testid="edit-complete-keep-btn"
+                >
+                  Keep status
+                </button>
+                <button
+                  type="button"
+                  onClick={handleMarkProjectCompleted}
+                  disabled={isPending}
+                  className="rounded-md bg-foreground px-3 py-1.5 text-xs font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
+                  data-testid="edit-complete-mark-btn"
+                >
+                  Mark completed
+                </button>
+              </div>
+            </div>
+          )}
           {showCompletionConfirm ? (
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-foreground/70">
@@ -369,6 +440,15 @@ function EditItemForm({
                   data-testid="edit-confirm-back-btn"
                 >
                   Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handleMarkStatusActive}
+                  disabled={isPending}
+                  className="rounded-md border border-foreground/10 bg-background px-3 py-2 text-sm font-medium text-foreground/70 transition-colors hover:bg-foreground/5 disabled:opacity-50"
+                  data-testid="edit-confirm-active-btn"
+                >
+                  Mark status active and save
                 </button>
                 <button
                   type="button"
