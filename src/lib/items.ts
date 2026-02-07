@@ -6,6 +6,24 @@ import type { Item, ChecklistItem } from "../generated/prisma/client";
 import { ItemStatus, ItemTag } from "../generated/prisma/enums";
 import type { Prisma } from "../generated/prisma/client";
 
+export class CompletionChecklistError extends Error {
+  constructor() {
+    super("Cannot mark project as completed while checklist has incomplete items.");
+    this.name = "CompletionChecklistError";
+  }
+}
+
+function assertChecklistCompleteForCompleted(
+  status: ItemStatus,
+  checklist: Array<{ done: boolean }>
+) {
+  if (status !== ItemStatus.completed) return;
+  const hasIncomplete = checklist.some((item) => !item.done);
+  if (hasIncomplete) {
+    throw new CompletionChecklistError();
+  }
+}
+
 /**
  * Extended Item type that includes checklist items
  */
@@ -21,6 +39,10 @@ export async function createItem(
   input: CreateItemInput
 ): Promise<ItemWithChecklist> {
   const validated = createItemSchema.parse(input);
+
+  if (validated.checklist) {
+    assertChecklistCompleteForCompleted(validated.status, validated.checklist);
+  }
 
   // Set completedAt if status is completed
   const completedAt = validated.status === ItemStatus.completed ? new Date() : null;
@@ -201,6 +223,9 @@ export async function updateItem(
       id: itemId,
       userId,
     },
+    include: {
+      checklistItems: true,
+    },
   });
 
   if (!existing) {
@@ -209,6 +234,10 @@ export async function updateItem(
   if (existing.archivedAt) {
     throw new Error("Archived items must be unarchived before editing");
   }
+
+  const targetStatus = validated.status ?? existing.status;
+  const targetChecklist = validated.checklist ?? existing.checklistItems;
+  assertChecklistCompleteForCompleted(targetStatus, targetChecklist);
 
   // Build update data, handling null values for optional fields
   const updateData: Prisma.ItemUpdateInput = {};

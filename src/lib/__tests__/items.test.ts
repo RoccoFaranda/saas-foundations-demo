@@ -156,6 +156,67 @@ describe("Items data layer", () => {
     });
   });
 
+  describe("completed status checklist enforcement", () => {
+    it("should reject create when completed status has incomplete checklist", async () => {
+      await expect(
+        createItem(TEST_USER_1, {
+          name: "Invalid Completed",
+          status: ItemStatus.completed,
+          checklist: [{ text: "Task", done: false, position: 0 }],
+        })
+      ).rejects.toThrow("Cannot mark project as completed while checklist has incomplete items.");
+    });
+
+    it("should allow create when completed status has fully completed checklist", async () => {
+      const item = await createItem(TEST_USER_1, {
+        name: "Valid Completed",
+        status: ItemStatus.completed,
+        checklist: [{ text: "Task", done: true, position: 0 }],
+      });
+
+      expect(item.status).toBe(ItemStatus.completed);
+    });
+
+    it("should reject updating status to completed with incomplete checklist", async () => {
+      const item = await createItem(TEST_USER_1, {
+        name: "Incomplete Checklist",
+        checklist: [{ text: "Task", done: false, position: 0 }],
+      });
+
+      await expect(
+        updateItem(TEST_USER_1, item.id, { status: ItemStatus.completed })
+      ).rejects.toThrow("Cannot mark project as completed while checklist has incomplete items.");
+    });
+
+    it("should reject updating checklist to incomplete while status is completed", async () => {
+      const item = await createItem(TEST_USER_1, {
+        name: "Completed Item",
+        status: ItemStatus.completed,
+        checklist: [{ text: "Task", done: true, position: 0 }],
+      });
+
+      await expect(
+        updateItem(TEST_USER_1, item.id, {
+          checklist: [{ text: "Task", done: false, position: 0 }],
+        })
+      ).rejects.toThrow("Cannot mark project as completed while checklist has incomplete items.");
+    });
+
+    it("should allow updating to completed when checklist is complete", async () => {
+      const item = await createItem(TEST_USER_1, {
+        name: "Checklist Item",
+        checklist: [{ text: "Task", done: true, position: 0 }],
+      });
+
+      const updated = await updateItem(TEST_USER_1, item.id, {
+        status: ItemStatus.completed,
+        checklist: [{ text: "Task", done: true, position: 0 }],
+      });
+
+      expect(updated.status).toBe(ItemStatus.completed);
+    });
+  });
+
   describe("archived filtering", () => {
     it("should exclude archived items by default in listItems", async () => {
       // Create non-archived items
@@ -1103,11 +1164,11 @@ describe("Items data layer", () => {
 
         const updated = await updateItem(TEST_USER_1, item.id, {
           name: "Updated",
-          status: ItemStatus.completed,
+          status: ItemStatus.active,
         });
 
         expect(updated.name).toBe("Updated");
-        expect(updated.status).toBe(ItemStatus.completed);
+        expect(updated.status).toBe(ItemStatus.active);
         expect(updated.checklistItems).toHaveLength(1);
         expect(updated.checklistItems[0].text).toBe("Task");
       });
@@ -1123,7 +1184,7 @@ describe("Items data layer", () => {
           status: ItemStatus.completed,
           checklist: [
             { text: "New 1", done: true, position: 0 },
-            { text: "New 2", done: false, position: 1 },
+            { text: "New 2", done: true, position: 1 },
           ],
         });
 

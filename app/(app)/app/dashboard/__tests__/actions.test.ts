@@ -126,6 +126,19 @@ describe("Dashboard actions", () => {
       expect(result.success).toBe(false);
       expect(result).toHaveProperty("error");
     });
+
+    it("should reject completed status with incomplete checklist", async () => {
+      const result = await createItemAction({
+        name: "Invalid Completed",
+        status: "completed",
+        checklist: [{ id: "temp-1", text: "Task 1", done: false }],
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("Cannot mark project as completed");
+      }
+    });
   });
 
   describe("updateItemAction", () => {
@@ -199,6 +212,22 @@ describe("Dashboard actions", () => {
       expect(result).toHaveProperty("error");
       if (!result.success) {
         expect(result.error).toContain("Unarchive");
+      }
+    });
+
+    it("should reject completed status with incomplete checklist", async () => {
+      const item = await createItem(TEST_USER_ID, {
+        name: "Checklist Item",
+        checklist: [{ text: "Task", done: false, position: 0 }],
+      });
+
+      const result = await updateItemAction(item.id, {
+        status: "completed",
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("Cannot mark project as completed");
       }
     });
   });

@@ -10,6 +10,7 @@ import {
   getItem,
   archiveItem,
   unarchiveItem,
+  CompletionChecklistError,
 } from "@/src/lib/items";
 import { createActivityLog } from "@/src/lib/activity-log";
 import { createItemSchema, updateItemSchema } from "@/src/lib/validation/item";
@@ -77,6 +78,9 @@ export async function createItemAction(input: {
     revalidatePath("/app/dashboard");
     return { success: true, itemId: item.id };
   } catch (error) {
+    if (error instanceof CompletionChecklistError) {
+      return { success: false, error: error.message };
+    }
     console.error("[dashboard] createItemAction failed:", error);
     return { success: false, error: "Failed to create item. Please try again." };
   }
@@ -125,6 +129,9 @@ export async function updateItemAction(
     revalidatePath("/app/dashboard");
     return { success: true, itemId: item.id };
   } catch (error) {
+    if (error instanceof CompletionChecklistError) {
+      return { success: false, error: error.message };
+    }
     if (error instanceof Error && error.message.includes("not found or access denied")) {
       return { success: false, error: "Item not found or you don't have permission to edit it." };
     }
