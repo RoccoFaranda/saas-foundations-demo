@@ -30,6 +30,11 @@ test.describe("Demo page - Guest mode reset flow", () => {
     // Save changes
     await page.getByTestId("edit-save-btn").click();
 
+    // Confirm completion with incomplete checklist
+    const markAllBtn = page.getByTestId("edit-confirm-mark-all-btn");
+    await expect(markAllBtn).toBeVisible();
+    await markAllBtn.click();
+
     // Verify modal closes
     await expect(modal).not.toBeVisible();
 

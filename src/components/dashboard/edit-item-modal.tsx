@@ -89,6 +89,9 @@ function EditItemForm({
   const [summary, setSummary] = useState(item.summary);
   const [checklist, setChecklist] = useState<ChecklistItem[]>(item.checklist);
   const [newChecklistText, setNewChecklistText] = useState("");
+  const [showCompletionConfirm, setShowCompletionConfirm] = useState(false);
+  const [pendingSave, setPendingSave] = useState<DashboardItem | null>(null);
+  const isFormLocked = showCompletionConfirm || isPending;
 
   const toggleChecklistItem = (id: string) => {
     setChecklist((prev) =>
@@ -135,7 +138,7 @@ function EditItemForm({
       return;
     }
 
-    onSave({
+    const nextItem: DashboardItem = {
       ...item,
       name: trimmedName,
       status,
@@ -143,10 +146,36 @@ function EditItemForm({
       summary: trimmedSummary,
       checklist,
       updatedAt: new Date().toISOString(),
-    });
+    };
+
+    const hasIncompleteChecklist =
+      nextItem.status === "completed" && nextItem.checklist.some((entry) => !entry.done);
+
+    if (hasIncompleteChecklist) {
+      setPendingSave(nextItem);
+      setShowCompletionConfirm(true);
+      return;
+    }
+
+    onSave(nextItem);
   };
 
   const progress = computeProgress(checklist);
+
+  const handleBackToEdit = () => {
+    setShowCompletionConfirm(false);
+    setPendingSave(null);
+  };
+
+  const handleMarkAllComplete = () => {
+    if (!pendingSave) return;
+    const updatedChecklist = pendingSave.checklist.map((entry) => ({ ...entry, done: true }));
+    setChecklist(updatedChecklist);
+    onSave({
+      ...pendingSave,
+      checklist: updatedChecklist,
+    });
+  };
 
   return (
     <div
@@ -162,7 +191,11 @@ function EditItemForm({
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="flex max-h-[75vh] flex-col">
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
+        <div
+          className={`min-h-0 flex-1 space-y-4 overflow-y-auto p-4 transition-opacity ${
+            showCompletionConfirm ? "opacity-40" : "opacity-100"
+          }`}
+        >
           {/* Name */}
           <div>
             <label htmlFor="edit-name" className="block text-sm font-medium text-foreground/70">
@@ -175,6 +208,7 @@ function EditItemForm({
               onChange={(e) => setName(e.target.value)}
               ref={nameInputRef}
               required
+              disabled={isFormLocked}
               className="mt-1 w-full rounded-md border border-foreground/10 bg-background px-3 py-2 text-sm focus:border-foreground/30 focus:outline-none"
               data-testid="edit-name-input"
             />
@@ -189,6 +223,7 @@ function EditItemForm({
               id="edit-status"
               value={status}
               onChange={(e) => setStatus(e.target.value as ItemStatus)}
+              disabled={isFormLocked}
               className="mt-1 w-full rounded-md border border-foreground/10 bg-background px-3 py-2 text-sm capitalize focus:border-foreground/30 focus:outline-none"
               data-testid="edit-status-select"
             >
@@ -209,6 +244,7 @@ function EditItemForm({
               id="edit-tag"
               value={tag ?? ""}
               onChange={(e) => setTag(e.target.value ? (e.target.value as ItemTag) : null)}
+              disabled={isFormLocked}
               className="mt-1 w-full rounded-md border border-foreground/10 bg-background px-3 py-2 text-sm capitalize focus:border-foreground/30 focus:outline-none"
               data-testid="edit-tag-select"
             >
@@ -230,6 +266,7 @@ function EditItemForm({
               value={summary}
               onChange={(e) => setSummary(e.target.value)}
               rows={4}
+              disabled={isFormLocked}
               className="mt-1 w-full resize-none rounded-md border border-foreground/10 bg-background px-3 py-2 text-sm focus:border-foreground/30 focus:outline-none"
               data-testid="edit-summary-input"
             />
@@ -262,6 +299,7 @@ function EditItemForm({
                         type="checkbox"
                         checked={item.done}
                         onChange={() => toggleChecklistItem(item.id)}
+                        disabled={isFormLocked}
                         className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-foreground/20"
                         data-testid={`checklist-checkbox-${item.id}`}
                       />
@@ -274,7 +312,8 @@ function EditItemForm({
                         type="button"
                         onClick={() => removeChecklistItem(item.id)}
                         aria-label={`Remove checklist item: ${item.text}`}
-                        className="shrink-0 text-xs text-foreground/40 hover:text-foreground/70"
+                        disabled={isFormLocked}
+                        className="shrink-0 text-xs text-foreground/40 hover:text-foreground/70 disabled:cursor-not-allowed disabled:text-foreground/20"
                         data-testid={`checklist-remove-${item.id}`}
                       >
                         ×
@@ -296,13 +335,15 @@ function EditItemForm({
                       addChecklistItem();
                     }
                   }}
+                  disabled={isFormLocked}
                   className="flex-1 rounded-md border border-foreground/10 bg-background px-2 py-1.5 text-sm focus:border-foreground/30 focus:outline-none"
                   data-testid="checklist-add-input"
                 />
                 <button
                   type="button"
                   onClick={addChecklistItem}
-                  className="rounded-md border border-foreground/10 bg-background px-3 py-1.5 text-xs font-medium text-foreground/70 transition-colors hover:bg-foreground/5"
+                  disabled={isFormLocked}
+                  className="rounded-md border border-foreground/10 bg-background px-3 py-1.5 text-xs font-medium text-foreground/70 transition-colors hover:bg-foreground/5 disabled:cursor-not-allowed disabled:opacity-50"
                   data-testid="checklist-add-btn"
                 >
                   Add
@@ -313,24 +354,54 @@ function EditItemForm({
         </div>
 
         {/* Actions */}
-        <div className="flex justify-end gap-2 border-t border-foreground/10 bg-background px-4 py-4">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isPending}
-            className="rounded-md border border-foreground/10 bg-background px-4 py-2 text-sm font-medium text-foreground/70 transition-colors hover:bg-foreground/5 disabled:opacity-50"
-            data-testid="edit-cancel-btn"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={isPending}
-            className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
-            data-testid="edit-save-btn"
-          >
-            {isPending ? "Saving..." : saveLabel}
-          </button>
+        <div className="border-t border-foreground/10 bg-background px-4 py-4">
+          {showCompletionConfirm ? (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-foreground/70">
+                This project is marked completed but some checklist items are unchecked.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleBackToEdit}
+                  disabled={isPending}
+                  className="rounded-md border border-foreground/10 bg-background px-3 py-2 text-sm font-medium text-foreground/70 transition-colors hover:bg-foreground/5 disabled:opacity-50"
+                  data-testid="edit-confirm-back-btn"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handleMarkAllComplete}
+                  disabled={isPending}
+                  className="rounded-md bg-foreground px-3 py-2 text-sm font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
+                  data-testid="edit-confirm-mark-all-btn"
+                >
+                  Mark all checklist items complete and save
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={onCancel}
+                disabled={isPending}
+                className="rounded-md border border-foreground/10 bg-background px-4 py-2 text-sm font-medium text-foreground/70 transition-colors hover:bg-foreground/5 disabled:opacity-50"
+                data-testid="edit-cancel-btn"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isPending}
+                className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
+                data-testid="edit-save-btn"
+              >
+                {isPending ? "Saving..." : saveLabel}
+              </button>
+            </div>
+          )}
         </div>
       </form>
     </div>
