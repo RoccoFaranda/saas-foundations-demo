@@ -70,6 +70,8 @@ export function ItemsTable({
         <tbody>
           {items.map((item) => {
             const progress = computeProgress(item.checklist);
+            const hasChecklist = item.checklist.length > 0;
+            const progressLabel = hasChecklist ? `${progress}%` : "—";
             return (
               <tr
                 key={item.id}
@@ -109,12 +111,18 @@ export function ItemsTable({
                       trigger={
                         <div className="flex items-center gap-2">
                           <div className="h-1.5 w-16 overflow-hidden rounded-full bg-foreground/10">
-                            <div
-                              className="h-full rounded-full bg-foreground/40"
-                              style={{ width: `${progress}%` }}
-                            />
+                            {hasChecklist && (
+                              <div
+                                className="h-full rounded-full bg-foreground/40"
+                                style={{ width: `${progress}%` }}
+                              />
+                            )}
                           </div>
-                          <span className="text-xs text-foreground/50">{progress}%</span>
+                          <span
+                            className={`text-xs ${hasChecklist ? "text-foreground/50" : "text-foreground/30"}`}
+                          >
+                            {progressLabel}
+                          </span>
                         </div>
                       }
                     >

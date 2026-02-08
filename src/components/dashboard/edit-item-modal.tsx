@@ -427,25 +427,16 @@ function EditItemForm({
             </div>
           )}
           {showCompletionConfirm ? (
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-foreground/70">
+            <div className="flex flex-col gap-3">
+              <p className="text-center text-sm text-foreground/70">
                 This project is marked completed but some checklist items are unchecked.
               </p>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={handleBackToEdit}
-                  disabled={isPending}
-                  className="rounded-md border border-foreground/10 bg-background px-3 py-2 text-sm font-medium text-foreground/70 transition-colors hover:bg-foreground/5 disabled:opacity-50"
-                  data-testid="edit-confirm-back-btn"
-                >
-                  Back
-                </button>
+              <div className="flex flex-col items-center justify-center gap-2 sm:flex-row">
                 <button
                   type="button"
                   onClick={handleMarkStatusActive}
                   disabled={isPending}
-                  className="rounded-md border border-foreground/10 bg-background px-3 py-2 text-sm font-medium text-foreground/70 transition-colors hover:bg-foreground/5 disabled:opacity-50"
+                  className="w-full rounded-md bg-foreground px-4 py-2 text-center text-sm font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50 sm:w-64"
                   data-testid="edit-confirm-active-btn"
                 >
                   Mark status active and save
@@ -454,10 +445,21 @@ function EditItemForm({
                   type="button"
                   onClick={handleMarkAllComplete}
                   disabled={isPending}
-                  className="rounded-md bg-foreground px-3 py-2 text-sm font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
+                  className="w-full rounded-md bg-foreground px-4 py-2 text-center text-sm font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50 sm:w-64"
                   data-testid="edit-confirm-mark-all-btn"
                 >
-                  Mark all checklist items complete and save
+                  Mark checklist complete and save
+                </button>
+              </div>
+              <div className="flex justify-center">
+                <button
+                  type="button"
+                  onClick={handleBackToEdit}
+                  disabled={isPending}
+                  className="rounded-full border border-foreground/10 px-3 py-1 text-xs font-medium text-foreground/70 transition-colors hover:bg-foreground/5 hover:text-foreground disabled:opacity-50"
+                  data-testid="edit-confirm-back-btn"
+                >
+                  Back
                 </button>
               </div>
             </div>
