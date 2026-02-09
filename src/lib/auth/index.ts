@@ -35,4 +35,4 @@ export {
 export { hashPassword, verifyPassword } from "./password";
 
 // Auth actions
-export { signup, login, type AuthActionResult } from "./actions";
+export { signup, login, signOutUser, type AuthActionResult } from "./actions";

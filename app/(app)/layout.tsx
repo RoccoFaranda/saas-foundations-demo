@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireVerifiedUser } from "@/src/lib/auth";
+import { requireVerifiedUser, signOutUser } from "@/src/lib/auth";
 import { AppThemeToggle } from "@/src/components/app-theme-toggle";
 import { ThemeAccountSync } from "@/src/components/theme-account-sync";
 
@@ -31,6 +31,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <span className="max-w-36 truncate text-foreground/60 sm:max-w-52" title={user.email}>
               {user.email}
             </span>
+            <form action={signOutUser}>
+              <button
+                type="submit"
+                className="cursor-pointer text-foreground/70 transition-colors hover:text-foreground"
+              >
+                Sign out
+              </button>
+            </form>
             <AppThemeToggle />
           </nav>
         </div>

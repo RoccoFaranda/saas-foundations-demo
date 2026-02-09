@@ -834,3 +834,6 @@ export async function verifyEmailChange(token: string): Promise<AuthActionResult
 /**
  * Sign out current user (server action)
  */
+export async function signOutUser(): Promise<void> {
+  await signOut({ redirectTo: "/login" });
+}
