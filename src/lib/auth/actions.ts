@@ -42,7 +42,11 @@ import { getTurnstilePolicy, verifyTurnstileToken } from "./turnstile";
  * Action result type for auth actions
  */
 export type AuthActionResult =
-  | { success: true; redirectUrl?: string; tokenUserId?: string }
+  | {
+      success: true;
+      redirectUrl?: string;
+      tokenUserId?: string;
+    }
   | { success: false; error: string; field?: "email" | "password"; retryAt?: number };
 
 const DEFAULT_LOGIN_REDIRECT = "/app/dashboard";

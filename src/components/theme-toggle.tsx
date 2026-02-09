@@ -9,7 +9,9 @@ const themes = [
   { value: "system", label: "System" },
 ] as const;
 
-export function ThemeToggle() {
+type ThemeValue = (typeof themes)[number]["value"];
+
+export function ThemeToggle({ onThemeChange }: { onThemeChange?: (theme: ThemeValue) => void }) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -35,7 +37,12 @@ export function ThemeToggle() {
   return (
     <select
       value={theme}
-      onChange={(e) => setTheme(e.target.value)}
+      onChange={(e) => {
+        const nextTheme = e.target.value as ThemeValue;
+        setTheme(nextTheme);
+        syncThemeCookie(nextTheme);
+        onThemeChange?.(nextTheme);
+      }}
       className="rounded border border-foreground/20 bg-background px-2 py-1 text-sm text-foreground/70 transition-colors hover:border-foreground/40 hover:text-foreground"
       aria-label="Theme selector"
       data-testid="theme-toggle"
@@ -47,4 +54,20 @@ export function ThemeToggle() {
       ))}
     </select>
   );
+}
+
+function syncThemeCookie(theme: ThemeValue) {
+  if (typeof document === "undefined") return;
+  const isSecure = window.location.protocol === "https:";
+  const maxAge = 60 * 60 * 24 * 365; // 1 year
+  const cookieParts = [
+    `theme=${encodeURIComponent(theme)}`,
+    "path=/",
+    "samesite=lax",
+    `max-age=${maxAge}`,
+  ];
+  if (isSecure) {
+    cookieParts.push("secure");
+  }
+  document.cookie = cookieParts.join("; ");
 }

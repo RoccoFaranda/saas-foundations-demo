@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { requireVerifiedUser } from "@/src/lib/auth";
-import { ThemeToggle } from "@/src/components/theme-toggle";
+import { AppThemeToggle } from "@/src/components/app-theme-toggle";
+import { ThemeAccountSync } from "@/src/components/theme-account-sync";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireVerifiedUser();
 
   return (
     <div className="flex min-h-screen flex-col">
+      <ThemeAccountSync />
       {/* Authenticated app header */}
       <header className="border-b border-foreground/10 bg-background">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4">
@@ -29,7 +31,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <span className="max-w-36 truncate text-foreground/60 sm:max-w-52" title={user.email}>
               {user.email}
             </span>
-            <ThemeToggle />
+            <AppThemeToggle />
           </nav>
         </div>
       </header>

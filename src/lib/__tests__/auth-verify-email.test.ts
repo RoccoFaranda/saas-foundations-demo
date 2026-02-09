@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 
 vi.mock("server-only", () => ({}));
 vi.mock("next-auth", () => ({
+  AuthError: class AuthError extends Error {},
   default: vi.fn(() => ({
     handlers: {},
     auth: vi.fn(),

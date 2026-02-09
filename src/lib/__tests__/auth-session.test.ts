@@ -76,6 +76,7 @@ describe("Auth Session Helpers", () => {
         name: mockUser.name,
         emailVerified: mockUser.emailVerified,
         sessionVersion: mockUser.sessionVersion,
+        themePreference: null,
       });
 
       const user = await getCurrentUser();
@@ -86,6 +87,7 @@ describe("Auth Session Helpers", () => {
         name: "Test User",
         emailVerified: mockUser.emailVerified,
         sessionVersion: 0,
+        themePreference: null,
       });
     });
 
@@ -104,6 +106,7 @@ describe("Auth Session Helpers", () => {
         name: null,
         emailVerified: null,
         sessionVersion: 0,
+        themePreference: null,
       });
 
       const user = await getCurrentUser();
@@ -114,6 +117,7 @@ describe("Auth Session Helpers", () => {
         name: null,
         emailVerified: null,
         sessionVersion: 0,
+        themePreference: null,
       });
     });
 
@@ -131,6 +135,7 @@ describe("Auth Session Helpers", () => {
         name: "Test User",
         emailVerified: null,
         sessionVersion: 0,
+        themePreference: null,
       });
 
       const user = await getCurrentUser();
@@ -141,6 +146,7 @@ describe("Auth Session Helpers", () => {
         name: "Test User",
         emailVerified: null,
         sessionVersion: 0,
+        themePreference: null,
       });
     });
 
@@ -158,6 +164,7 @@ describe("Auth Session Helpers", () => {
         name: "Test User",
         emailVerified: new Date("2026-01-01"),
         sessionVersion: 2,
+        themePreference: null,
       });
 
       const user = await getCurrentUser();

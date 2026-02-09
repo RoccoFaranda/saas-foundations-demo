@@ -2,6 +2,7 @@ import "server-only";
 import { redirect } from "next/navigation";
 import { auth } from "./config";
 import prisma from "../db";
+import type { ThemePreference } from "../../generated/prisma/enums";
 
 /**
  * Session user type with verification status
@@ -12,6 +13,7 @@ export interface SessionUser {
   name?: string | null;
   emailVerified: Date | null;
   sessionVersion: number;
+  themePreference?: ThemePreference | null;
 }
 
 /**
@@ -30,7 +32,13 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
 
   const dbUser = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { email: true, name: true, emailVerified: true, sessionVersion: true },
+    select: {
+      email: true,
+      name: true,
+      emailVerified: true,
+      sessionVersion: true,
+      themePreference: true,
+    },
   });
 
   if (!dbUser) {
@@ -47,6 +55,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     name: dbUser.name,
     emailVerified: dbUser.emailVerified ?? null,
     sessionVersion: dbUser.sessionVersion ?? 0,
+    themePreference: dbUser.themePreference ?? null,
   };
 }
 

@@ -7,6 +7,7 @@ const signInMock = vi.hoisted(() => vi.fn());
 
 vi.mock("server-only", () => ({}));
 vi.mock("next-auth", () => ({
+  AuthError: class AuthError extends Error {},
   default: vi.fn(() => ({
     handlers: {},
     auth: authMock,
