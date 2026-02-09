@@ -54,7 +54,6 @@ export async function createItem(
       status: validated.status,
       tag: validated.tag,
       summary: validated.summary,
-      metricValue: validated.metricValue,
       completedAt,
       checklistItems: validated.checklist
         ? {
@@ -262,9 +261,6 @@ export async function updateItem(
   }
   if (validated.summary !== undefined) {
     updateData.summary = validated.summary;
-  }
-  if (validated.metricValue !== undefined) {
-    updateData.metricValue = validated.metricValue;
   }
 
   // Handle checklist updates: delete all existing and create new ones

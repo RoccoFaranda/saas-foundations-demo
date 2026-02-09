@@ -59,7 +59,6 @@ model Item {
   status      ItemStatus @default(active)
   tag         ItemTag?
   summary     String?
-  metricValue Int?
   completedAt DateTime?
   archivedAt  DateTime?
   createdAt   DateTime   @default(now())

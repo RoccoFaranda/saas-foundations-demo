@@ -43,7 +43,7 @@ async function main() {
 
   console.log(`Seeded demo user id: ${demoUser.id}`);
 
-  // Seed items with varied status/tag/summary/metricValue
+  // Seed items with varied status/tag/summary
   const items = [
     {
       id: "item_demo_001",
@@ -51,7 +51,6 @@ async function main() {
       status: "completed" as const,
       tag: "feature" as const,
       summary: "Added email/password auth with verification flow",
-      metricValue: 95,
     },
     {
       id: "item_demo_002",
@@ -59,7 +58,6 @@ async function main() {
       status: "completed" as const,
       tag: "bugfix" as const,
       summary: "Resolved issue with redirect after login",
-      metricValue: 100,
     },
     {
       id: "item_demo_003",
@@ -67,7 +65,6 @@ async function main() {
       status: "active" as const,
       tag: "docs" as const,
       summary: "Documenting new endpoints for v2 API",
-      metricValue: 60,
     },
     {
       id: "item_demo_004",
@@ -75,7 +72,6 @@ async function main() {
       status: "pending" as const,
       tag: "design" as const,
       summary: "Creating mockups for improved UX",
-      metricValue: 30,
     },
     {
       id: "item_demo_005",
@@ -83,7 +79,6 @@ async function main() {
       status: "active" as const,
       tag: "infra" as const,
       summary: "Configuring GitHub Actions for automated deployments",
-      metricValue: 75,
     },
     {
       id: "item_demo_006",
@@ -91,7 +86,6 @@ async function main() {
       status: "completed" as const,
       tag: "feature" as const,
       summary: "Implemented theme switching with system preference detection",
-      metricValue: 90,
     },
     {
       id: "item_demo_007",
@@ -99,7 +93,6 @@ async function main() {
       status: "active" as const,
       tag: "feature" as const,
       summary: "Reducing bundle size and improving load times",
-      metricValue: 50,
     },
     {
       id: "item_demo_008",
@@ -107,7 +100,6 @@ async function main() {
       status: "completed" as const,
       tag: "bugfix" as const,
       summary: "Resolved memory issue causing performance degradation",
-      metricValue: 100,
     },
     {
       id: "item_demo_009",
@@ -115,7 +107,6 @@ async function main() {
       status: "pending" as const,
       tag: "docs" as const,
       summary: "Documenting upgrade path from v1 to v2",
-      metricValue: 0,
     },
     {
       id: "item_demo_010",
@@ -123,7 +114,6 @@ async function main() {
       status: "completed" as const,
       tag: "infra" as const,
       summary: "Optimized queries for better performance (completed in previous sprint)",
-      metricValue: 100,
     },
   ];
 
@@ -136,7 +126,6 @@ async function main() {
         status: item.status,
         tag: item.tag,
         summary: item.summary,
-        metricValue: item.metricValue,
       },
       create: {
         id: item.id,
@@ -145,7 +134,6 @@ async function main() {
         status: item.status,
         tag: item.tag,
         summary: item.summary,
-        metricValue: item.metricValue,
       },
     });
   }

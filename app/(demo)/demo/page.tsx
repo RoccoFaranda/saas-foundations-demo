@@ -29,6 +29,7 @@ import {
 import type { DashboardMutationHandlers } from "@/src/components/dashboard";
 import { useToast } from "@/src/components/ui/toast";
 import { computeStatusDistribution, computeCompletionTrend } from "@/src/lib/dashboard/analytics";
+import { buildProjectsCsv, computeChecklistProgress } from "@/src/lib/dashboard/csv";
 
 const PAGE_SIZE = 5;
 
@@ -303,6 +304,39 @@ export default function DemoPage() {
     [statusDistribution, completionTrend, nonArchivedItems.length]
   );
 
+  const handleExportCsv = useCallback(() => {
+    const rows = filteredItems.map((item) => {
+      const checklistDone = item.checklist.filter((checklistItem) => checklistItem.done).length;
+      const checklistTotal = item.checklist.length;
+
+      return {
+        id: item.id,
+        name: item.name,
+        status: item.status,
+        tag: item.tag,
+        summary: item.summary,
+        checklistDone,
+        checklistTotal,
+        progress: computeChecklistProgress(item.checklist),
+        createdAt: item.createdAt ?? null,
+        updatedAt: item.updatedAt,
+        completedAt: item.completedAt ?? null,
+        archivedAt: item.archivedAt ?? null,
+      };
+    });
+
+    const csv = buildProjectsCsv(rows);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `demo-projects-${timestamp}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }, [filteredItems]);
+
   return (
     <DashboardShell
       testId="demo-page"
@@ -312,7 +346,21 @@ export default function DemoPage() {
       kpis={kpis}
       isLoadingKpis={isLoading}
       filterControls={filterControls}
-      tableActions={tableActions}
+      tableActions={
+        tableActions ? (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              disabled={filteredItems.length === 0}
+              className="inline-flex h-8 items-center justify-center rounded-md border border-foreground/20 bg-background px-3 text-sm font-medium leading-none text-foreground/80 transition-colors hover:bg-foreground/5 disabled:opacity-50"
+            >
+              Export CSV
+            </button>
+            {tableActions}
+          </div>
+        ) : null
+      }
       tableContent={
         <DashboardContent
           items={paginatedItems}

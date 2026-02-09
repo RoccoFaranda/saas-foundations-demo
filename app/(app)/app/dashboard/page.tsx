@@ -125,6 +125,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   // Determine current sort for UI
   const sortField: SortField = params.sortBy;
   const sortDirection: SortDirection = params.sortDir;
+  const exportHref = buildDashboardExportHref(params);
 
   // Filter controls component
   const filterControls = (
@@ -178,6 +179,18 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     </div>
   );
 
+  const tableActions = hasAnyItems ? (
+    <div className="flex items-center gap-2">
+      <a
+        href={exportHref}
+        className="inline-flex h-8 items-center justify-center rounded-md border border-foreground/20 bg-background px-3 text-sm font-medium leading-none text-foreground/80 transition-colors hover:bg-foreground/5"
+      >
+        Export CSV
+      </a>
+      <DashboardCreateProjectButton hasItems={hasAnyItems} />
+    </div>
+  ) : null;
+
   return (
     <CreateProjectModalProvider>
       <DashboardShell
@@ -186,7 +199,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         subtitle="Welcome back! Here's an overview of your projects."
         kpis={kpis}
         filterControls={filterControls}
-        tableActions={<DashboardCreateProjectButton hasItems={hasAnyItems} />}
+        tableActions={tableActions}
         tableContent={
           <DashboardMutations
             items={items}
@@ -205,6 +218,20 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       />
     </CreateProjectModalProvider>
   );
+}
+
+function buildDashboardExportHref(params: ReturnType<typeof parseDashboardSearchParams>) {
+  const exportParams = new URLSearchParams();
+
+  if (params.search) exportParams.set("search", params.search);
+  if (params.status !== "all") exportParams.set("status", params.status);
+  if (params.tag !== "all") exportParams.set("tag", params.tag);
+  if (params.sortBy !== "updatedAt") exportParams.set("sortBy", params.sortBy);
+  if (params.sortDir !== "desc") exportParams.set("sortDir", params.sortDir);
+  if (params.showArchived) exportParams.set("showArchived", "true");
+
+  const queryString = exportParams.toString();
+  return queryString ? `/app/dashboard/export?${queryString}` : "/app/dashboard/export";
 }
 
 function QuickActionLink({

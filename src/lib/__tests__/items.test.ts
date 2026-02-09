@@ -373,7 +373,6 @@ describe("Items data layer", () => {
         status: ItemStatus.active,
         tag: ItemTag.feature,
         summary: "Test summary",
-        metricValue: 50,
       });
 
       expect(item).toBeDefined();
@@ -382,7 +381,6 @@ describe("Items data layer", () => {
       expect(item.status).toBe(ItemStatus.active);
       expect(item.tag).toBe(ItemTag.feature);
       expect(item.summary).toBe("Test summary");
-      expect(item.metricValue).toBe(50);
     });
 
     it("should create an item with default status", async () => {
@@ -997,7 +995,6 @@ describe("Items data layer", () => {
         status: ItemStatus.active,
         tag: ItemTag.feature,
         summary: "Test summary",
-        metricValue: 42,
       });
 
       const archived = await archiveItem(TEST_USER_1, item.id);
@@ -1006,7 +1003,6 @@ describe("Items data layer", () => {
       expect(archived.status).toBe(ItemStatus.active);
       expect(archived.tag).toBe(ItemTag.feature);
       expect(archived.summary).toBe("Test summary");
-      expect(archived.metricValue).toBe(42);
 
       const unarchived = await unarchiveItem(TEST_USER_1, item.id);
 
@@ -1014,7 +1010,6 @@ describe("Items data layer", () => {
       expect(unarchived.status).toBe(ItemStatus.active);
       expect(unarchived.tag).toBe(ItemTag.feature);
       expect(unarchived.summary).toBe("Test summary");
-      expect(unarchived.metricValue).toBe(42);
     });
   });
 

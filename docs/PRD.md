@@ -257,7 +257,7 @@ The dashboard is a showcase of common SaaS UI patterns:
 **Item** (or Project)
 
 - id, userId (FK)
-- name, status, tag?, summary?, metricValue?
+- name, status, tag?, summary?
 - createdAt, updatedAt
 
 **ActivityLog**

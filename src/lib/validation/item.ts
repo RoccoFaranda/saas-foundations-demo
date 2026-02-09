@@ -41,7 +41,6 @@ export const createItemSchema = z.object({
   status: z.enum(itemStatusValues).default(ItemStatus.active),
   tag: z.enum(itemTagValues).optional(),
   summary: z.string().max(1000).optional(),
-  metricValue: z.number().int().min(0).max(100).optional(),
   checklist: checklistSchema.optional(),
 });
 
@@ -58,7 +57,6 @@ export const updateItemSchema = z
     status: z.enum(itemStatusValues).optional(),
     tag: z.enum(itemTagValues).nullable().optional(),
     summary: z.string().max(1000).nullable().optional(),
-    metricValue: z.number().int().min(0).max(100).nullable().optional(),
     checklist: checklistSchema.optional(),
   })
   .refine((data) => Object.values(data).some((value) => value !== undefined), {
