@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
@@ -24,7 +24,7 @@ export function ThemeToggle({ onThemeChange }: { onThemeChange?: (theme: ThemeVa
   if (!mounted) {
     return (
       <select
-        className="rounded border border-foreground/20 bg-background px-2 py-1 text-sm text-foreground/70"
+        className="form-field form-field-sm w-auto"
         disabled
         aria-label="Theme selector"
         data-testid="theme-toggle"
@@ -43,7 +43,7 @@ export function ThemeToggle({ onThemeChange }: { onThemeChange?: (theme: ThemeVa
         syncThemeCookie(nextTheme);
         onThemeChange?.(nextTheme);
       }}
-      className="rounded border border-foreground/20 bg-background px-2 py-1 text-sm text-foreground/70 transition-colors hover:border-foreground/40 hover:text-foreground"
+      className="form-field form-field-sm w-auto"
       aria-label="Theme selector"
       data-testid="theme-toggle"
     >

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Modal } from "@/src/components/ui/modal";
 
@@ -32,17 +32,17 @@ export function DeleteConfirmModal({
       backdropTestId="delete-modal-backdrop"
     >
       <div
-        className="w-[min(32rem,calc(100vw-2rem))] rounded-lg border border-foreground/10 bg-background shadow-xl"
+        className="surface-card w-[min(32rem,calc(100vw-2rem))] shadow-xl"
         data-testid="delete-modal"
       >
-        <div className="border-b border-foreground/10 px-4 py-3">
+        <div className="surface-card-header">
           <h2 id="delete-modal-title" className="font-medium">
             Delete Project
           </h2>
         </div>
 
-        <div className="p-4">
-          <p className="text-sm text-foreground/70">
+        <div className="surface-card-body">
+          <p className="text-sm text-muted-foreground">
             Are you sure you want to delete{" "}
             <span className="break-words font-medium text-foreground">&quot;{itemName}&quot;</span>?
             This action cannot be undone.
@@ -53,7 +53,7 @@ export function DeleteConfirmModal({
               type="button"
               onClick={onCancel}
               disabled={isPending}
-              className="rounded-md border border-foreground/10 bg-background px-4 py-2 text-sm font-medium text-foreground/70 transition-colors hover:bg-foreground/5 disabled:opacity-50"
+              className="btn-secondary btn-md"
               data-testid="delete-cancel-btn"
             >
               Cancel
@@ -62,7 +62,7 @@ export function DeleteConfirmModal({
               type="button"
               onClick={onConfirm}
               disabled={isPending}
-              className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50 dark:bg-red-500 dark:hover:bg-red-600"
+              className="btn-danger btn-md"
               data-testid="delete-confirm-btn"
             >
               {isPending ? "Deleting..." : "Delete"}

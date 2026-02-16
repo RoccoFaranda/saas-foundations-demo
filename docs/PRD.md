@@ -4,8 +4,8 @@
 
 **SaaS Foundations Demo** is a public Next.js demo app that serves as:
 
-1. an interactive portfolio for prospective clients to click through, and
-2. a personal marketing website (landing + services/process + contact).
+1. a realistic project-management SaaS-style product demo that visitors can click through (guest + authenticated), and
+2. a portfolio-grade reference implementation of common “SaaS foundations” (including real marketing pages) for prospective clients to evaluate.
 
 The demo is intentionally “skeleton SaaS”: it’s not a real business product, but it proves professional implementation of common SaaS foundations:
 
@@ -49,11 +49,11 @@ The demo is intentionally “skeleton SaaS”: it’s not a real business produc
 
 ### Primary
 
-- Prospective clients (founders, CTOs, agencies) evaluating a freelancer.
+- Prospective clients (founders, CTOs, agencies) evaluating a product build and UI quality.
 
 ### Secondary
 
-- General visitors viewing the personal website.
+- Technical reviewers evaluating implementation details (auth, security posture, testing, architecture).
 
 ---
 
@@ -117,17 +117,21 @@ The demo is intentionally “skeleton SaaS”: it’s not a real business produc
 
 Pages:
 
-- Home (CTAs: Explore Demo, Create Account, Contact)
-- About
-- Process
-- SaaS Foundations (explains what’s included + what’s real vs simulated)
+- Home / Landing (CTAs: Explore Demo, View Features, Pricing, Contact)
+- Features (product-style feature breakdown + screenshots / interactive snippets)
+- Pricing (clearly marked demo/test-mode; no real billing required to explore)
+- Technical (renamed from “SaaS Foundations”: explains what’s included + what’s real vs simulated)
+- About (what this demo is / constraints / target audience)
+- Process (how the product would be delivered for a real client build)
 - Contact (form with bot protection + rate limiting)
+- Privacy, Terms (basic, demo-appropriate)
 
 Site-wide:
 
 - Responsive layout
 - Theme selector
 - Basic SEO metadata
+- Showcase-quality hero interaction/animation (must respect reduced-motion preferences)
 
 ### 7.2 Guest demo (no auth)
 

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
@@ -59,7 +59,7 @@ export function HoverDetailsCard({
       ? createPortal(
           <div
             role="tooltip"
-            className={`${widthClassName} pointer-events-none fixed z-[60] rounded-md border border-foreground/15 bg-background p-3 shadow-lg`}
+            className={`${widthClassName} surface-card-elevated pointer-events-none fixed z-[60] p-3`}
             style={{
               top: `${position.top}px`,
               left: `${position.left}px`,
@@ -78,7 +78,7 @@ export function HoverDetailsCard({
         type="button"
         ref={triggerRef}
         aria-label={label}
-        className="rounded px-1 py-0.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-foreground/30"
+        className="rounded px-1 py-0.5 text-left focus-ring"
         onMouseEnter={() => {
           updatePosition();
           setIsOpen(true);

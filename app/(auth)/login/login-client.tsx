@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
@@ -86,12 +86,12 @@ export default function LoginClient({ callbackUrl, resetSuccess }: LoginClientPr
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-bold">Welcome back</h1>
-          <p className="mt-2 text-sm text-foreground/60">Sign in to your account</p>
+          <p className="mt-2 text-sm text-muted-foreground">Sign in to your account</p>
         </div>
 
         {resetSuccess && (
           <div
-            className="mb-4 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-400"
+            className="mb-4 rounded-md border border-success-border bg-success-soft px-3 py-2 text-sm text-success"
             role="status"
           >
             Your password has been reset. Please sign in again.
@@ -112,9 +112,7 @@ export default function LoginClient({ callbackUrl, resetSuccess }: LoginClientPr
               required
               maxLength={255}
               disabled={isPending}
-              className={`w-full rounded-md border bg-background px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-foreground/20 disabled:cursor-not-allowed disabled:opacity-50 ${
-                fieldError === "email" ? "border-red-500" : "border-foreground/20"
-              }`}
+              className={`form-field form-field-md ${fieldError === "email" ? "border-danger" : ""}`}
               placeholder="you@example.com"
               aria-describedby={fieldError === "email" ? "email-error" : undefined}
             />
@@ -131,19 +129,14 @@ export default function LoginClient({ callbackUrl, resetSuccess }: LoginClientPr
               autoComplete="current-password"
               required
               disabled={isPending}
-              className={`w-full rounded-md border bg-background px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-foreground/20 disabled:cursor-not-allowed disabled:opacity-50 ${
-                fieldError === "password" ? "border-red-500" : "border-foreground/20"
-              }`}
-              placeholder="••••••••"
+              className={`form-field form-field-md ${fieldError === "password" ? "border-danger" : ""}`}
+              placeholder="********"
               aria-describedby={fieldError === "password" ? "password-error" : undefined}
             />
           </div>
 
           {error && (
-            <div
-              className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-400"
-              role="alert"
-            >
+            <div className="state-error" role="alert">
               {error}
             </div>
           )}
@@ -151,22 +144,19 @@ export default function LoginClient({ callbackUrl, resetSuccess }: LoginClientPr
           <button
             type="submit"
             disabled={isPending || isRateLimited}
-            className="w-full rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            className="btn-primary btn-md w-full"
           >
             {isPending ? "Signing in..." : "Sign in"}
           </button>
         </form>
 
         <p className="mt-4 text-center text-sm">
-          <Link
-            href="/forgot-password"
-            className="text-foreground/60 hover:text-foreground hover:underline"
-          >
+          <Link href="/forgot-password" className="btn-link text-sm">
             Forgot your password?
           </Link>
         </p>
 
-        <p className="mt-6 text-center text-sm text-foreground/60">
+        <p className="mt-6 text-center text-sm text-muted-foreground">
           Don&apos;t have an account?{" "}
           <Link href="/signup" className="font-medium text-foreground hover:underline">
             Sign up

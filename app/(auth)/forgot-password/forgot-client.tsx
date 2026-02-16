@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
@@ -73,7 +73,7 @@ export default function ForgotClient() {
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-bold">Forgot password</h1>
-          <p className="mt-2 text-sm text-foreground/60">
+          <p className="mt-2 text-sm text-muted-foreground">
             Enter your email and we&apos;ll send reset instructions.
           </p>
         </div>
@@ -91,16 +91,13 @@ export default function ForgotClient() {
               required
               maxLength={255}
               disabled={isPending}
-              className="w-full rounded-md border border-foreground/20 bg-background px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-foreground/20 disabled:cursor-not-allowed disabled:opacity-50"
+              className="form-field form-field-md"
               placeholder="you@example.com"
             />
           </div>
 
           {message && (
-            <div
-              className="rounded-md border border-foreground/20 bg-background px-3 py-2 text-sm text-foreground/80"
-              role="status"
-            >
+            <div className="state-info" role="status">
               {message}
             </div>
           )}
@@ -108,13 +105,13 @@ export default function ForgotClient() {
           <button
             type="submit"
             disabled={isPending || isRateLimited}
-            className="w-full rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            className="btn-primary btn-md w-full"
           >
             {isPending ? "Sending..." : "Send reset email"}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-foreground/60">
+        <p className="mt-6 text-center text-sm text-muted-foreground">
           Remembered?{" "}
           <Link href="/login" className="font-medium text-foreground hover:underline">
             Sign in

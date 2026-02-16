@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 interface TablePaginationProps {
   currentPage: number;
@@ -21,20 +21,16 @@ export function TablePagination({
   const canGoNext = currentPage < totalPages;
 
   return (
-    <div className="flex items-center justify-between border-t border-foreground/10 px-4 py-3 text-sm">
-      <span className="text-foreground/50">
-        {totalItems === 0 ? "No results" : `Showing ${startItem}–${endItem} of ${totalItems}`}
+    <div className="flex items-center justify-between border-t border-border px-4 py-3 text-sm">
+      <span className="text-muted-foreground">
+        {totalItems === 0 ? "No results" : `Showing ${startItem}-${endItem} of ${totalItems}`}
       </span>
       <div className="flex items-center gap-1">
         <button
           type="button"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={!canGoPrev}
-          className={`rounded px-2 py-1 transition-colors ${
-            canGoPrev
-              ? "text-foreground/70 hover:bg-foreground/5 hover:text-foreground"
-              : "cursor-not-allowed text-foreground/30"
-          }`}
+          className="row-action"
         >
           Previous
         </button>
@@ -47,10 +43,8 @@ export function TablePagination({
                 key={page}
                 type="button"
                 onClick={() => onPageChange(page)}
-                className={`min-w-8 rounded px-2 py-1 transition-colors ${
-                  page === currentPage
-                    ? "bg-foreground/10 font-medium text-foreground"
-                    : "text-foreground/50 hover:bg-foreground/5 hover:text-foreground/70"
+                className={`row-action min-w-8 ${
+                  page === currentPage ? "bg-muted font-medium text-foreground" : ""
                 }`}
               >
                 {page}
@@ -63,11 +57,7 @@ export function TablePagination({
           type="button"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={!canGoNext}
-          className={`rounded px-2 py-1 transition-colors ${
-            canGoNext
-              ? "text-foreground/70 hover:bg-foreground/5 hover:text-foreground"
-              : "cursor-not-allowed text-foreground/30"
-          }`}
+          className="row-action"
         >
           Next
         </button>

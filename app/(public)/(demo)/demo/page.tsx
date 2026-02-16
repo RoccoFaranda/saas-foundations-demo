@@ -1,12 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   demoItems,
-  getDemoKpis,
-  filterItems,
-  sortItems,
-  paginateItems,
   cloneItems,
   describeChanges,
   type DemoItem,
@@ -19,6 +15,7 @@ import {
 import {
   DashboardShell,
   DashboardContent,
+  ExportCsvButton,
   GuestModeBanner,
   TableFilters,
   TablePagination,
@@ -28,8 +25,8 @@ import {
 } from "@/src/components/dashboard";
 import type { DashboardMutationHandlers } from "@/src/components/dashboard";
 import { useToast } from "@/src/components/ui/toast";
-import { computeStatusDistribution, computeCompletionTrend } from "@/src/lib/dashboard/analytics";
 import { buildProjectsCsv, computeChecklistProgress } from "@/src/lib/dashboard/csv";
+import { buildInMemoryDashboardViewModel } from "@/src/lib/dashboard/view-model";
 
 const PAGE_SIZE = 5;
 
@@ -100,32 +97,30 @@ export default function DemoPage() {
     [sortField]
   );
 
-  // Compute filtered & sorted data from local items
-  const filteredItems = useMemo(() => {
-    const filtered = filterItems(items, {
-      search,
-      status: statusFilter,
-      tag: tagFilter,
-      showArchived,
-    });
-    return sortItems(filtered, { field: sortField, direction: sortDirection });
-  }, [items, search, statusFilter, tagFilter, showArchived, sortField, sortDirection]);
-
-  // Non-archived items for workload KPIs and status analytics
-  const nonArchivedItems = useMemo(() => items.filter((item) => !item.archivedAt), [items]);
-
-  // KPIs computed from full local dataset
-  const kpis = useMemo(() => getDemoKpis(items), [items]);
-
-  // Clamp page to avoid out-of-range when filters change outside handlers
-  const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
-  const safePage = Math.min(currentPage, totalPages);
-
-  // Paginated items for display
-  const paginatedItems = useMemo(
-    () => paginateItems(filteredItems, safePage, PAGE_SIZE),
-    [filteredItems, safePage]
+  const dashboardViewModel = useMemo(
+    () =>
+      buildInMemoryDashboardViewModel({
+        items,
+        query: {
+          filters: {
+            search,
+            status: statusFilter,
+            tag: tagFilter,
+            showArchived,
+          },
+          sort: {
+            field: sortField,
+            direction: sortDirection,
+          },
+          page: currentPage,
+          pageSize: PAGE_SIZE,
+        },
+      }),
+    [items, search, statusFilter, tagFilter, showArchived, sortField, sortDirection, currentPage]
   );
+
+  const { filteredItems, paginatedItems, safePage, kpis, statusDistribution, completionTrend } =
+    dashboardViewModel;
 
   // Add activity entry helper
   const addActivity = useCallback((message: string) => {
@@ -262,35 +257,25 @@ export default function DemoPage() {
     </>
   );
 
-  const tableActions =
+  const createProjectButton =
     items.length > 0 ? (
       <button
         type="button"
         onClick={() => setIsCreateModalOpen(true)}
-        className="h-8 rounded-md bg-foreground px-3 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
+        className="btn-primary btn-sm"
       >
         + Create Project
       </button>
     ) : null;
-
-  // Analytics data
-  const statusDistribution = useMemo(
-    () => computeStatusDistribution(nonArchivedItems),
-    [nonArchivedItems]
-  );
-  const completionTrend = useMemo(() => computeCompletionTrend(items), [items]);
 
   // Analytics content
   const analyticsContent = useMemo(
     () => (
       <div className="grid gap-6 md:grid-cols-2">
         <div>
-          <h3 className="mb-1 text-sm font-medium text-foreground/80">Status Distribution</h3>
-          <p className="mb-4 text-xs text-foreground/50">Excludes archived projects</p>
-          <StatusDistributionChart
-            data={statusDistribution}
-            isEmpty={nonArchivedItems.length === 0}
-          />
+          <h3 className="mb-1 text-sm font-medium text-foreground">Status Distribution</h3>
+          <p className="mb-4 text-xs text-muted-foreground">Excludes archived projects</p>
+          <StatusDistributionChart data={statusDistribution} isEmpty={kpis.total === 0} />
         </div>
         <div>
           <TrendChart
@@ -301,10 +286,10 @@ export default function DemoPage() {
         </div>
       </div>
     ),
-    [statusDistribution, completionTrend, nonArchivedItems.length]
+    [statusDistribution, completionTrend, kpis.total]
   );
 
-  const handleExportCsv = useCallback(() => {
+  const handleExportCsv = useCallback(async () => {
     const rows = filteredItems.map((item) => {
       const checklistDone = item.checklist.filter((checklistItem) => checklistItem.done).length;
       const checklistTotal = item.checklist.length;
@@ -327,37 +312,29 @@ export default function DemoPage() {
 
     const csv = buildProjectsCsv(rows);
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
+    const filename = `demo-projects-${timestamp}.csv`;
 
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `demo-projects-${timestamp}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+    return {
+      blob: new Blob([csv], { type: "text/csv;charset=utf-8" }),
+      filename,
+      rowCount: rows.length,
+    };
   }, [filteredItems]);
 
   return (
     <DashboardShell
       testId="demo-page"
       title="Dashboard"
-      subtitle="Welcome to demo mode — explore without signing up."
+      subtitle="Welcome to demo mode - explore without signing up."
       headerContent={<GuestModeBanner />}
       kpis={kpis}
       isLoadingKpis={isLoading}
       filterControls={filterControls}
       tableActions={
-        tableActions ? (
+        createProjectButton ? (
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleExportCsv}
-              disabled={filteredItems.length === 0}
-              className="inline-flex h-8 items-center justify-center rounded-md border border-foreground/20 bg-background px-3 text-sm font-medium leading-none text-foreground/80 transition-colors hover:bg-foreground/5 disabled:opacity-50"
-            >
-              Export CSV
-            </button>
-            {tableActions}
+            <ExportCsvButton onExport={handleExportCsv} disabled={filteredItems.length === 0} />
+            {createProjectButton}
           </div>
         ) : null
       }
@@ -373,7 +350,7 @@ export default function DemoPage() {
           emptyStateContent={
             <>
               <h3 className="font-medium">No Projects</h3>
-              <p className="mt-1 text-sm text-foreground/60">
+              <p className="mt-1 text-sm text-muted-foreground">
                 Create a project or import sample data to get started.
               </p>
             </>
@@ -399,14 +376,7 @@ function QuickActionLink({
   active?: boolean;
 }) {
   return (
-    <a
-      href={href}
-      className={`block w-full rounded-md border px-3 py-2 text-left text-sm transition-colors ${
-        active
-          ? "border-foreground/20 bg-foreground/10 text-foreground"
-          : "border-foreground/10 bg-foreground/5 text-foreground/60 hover:bg-foreground/10"
-      }`}
-    >
+    <a href={href} className={`btn-panel ${active ? "btn-panel-active" : ""}`}>
       {label}
     </a>
   );

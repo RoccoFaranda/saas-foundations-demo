@@ -78,4 +78,51 @@ test.describe("Theme toggle", () => {
     // Assert html does not have dark class (following OS preference)
     await expect(page.locator("html")).not.toHaveClass(/dark/);
   });
+
+  test("home page visual baselines remain stable in light and dark", async ({ page }) => {
+    await page.goto("/");
+
+    const themeToggle = page.getByTestId("theme-toggle");
+    const mainContent = page.locator("main");
+    await expect(themeToggle).toBeVisible();
+    await expect(mainContent).toBeVisible();
+
+    await themeToggle.selectOption("light");
+    await expect(mainContent).toHaveScreenshot("home-light.png", {
+      animations: "disabled",
+      caret: "hide",
+      maxDiffPixelRatio: 0.015,
+    });
+
+    await themeToggle.selectOption("dark");
+    await expect(mainContent).toHaveScreenshot("home-dark.png", {
+      animations: "disabled",
+      caret: "hide",
+      maxDiffPixelRatio: 0.015,
+    });
+  });
+
+  test("demo page visual baselines remain stable in light and dark", async ({ page }) => {
+    await page.goto("/demo");
+
+    const themeToggle = page.getByTestId("theme-toggle");
+    const mainContent = page.locator("main");
+    await expect(themeToggle).toBeVisible();
+    await expect(mainContent).toBeVisible();
+    await expect(page.getByTestId("items-table")).toBeVisible();
+
+    await themeToggle.selectOption("light");
+    await expect(mainContent).toHaveScreenshot("demo-light.png", {
+      animations: "disabled",
+      caret: "hide",
+      maxDiffPixelRatio: 0.015,
+    });
+
+    await themeToggle.selectOption("dark");
+    await expect(mainContent).toHaveScreenshot("demo-dark.png", {
+      animations: "disabled",
+      caret: "hide",
+      maxDiffPixelRatio: 0.015,
+    });
+  });
 });

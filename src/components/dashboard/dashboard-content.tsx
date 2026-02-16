@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useCallback, type ReactNode } from "react";
 import type { DashboardItem } from "./model";
@@ -185,19 +185,15 @@ export function DashboardContent({
   return (
     <>
       {/* Error banner */}
-      {error && (
-        <div className="mb-4 rounded-md border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
-          {error}
-        </div>
-      )}
+      {error && <div className="state-error mb-4 px-4 py-3">{error}</div>}
 
       {/* Empty state with import option */}
       {!hasItems && (
-        <div className="mb-6 rounded-lg border border-foreground/10 bg-background p-6 text-center">
+        <div className="surface-card mb-6 p-6 text-center">
           {emptyStateContent ?? (
             <>
               <h3 className="font-medium">Get Started</h3>
-              <p className="mt-1 text-sm text-foreground/60">
+              <p className="mt-1 text-sm text-muted-foreground">
                 Create your first project or import sample data to explore.
               </p>
             </>
@@ -207,7 +203,7 @@ export function DashboardContent({
               type="button"
               onClick={handleCreateClick}
               disabled={isPending}
-              className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
+              className="btn-primary btn-md"
             >
               Create Project
             </button>
@@ -216,7 +212,7 @@ export function DashboardContent({
                 type="button"
                 onClick={handleImportSampleData}
                 disabled={isPending}
-                className="rounded-md border border-foreground/20 bg-background px-4 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-foreground/5 disabled:opacity-50"
+                className="btn-secondary btn-md"
               >
                 {isPending ? "Importing..." : "Import Sample Data"}
               </button>

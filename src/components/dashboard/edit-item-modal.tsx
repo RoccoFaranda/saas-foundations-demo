@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useRef, useState, type FormEvent, type RefObject } from "react";
 import type { DashboardItem, ItemStatus, ItemTag, ChecklistItem } from "./model";
@@ -225,11 +225,11 @@ function EditItemForm({
 
   return (
     <div
-      className="w-[min(56rem,calc(100vw-2rem))] overflow-hidden rounded-lg border border-foreground/10 bg-background shadow-xl"
+      className="surface-card w-[min(56rem,calc(100vw-2rem))] overflow-hidden shadow-xl"
       data-testid="edit-modal"
     >
       {/* Header */}
-      <div className="border-b border-foreground/10 px-4 py-3">
+      <div className="surface-card-header">
         <h2 id="edit-modal-title" className="font-medium">
           {title}
         </h2>
@@ -244,7 +244,7 @@ function EditItemForm({
         >
           {/* Name */}
           <div>
-            <label htmlFor="edit-name" className="block text-sm font-medium text-foreground/70">
+            <label htmlFor="edit-name" className="block text-sm font-medium text-muted-foreground">
               Name
             </label>
             <input
@@ -255,14 +255,17 @@ function EditItemForm({
               ref={nameInputRef}
               required
               disabled={isFormLocked}
-              className="mt-1 w-full rounded-md border border-foreground/10 bg-background px-3 py-2 text-sm focus:border-foreground/30 focus:outline-none"
+              className="form-field form-field-md mt-1"
               data-testid="edit-name-input"
             />
           </div>
 
           {/* Status */}
           <div>
-            <label htmlFor="edit-status" className="block text-sm font-medium text-foreground/70">
+            <label
+              htmlFor="edit-status"
+              className="block text-sm font-medium text-muted-foreground"
+            >
               Status
             </label>
             <select
@@ -270,7 +273,7 @@ function EditItemForm({
               value={status}
               onChange={(e) => setStatus(e.target.value as ItemStatus)}
               disabled={isFormLocked}
-              className="mt-1 w-full rounded-md border border-foreground/10 bg-background px-3 py-2 text-sm capitalize focus:border-foreground/30 focus:outline-none"
+              className="form-field form-field-md mt-1 capitalize"
               data-testid="edit-status-select"
             >
               {statusOptions.map((s) => (
@@ -283,7 +286,7 @@ function EditItemForm({
 
           {/* Tag */}
           <div>
-            <label htmlFor="edit-tag" className="block text-sm font-medium text-foreground/70">
+            <label htmlFor="edit-tag" className="block text-sm font-medium text-muted-foreground">
               Tag
             </label>
             <select
@@ -291,7 +294,7 @@ function EditItemForm({
               value={tag ?? ""}
               onChange={(e) => setTag(e.target.value ? (e.target.value as ItemTag) : null)}
               disabled={isFormLocked}
-              className="mt-1 w-full rounded-md border border-foreground/10 bg-background px-3 py-2 text-sm capitalize focus:border-foreground/30 focus:outline-none"
+              className="form-field form-field-md mt-1 capitalize"
               data-testid="edit-tag-select"
             >
               {tagOptions.map((tagOption) => (
@@ -304,7 +307,10 @@ function EditItemForm({
 
           {/* Summary */}
           <div>
-            <label htmlFor="edit-summary" className="block text-sm font-medium text-foreground/70">
+            <label
+              htmlFor="edit-summary"
+              className="block text-sm font-medium text-muted-foreground"
+            >
               Summary
             </label>
             <textarea
@@ -313,32 +319,32 @@ function EditItemForm({
               onChange={(e) => setSummary(e.target.value)}
               rows={4}
               disabled={isFormLocked}
-              className="mt-1 w-full resize-none rounded-md border border-foreground/10 bg-background px-3 py-2 text-sm focus:border-foreground/30 focus:outline-none"
+              className="form-field form-field-md mt-1 resize-none"
               data-testid="edit-summary-input"
             />
           </div>
 
           {/* Lifecycle */}
           {item.id !== "new" && (
-            <div className="rounded-md border border-foreground/10 bg-foreground/2 p-3">
+            <div className="surface-card bg-muted/40 p-3">
               <LifecycleDetails item={item} />
             </div>
           )}
 
           {/* Checklist / Progress */}
           <div>
-            <label className="block text-sm font-medium text-foreground/70">
+            <label className="block text-sm font-medium text-muted-foreground">
               Progress Checklist ({progress}%)
             </label>
             <div className="mt-2 space-y-2">
               {checklist.length === 0 ? (
-                <p className="text-xs text-foreground/40">No checklist items yet.</p>
+                <p className="text-xs text-muted-foreground/80">No checklist items yet.</p>
               ) : (
                 <ul className="space-y-1" data-testid="checklist-items">
                   {checklist.map((item) => (
                     <li
                       key={item.id}
-                      className="flex min-w-0 items-start gap-2 rounded border border-foreground/10 px-2 py-1.5"
+                      className="flex min-w-0 items-start gap-2 rounded border border-border px-2 py-1.5"
                       data-testid={`checklist-item-${item.id}`}
                     >
                       <input
@@ -346,11 +352,11 @@ function EditItemForm({
                         checked={item.done}
                         onChange={() => toggleChecklistItem(item.id)}
                         disabled={isFormLocked}
-                        className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-foreground/20"
+                        className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-border-strong"
                         data-testid={`checklist-checkbox-${item.id}`}
                       />
                       <span
-                        className={`min-w-0 flex-1 whitespace-normal wrap-break-word text-sm ${item.done ? "text-foreground/40 line-through" : "text-foreground"}`}
+                        className={`min-w-0 flex-1 whitespace-normal wrap-break-word text-sm ${item.done ? "text-muted-foreground line-through" : "text-foreground"}`}
                       >
                         {item.text}
                       </span>
@@ -359,10 +365,10 @@ function EditItemForm({
                         onClick={() => removeChecklistItem(item.id)}
                         aria-label={`Remove checklist item: ${item.text}`}
                         disabled={isFormLocked}
-                        className="shrink-0 text-xs text-foreground/40 hover:text-foreground/70 disabled:cursor-not-allowed disabled:text-foreground/20"
+                        className="shrink-0 text-xs text-muted-foreground/80 hover:text-foreground disabled:cursor-not-allowed disabled:text-muted-foreground/50"
                         data-testid={`checklist-remove-${item.id}`}
                       >
-                        ×
+                        x
                       </button>
                     </li>
                   ))}
@@ -382,14 +388,14 @@ function EditItemForm({
                     }
                   }}
                   disabled={isFormLocked}
-                  className="flex-1 rounded-md border border-foreground/10 bg-background px-2 py-1.5 text-sm focus:border-foreground/30 focus:outline-none"
+                  className="form-field form-field-sm flex-1"
                   data-testid="checklist-add-input"
                 />
                 <button
                   type="button"
                   onClick={addChecklistItem}
                   disabled={isFormLocked}
-                  className="rounded-md border border-foreground/10 bg-background px-3 py-1.5 text-xs font-medium text-foreground/70 transition-colors hover:bg-foreground/5 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="btn-secondary btn-sm"
                   data-testid="checklist-add-btn"
                 >
                   Add
@@ -400,16 +406,16 @@ function EditItemForm({
         </div>
 
         {/* Actions */}
-        <div className="border-t border-foreground/10 bg-background px-4 py-4">
+        <div className="border-t border-border bg-surface px-4 py-4">
           {shouldSuggestComplete && (
-            <div className="mb-3 flex flex-col gap-2 rounded-md border border-foreground/10 bg-foreground/5 px-3 py-2 text-sm text-foreground/80 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mb-3 flex flex-col gap-2 rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground sm:flex-row sm:items-center sm:justify-between">
               <span>All checklist items are complete. Mark project as completed?</span>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={handleKeepStatus}
                   disabled={isPending}
-                  className="rounded-md border border-foreground/10 bg-background px-3 py-1.5 text-xs font-medium text-foreground/70 transition-colors hover:bg-foreground/5 disabled:opacity-50"
+                  className="btn-secondary btn-sm"
                   data-testid="edit-complete-keep-btn"
                 >
                   Keep status
@@ -418,7 +424,7 @@ function EditItemForm({
                   type="button"
                   onClick={handleMarkProjectCompleted}
                   disabled={isPending}
-                  className="rounded-md bg-foreground px-3 py-1.5 text-xs font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
+                  className="btn-primary btn-sm"
                   data-testid="edit-complete-mark-btn"
                 >
                   Mark completed
@@ -428,7 +434,7 @@ function EditItemForm({
           )}
           {showCompletionConfirm ? (
             <div className="flex flex-col gap-3">
-              <p className="text-center text-sm text-foreground/70">
+              <p className="text-center text-sm text-muted-foreground">
                 This project is marked completed but some checklist items are unchecked.
               </p>
               <div className="flex flex-col items-center justify-center gap-2 sm:flex-row">
@@ -436,7 +442,7 @@ function EditItemForm({
                   type="button"
                   onClick={handleMarkStatusActive}
                   disabled={isPending}
-                  className="w-full rounded-md bg-foreground px-4 py-2 text-center text-sm font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50 sm:w-64"
+                  className="btn-primary btn-md w-full text-center sm:w-64"
                   data-testid="edit-confirm-active-btn"
                 >
                   Mark status active and save
@@ -445,7 +451,7 @@ function EditItemForm({
                   type="button"
                   onClick={handleMarkAllComplete}
                   disabled={isPending}
-                  className="w-full rounded-md bg-foreground px-4 py-2 text-center text-sm font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50 sm:w-64"
+                  className="btn-primary btn-md w-full text-center sm:w-64"
                   data-testid="edit-confirm-mark-all-btn"
                 >
                   Mark checklist complete and save
@@ -456,7 +462,7 @@ function EditItemForm({
                   type="button"
                   onClick={handleBackToEdit}
                   disabled={isPending}
-                  className="rounded-full border border-foreground/10 px-3 py-1 text-xs font-medium text-foreground/70 transition-colors hover:bg-foreground/5 hover:text-foreground disabled:opacity-50"
+                  className="btn-secondary btn-xs rounded-full"
                   data-testid="edit-confirm-back-btn"
                 >
                   Back
@@ -469,7 +475,7 @@ function EditItemForm({
                 type="button"
                 onClick={onCancel}
                 disabled={isPending}
-                className="rounded-md border border-foreground/10 bg-background px-4 py-2 text-sm font-medium text-foreground/70 transition-colors hover:bg-foreground/5 disabled:opacity-50"
+                className="btn-secondary btn-md"
                 data-testid="edit-cancel-btn"
               >
                 Cancel
@@ -477,7 +483,7 @@ function EditItemForm({
               <button
                 type="submit"
                 disabled={isPending}
-                className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50"
+                className="btn-primary btn-md"
                 data-testid="edit-save-btn"
               >
                 {isPending ? "Saving..." : saveLabel}

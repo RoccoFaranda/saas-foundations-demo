@@ -1,6 +1,6 @@
 export function GuestModeBanner() {
   return (
-    <div className="flex items-center justify-center gap-2 rounded-md bg-amber-500/10 px-3 py-1.5 text-xs text-amber-700 dark:text-amber-400">
+    <div className="flex items-center justify-center gap-2 rounded-md border border-warning-border/70 bg-warning-soft px-3 py-1.5 text-xs text-warning">
       <svg
         className="h-3.5 w-3.5"
         fill="none"

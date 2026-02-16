@@ -14,9 +14,9 @@ interface StatusDistributionChartProps {
 export function StatusDistributionChart({ data, isEmpty = false }: StatusDistributionChartProps) {
   // Status colors matching the badge colors
   const statusColors = {
-    active: "bg-blue-500",
-    pending: "bg-yellow-500",
-    completed: "bg-green-500",
+    active: "bg-info",
+    pending: "bg-warning",
+    completed: "bg-success",
   };
 
   const statusLabels = {
@@ -26,11 +26,7 @@ export function StatusDistributionChart({ data, isEmpty = false }: StatusDistrib
   };
 
   if (isEmpty) {
-    return (
-      <div className="flex h-48 items-center justify-center text-sm text-foreground/40">
-        No data available
-      </div>
-    );
+    return <div className="state-empty h-48">No data available</div>;
   }
 
   return (
@@ -38,12 +34,12 @@ export function StatusDistributionChart({ data, isEmpty = false }: StatusDistrib
       {data.map((item) => (
         <div key={item.status} className="space-y-1.5">
           <div className="flex items-center justify-between text-sm">
-            <span className="font-medium text-foreground/80">{statusLabels[item.status]}</span>
-            <span className="text-foreground/60">
+            <span className="font-medium text-foreground">{statusLabels[item.status]}</span>
+            <span className="text-muted-foreground">
               {item.count} ({item.percentage}%)
             </span>
           </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/5">
+          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
             <div
               className={`h-full rounded-full transition-all ${statusColors[item.status]}`}
               style={{ width: `${item.percentage}%` }}

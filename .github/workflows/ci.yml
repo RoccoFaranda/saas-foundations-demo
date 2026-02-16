@@ -58,6 +58,9 @@ jobs:
       - name: Type check
         run: pnpm typecheck
 
+      - name: Theme checks
+        run: pnpm theme:check
+
       - name: Run tests
         run: pnpm test
 

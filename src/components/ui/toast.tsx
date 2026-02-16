@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 
@@ -63,19 +63,19 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             key={toast.id}
             role="status"
             aria-live="polite"
-            className="relative rounded-lg border border-foreground/10 bg-background/95 px-4 pb-4 pt-3 shadow-lg backdrop-blur"
+            className="surface-card-elevated relative bg-surface-elevated/95 px-4 pb-4 pt-3 backdrop-blur"
           >
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-medium text-foreground">{toast.title}</p>
                 {toast.description && (
-                  <p className="mt-1 text-xs text-foreground/60">{toast.description}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{toast.description}</p>
                 )}
               </div>
               <button
                 type="button"
                 onClick={() => removeToast(toast.id)}
-                className="rounded-md px-2 py-1 text-xs text-foreground/50 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                className="row-action"
                 aria-label="Dismiss notification"
               >
                 ×
@@ -91,16 +91,16 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                       action.onClick();
                       removeToast(toast.id);
                     }}
-                    className="rounded-md border border-foreground/10 px-2.5 py-1 text-xs font-medium text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                    className="btn-secondary btn-xs"
                   >
                     {action.label}
                   </button>
                 ))}
               </div>
             )}
-            <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-1 overflow-hidden rounded-b-lg bg-foreground/5">
+            <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-1 overflow-hidden rounded-b-lg bg-muted">
               <div
-                className="toast-progress h-full bg-foreground/30"
+                className="toast-progress h-full bg-muted-foreground/50"
                 style={{ animationDuration: `${TOAST_TIMEOUT_MS}ms` }}
               />
             </div>

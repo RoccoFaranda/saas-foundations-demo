@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
@@ -55,7 +55,7 @@ export default function ChangePasswordClient() {
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-bold">Change Password</h1>
-          <p className="mt-2 text-sm text-foreground/60">Enter your current and new password</p>
+          <p className="mt-2 text-sm text-muted-foreground">Enter your current and new password</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -70,10 +70,8 @@ export default function ChangePasswordClient() {
               autoComplete="current-password"
               required
               disabled={isPending}
-              className={`w-full rounded-md border bg-background px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-foreground/20 disabled:cursor-not-allowed disabled:opacity-50 ${
-                fieldError === "password" ? "border-red-500" : "border-foreground/20"
-              }`}
-              placeholder="••••••••"
+              className={`form-field form-field-md ${fieldError === "password" ? "border-danger" : ""}`}
+              placeholder="********"
               aria-describedby={fieldError === "password" ? "password-error" : undefined}
             />
           </div>
@@ -91,37 +89,29 @@ export default function ChangePasswordClient() {
               minLength={8}
               maxLength={128}
               disabled={isPending}
-              className={`w-full rounded-md border bg-background px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-foreground/20 disabled:cursor-not-allowed disabled:opacity-50 ${
-                fieldError === "password" ? "border-red-500" : "border-foreground/20"
-              }`}
-              placeholder="••••••••"
+              className={`form-field form-field-md ${fieldError === "password" ? "border-danger" : ""}`}
+              placeholder="********"
               aria-describedby={fieldError === "password" ? "password-error" : undefined}
             />
-            <p className="mt-1 text-xs text-foreground/50">At least 8 characters</p>
+            <p className="mt-1 text-xs text-muted-foreground">At least 8 characters</p>
           </div>
 
           {error && (
-            <div
-              className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-400"
-              role="alert"
-            >
+            <div className="state-error" role="alert">
               {error}
             </div>
           )}
 
           {success && (
             <div
-              className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-400"
+              className="rounded-md border border-success-border bg-success-soft px-3 py-2 text-sm text-success"
               role="status"
             >
               Password changed successfully! Redirecting...
             </div>
           )}
           {refreshError && (
-            <div
-              className="rounded-md border border-foreground/20 bg-background px-3 py-2 text-sm text-foreground/80"
-              role="status"
-            >
+            <div className="state-info" role="status">
               {refreshError}
             </div>
           )}
@@ -129,14 +119,14 @@ export default function ChangePasswordClient() {
           <button
             type="submit"
             disabled={isPending || success}
-            className="w-full rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            className="btn-primary btn-md w-full"
           >
             {isPending ? "Changing password..." : success ? "Password changed!" : "Change Password"}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-foreground/60">
-          <Link href="/app/settings" className="font-medium text-foreground hover:underline">
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          <Link href="/app/settings" className="btn-link text-sm">
             ← Back to settings
           </Link>
         </p>

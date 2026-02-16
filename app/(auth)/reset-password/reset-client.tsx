@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
@@ -50,16 +50,13 @@ export default function ResetClient({ token, tokenValid }: ResetClientProps) {
         <div className="w-full max-w-sm text-center">
           <div className="mb-8">
             <h1 className="text-2xl font-bold">Reset your password</h1>
-            <p className="mt-2 text-sm text-foreground/60">
+            <p className="mt-2 text-sm text-muted-foreground">
               Please check your email for a password reset link.
             </p>
           </div>
 
           <div className="mb-4">
-            <Link
-              href="/forgot-password"
-              className="inline-block rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:ring-offset-2"
-            >
+            <Link href="/forgot-password" className="btn-primary btn-md inline-flex">
               Send reset email
             </Link>
           </div>
@@ -74,7 +71,7 @@ export default function ResetClient({ token, tokenValid }: ResetClientProps) {
       <main className="flex min-h-screen flex-col items-center justify-center p-4">
         <div className="w-full max-w-sm text-center">
           <div className="mb-8">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-950 dark:text-red-400">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-danger-soft text-danger">
               <svg
                 className="h-6 w-6"
                 fill="none"
@@ -91,22 +88,16 @@ export default function ResetClient({ token, tokenValid }: ResetClientProps) {
               </svg>
             </div>
             <h1 className="text-2xl font-bold">Reset link invalid</h1>
-            <p className="mt-2 text-sm text-foreground/60">
+            <p className="mt-2 text-sm text-muted-foreground">
               This reset link is invalid, expired, or already used.
             </p>
           </div>
 
           <div className="space-y-3">
-            <Link
-              href="/forgot-password"
-              className="block rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:ring-offset-2"
-            >
+            <Link href="/forgot-password" className="btn-primary btn-md flex">
               Request a new reset email
             </Link>
-            <Link
-              href="/login"
-              className="block text-sm text-foreground/60 hover:text-foreground hover:underline"
-            >
+            <Link href="/login" className="btn-link text-sm">
               Back to login
             </Link>
           </div>
@@ -121,7 +112,9 @@ export default function ResetClient({ token, tokenValid }: ResetClientProps) {
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-bold">Choose a new password</h1>
-          <p className="mt-2 text-sm text-foreground/60">Enter a new password for your account.</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Enter a new password for your account.
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -138,23 +131,20 @@ export default function ResetClient({ token, tokenValid }: ResetClientProps) {
               minLength={8}
               maxLength={128}
               disabled={isPending || success}
-              className="w-full rounded-md border border-foreground/20 bg-background px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-foreground/20 disabled:cursor-not-allowed disabled:opacity-50"
-              placeholder="••••••••"
+              className="form-field form-field-md"
+              placeholder="********"
             />
           </div>
 
           {error && (
-            <div
-              className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
-              role="alert"
-            >
+            <div className="state-error" role="alert">
               {error}
             </div>
           )}
 
           {success && (
             <div
-              className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700"
+              className="rounded-md border border-success-border bg-success-soft px-3 py-2 text-sm text-success"
               role="status"
             >
               Password reset! Redirecting to login...
@@ -164,7 +154,7 @@ export default function ResetClient({ token, tokenValid }: ResetClientProps) {
           <button
             type="submit"
             disabled={isPending || success}
-            className="w-full rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            className="btn-primary btn-md w-full"
           >
             {isPending ? "Resetting..." : "Reset password"}
           </button>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { ItemStatus, ItemTag, SortField, SortDirection } from "./model";
 import { statusOptions, tagOptions, sortFieldOptions, getDefaultSortDirection } from "./model";
@@ -16,6 +16,10 @@ interface TableFiltersProps {
   showArchived?: boolean;
   hasArchivedItems?: boolean;
   onShowArchivedChange?: (value: boolean) => void;
+  highlightSearch?: boolean;
+  searchWrapperClassName?: string;
+  compact?: boolean;
+  alignArchivedRight?: boolean;
 }
 
 export function TableFilters({
@@ -31,6 +35,10 @@ export function TableFilters({
   showArchived = false,
   hasArchivedItems = false,
   onShowArchivedChange,
+  highlightSearch = false,
+  searchWrapperClassName,
+  compact = false,
+  alignArchivedRight = true,
 }: TableFiltersProps) {
   const canSortByArchivedDate = showArchived && hasArchivedItems;
   const availableSortFields = canSortByArchivedDate
@@ -42,11 +50,17 @@ export function TableFilters({
   const sortDirectionLabel = sortDirection === "asc" ? "Ascending" : "Descending";
 
   return (
-    <div className="flex w-full flex-wrap items-center gap-2 sm:flex-nowrap">
+    <div
+      className={`flex w-full flex-wrap items-center sm:flex-nowrap ${compact ? "gap-1.5" : "gap-2"}`}
+    >
       {/* Search Input */}
-      <div className="relative min-w-44 flex-1">
+      <div
+        className={`relative min-w-44 flex-1 rounded-md transition-all ${
+          highlightSearch ? "ring-2 ring-info-border/70 ring-offset-0" : ""
+        } ${compact ? "min-w-32 sm:min-w-32 sm:basis-32 sm:flex-none" : ""} ${searchWrapperClassName ?? ""}`}
+      >
         <svg
-          className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40"
+          className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/80"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -63,7 +77,7 @@ export function TableFilters({
           placeholder="Search by name..."
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="h-8 w-full rounded-md border border-foreground/10 bg-background pl-8 pr-2 text-sm placeholder:text-foreground/40 focus:border-foreground/30 focus:outline-none"
+          className="form-field form-field-sm pl-8"
         />
       </div>
 
@@ -71,7 +85,7 @@ export function TableFilters({
       <select
         value={status}
         onChange={(e) => onStatusChange(e.target.value as ItemStatus | "all")}
-        className="h-8 shrink-0 rounded-md border border-foreground/10 bg-background px-2 text-sm text-foreground/80 focus:border-foreground/30 focus:outline-none"
+        className="form-field form-field-sm w-auto shrink-0"
       >
         {statusOptions.map((opt) => (
           <option key={opt.value} value={opt.value}>
@@ -84,7 +98,7 @@ export function TableFilters({
       <select
         value={tag}
         onChange={(e) => onTagChange(e.target.value as ItemTag | "all")}
-        className="h-8 shrink-0 rounded-md border border-foreground/10 bg-background px-2 text-sm text-foreground/80 focus:border-foreground/30 focus:outline-none"
+        className="form-field form-field-sm w-auto shrink-0"
       >
         {tagOptions.map((opt) => (
           <option key={opt.value} value={opt.value}>
@@ -94,14 +108,14 @@ export function TableFilters({
       </select>
 
       {/* Sort */}
-      <div className="inline-flex h-8 shrink-0 overflow-hidden rounded-md border border-foreground/10 bg-background">
+      <div className="control-group shrink-0">
         <select
           value={effectiveSortField}
           onChange={(e) => {
             const field = e.target.value as SortField;
             onSortChange(field, getDefaultSortDirection(field));
           }}
-          className="h-full border-0 bg-background px-2 text-sm text-foreground/80 focus:border-foreground/30 focus:outline-none"
+          className="control-group-field focus-ring-inset"
           aria-label="Sort field"
         >
           {availableSortFields.map((opt) => (
@@ -115,7 +129,7 @@ export function TableFilters({
           onClick={() => onSortChange(effectiveSortField, sortDirection === "asc" ? "desc" : "asc")}
           aria-label={`Sort direction: ${sortDirectionLabel}. Click to toggle.`}
           title={`Sort direction: ${sortDirectionLabel}`}
-          className="inline-flex h-full w-8 items-center justify-center border-l border-foreground/10 text-sm text-foreground/80 transition-colors hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-foreground/30"
+          className="control-group-button focus-ring-inset"
         >
           <svg aria-hidden="true" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
             {sortDirection === "asc" ? (
@@ -129,12 +143,16 @@ export function TableFilters({
 
       {/* Show Archived Toggle */}
       {onShowArchivedChange && (
-        <label className="inline-flex h-8 shrink-0 items-center gap-2 rounded-md border border-foreground/10 bg-background px-2.5 text-sm text-foreground/80 transition-colors hover:bg-foreground/5 sm:ml-auto">
+        <label
+          className={`inline-flex control-compact shrink-0 items-center gap-2 rounded-md border border-border bg-surface text-foreground motion-colors hover:bg-muted ${
+            alignArchivedRight ? "sm:ml-auto" : ""
+          } ${compact ? "px-2" : "px-2.5"}`}
+        >
           <input
             type="checkbox"
             checked={showArchived}
             onChange={(e) => onShowArchivedChange(e.target.checked)}
-            className="h-3.5 w-3.5 cursor-pointer"
+            className="h-3.5 w-3.5 cursor-pointer rounded-sm focus-ring-inset"
           />
           <span className="whitespace-nowrap text-xs sm:text-sm">Show archived</span>
         </label>

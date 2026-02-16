@@ -20,30 +20,36 @@ Steps:
 
 1. `pnpm install`
 2. `docker compose up -d`
-3. `cp .env.example .env.local`
+3. Create `.env.local` from `.env.example` (`cp .env.example .env.local` on macOS/Linux)
 4. `pnpm dev`
 
 ## Getting Started
 
-Follow the steps in the Local Setup section above. Then open
-[http://localhost:3000](http://localhost:3000) in your browser.
+After Local Setup, open [http://localhost:3000](http://localhost:3000) in your browser.
 
 For detailed database setup instructions, see [Architecture Documentation](./docs/architecture.md#local-development-setup).
 
 ## Available Scripts
 
-| Script              | Description                              |
-| ------------------- | ---------------------------------------- |
-| `pnpm dev`          | Start development server                 |
-| `pnpm build`        | Build for production                     |
-| `pnpm start`        | Start production server                  |
-| `pnpm lint`         | Run ESLint                               |
-| `pnpm format`       | Format code with Prettier                |
-| `pnpm format:check` | Check code formatting                    |
-| `pnpm typecheck`    | Run TypeScript type checking             |
-| `pnpm test`         | Run unit tests (one-shot)                |
-| `pnpm test:watch`   | Run unit tests in watch mode             |
-| `pnpm test:e2e`     | Run E2E tests with Playwright (chromium) |
+| Script                | Description                                               |
+| --------------------- | --------------------------------------------------------- |
+| `pnpm dev`            | Start development server                                  |
+| `pnpm build`          | Build for production                                      |
+| `pnpm start`          | Start production server                                   |
+| `pnpm lint`           | Run ESLint                                                |
+| `pnpm format`         | Format code with Prettier                                 |
+| `pnpm format:check`   | Check code formatting                                     |
+| `pnpm typecheck`      | Run TypeScript type checking                              |
+| `pnpm test`           | Run unit tests (one-shot)                                 |
+| `pnpm test:watch`     | Run unit tests in watch mode                              |
+| `pnpm test:e2e`       | Run all Playwright E2E tests (chromium)                   |
+| `pnpm test:e2e:theme` | Run only theme-focused Playwright tests                   |
+| `pnpm theme:check`    | Validate theme tokens, contrast, and semantic style rules |
+| `pnpm db:generate`    | Generate Prisma client                                    |
+| `pnpm db:migrate`     | Run Prisma development migrations                         |
+| `pnpm db:reset`       | Reset database via Prisma                                 |
+| `pnpm db:seed`        | Seed database data                                        |
+| `pnpm db:studio`      | Open Prisma Studio                                        |
 
 ## Environment Variables
 
@@ -75,12 +81,16 @@ See `.env.example` for all available environment variables (when available).
 - [PRD](./docs/PRD.md) - Product Requirements Document
 - [Architecture](./docs/architecture.md) - System architecture overview
 - [Decisions](./docs/decisions.md) - Architecture Decision Records (ADRs)
+- [Theme Tokens](./docs/theme-tokens.md) - Theme token contract, recipes, and quality gates
 
 ## Contributing
 
 1. Create a feature branch from `main`
 2. Make changes following the existing code style
-3. Ensure all checks pass: `pnpm format:check && pnpm lint && pnpm typecheck && pnpm test`
+3. Ensure checks pass:
+   - Always: `pnpm format:check && pnpm lint && pnpm typecheck && pnpm test`
+   - UI/theme changes: `pnpm theme:check`
+   - User-flow changes: `pnpm test:e2e` (or `pnpm test:e2e:theme` for theme-only updates)
 4. Open a pull request
 
 ## License

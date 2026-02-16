@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useCallback, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -153,11 +153,7 @@ export function DashboardCreateProjectButton({ hasItems }: { hasItems: boolean }
   }
 
   return (
-    <button
-      type="button"
-      onClick={() => setCreateModalOpen(true)}
-      className="h-8 rounded-md bg-foreground px-3 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
-    >
+    <button type="button" onClick={() => setCreateModalOpen(true)} className="btn-primary btn-sm">
       + Create Project
     </button>
   );

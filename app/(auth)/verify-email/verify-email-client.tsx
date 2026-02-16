@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition, useEffect, useRef } from "react";
 import Link from "next/link";
@@ -152,10 +152,10 @@ export default function VerifyEmailClient({ token, email }: VerifyEmailClientPro
       return (
         <main className="flex min-h-screen flex-col items-center justify-center p-4">
           <div className="w-full max-w-sm text-center">
-            <div className="mb-8">
-              <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-foreground/20 border-t-foreground" />
-              <h1 className="text-2xl font-bold">Verifying your email...</h1>
-              <p className="mt-2 text-sm text-foreground/60">Please wait a moment</p>
+            <div className="state-loading mb-8 flex-col gap-2">
+              <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-border border-t-foreground" />
+              <h1 className="text-2xl font-bold text-foreground">Verifying your email...</h1>
+              <p>Please wait a moment</p>
             </div>
           </div>
         </main>
@@ -167,7 +167,7 @@ export default function VerifyEmailClient({ token, email }: VerifyEmailClientPro
         <main className="flex min-h-screen flex-col items-center justify-center p-4">
           <div className="w-full max-w-sm text-center">
             <div className="mb-8">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-green-600 dark:bg-green-950 dark:text-green-400">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-success-soft text-success">
                 <svg
                   className="h-6 w-6"
                   fill="none"
@@ -184,7 +184,7 @@ export default function VerifyEmailClient({ token, email }: VerifyEmailClientPro
                 </svg>
               </div>
               <h1 className="text-2xl font-bold">Email verified!</h1>
-              <p className="mt-2 text-sm text-foreground/60">
+              <p className="mt-2 text-sm text-muted-foreground">
                 Your email has been successfully verified
               </p>
             </div>
@@ -192,28 +192,22 @@ export default function VerifyEmailClient({ token, email }: VerifyEmailClientPro
             {hasSession ? (
               <div className="space-y-3">
                 {sessionMismatch ? (
-                  <div className="rounded-md border border-foreground/20 bg-background px-3 py-2 text-sm text-foreground/80">
+                  <div className="state-info">
                     Please sign in with the verified email to continue.
                   </div>
                 ) : sessionRefreshError ? (
-                  <div className="rounded-md border border-foreground/20 bg-background px-3 py-2 text-sm text-foreground/80">
-                    {sessionRefreshError}
-                  </div>
+                  <div className="state-info">{sessionRefreshError}</div>
                 ) : (
-                  <p className="text-sm text-foreground/60">Redirecting you to the dashboard...</p>
+                  <p className="text-sm text-muted-foreground">
+                    Redirecting you to the dashboard...
+                  </p>
                 )}
-                <Link
-                  href="/login"
-                  className="inline-block rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:ring-offset-2"
-                >
+                <Link href="/login" className="btn-primary btn-md inline-flex">
                   Continue to login
                 </Link>
               </div>
             ) : (
-              <Link
-                href="/login"
-                className="inline-block rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:ring-offset-2"
-              >
+              <Link href="/login" className="btn-primary btn-md inline-flex">
                 Continue to login
               </Link>
             )}
@@ -227,7 +221,7 @@ export default function VerifyEmailClient({ token, email }: VerifyEmailClientPro
         <main className="flex min-h-screen flex-col items-center justify-center p-4">
           <div className="w-full max-w-sm text-center">
             <div className="mb-8">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-950 dark:text-red-400">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-danger-soft text-danger">
                 <svg
                   className="h-6 w-6"
                   fill="none"
@@ -244,30 +238,21 @@ export default function VerifyEmailClient({ token, email }: VerifyEmailClientPro
                 </svg>
               </div>
               <h1 className="text-2xl font-bold">Verification failed</h1>
-              <p className="mt-2 text-sm text-foreground/60">{verifyError}</p>
+              <p className="mt-2 text-sm text-muted-foreground">{verifyError}</p>
             </div>
 
             {hasSession ? (
               <div className="space-y-3">
-                <Link
-                  href="/verify-email"
-                  className="block rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:ring-offset-2"
-                >
+                <Link href="/verify-email" className="btn-primary btn-md flex">
                   Go to resend
                 </Link>
               </div>
             ) : (
               <div className="space-y-3">
-                <Link
-                  href="/login?callbackUrl=/verify-email"
-                  className="block rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:ring-offset-2"
-                >
+                <Link href="/login?callbackUrl=/verify-email" className="btn-primary btn-md flex">
                   Sign in to resend
                 </Link>
-                <Link
-                  href="/login"
-                  className="block text-sm text-foreground/60 hover:text-foreground hover:underline"
-                >
+                <Link href="/login" className="btn-link text-sm">
                   Back to login
                 </Link>
               </div>
@@ -284,19 +269,19 @@ export default function VerifyEmailClient({ token, email }: VerifyEmailClientPro
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-bold">Verify your email</h1>
-          <p className="mt-2 text-sm text-foreground/60">
+          <p className="mt-2 text-sm text-muted-foreground">
             Please check your inbox for a verification link
           </p>
         </div>
 
-        <div className="mb-6 rounded-md border border-foreground/20 bg-background px-4 py-3 text-sm">
-          <p className="text-foreground/80">
+        <div className="state-info mb-6 px-4 py-3">
+          <p className="text-muted-foreground">
             We&apos;ve sent you an email with a verification link. Click the link to activate your
             account.
           </p>
         </div>
 
-        <div className="mb-4 text-center text-sm text-foreground/60">
+        <div className="mb-4 text-center text-sm text-muted-foreground">
           Didn&apos;t receive the email?
         </div>
 
@@ -316,15 +301,12 @@ export default function VerifyEmailClient({ token, email }: VerifyEmailClientPro
                 disabled
                 readOnly
                 value={email ?? ""}
-                className="w-full rounded-md border border-foreground/20 bg-background px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-foreground/20 disabled:cursor-not-allowed disabled:opacity-50"
+                className="form-field form-field-md"
               />
             </div>
 
             {resendMessage && (
-              <div
-                className="rounded-md border border-foreground/20 bg-background px-3 py-2 text-sm text-foreground/80"
-                role="status"
-              >
+              <div className="state-info" role="status">
                 {resendMessage}
               </div>
             )}
@@ -332,26 +314,26 @@ export default function VerifyEmailClient({ token, email }: VerifyEmailClientPro
             <button
               type="submit"
               disabled={resendPending || isResendRateLimited}
-              className="w-full rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              className="btn-primary btn-md w-full"
             >
               {resendPending ? "Sending..." : "Resend verification email"}
             </button>
           </form>
         ) : (
-          <div className="rounded-md border border-foreground/20 bg-background px-3 py-2 text-sm text-foreground/80">
+          <div className="state-info">
             <p>Sign in to resend your verification email.</p>
           </div>
         )}
 
         {!hasEmail && (
-          <p className="mt-4 text-center text-sm text-foreground/60">
+          <p className="mt-4 text-center text-sm text-muted-foreground">
             <Link href="/login" className="font-medium text-foreground hover:underline">
               Sign in
             </Link>
           </p>
         )}
 
-        <p className="mt-6 text-center text-sm text-foreground/60">
+        <p className="mt-6 text-center text-sm text-muted-foreground">
           Wrong email?{" "}
           <button
             type="button"

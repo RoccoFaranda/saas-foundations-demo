@@ -16,10 +16,8 @@ export function TrendChart({ data, title, isEmpty = false }: TrendChartProps) {
   if (isEmpty || data.length === 0) {
     return (
       <div className="space-y-3">
-        <h3 className="text-sm font-medium text-foreground/80">{title}</h3>
-        <div className="flex h-48 items-center justify-center text-sm text-foreground/40">
-          No data available
-        </div>
+        <h3 className="text-sm font-medium text-foreground">{title}</h3>
+        <div className="state-empty h-48">No data available</div>
       </div>
     );
   }
@@ -50,7 +48,7 @@ export function TrendChart({ data, title, isEmpty = false }: TrendChartProps) {
 
   return (
     <div className="space-y-3">
-      <h3 className="text-sm font-medium text-foreground/80">{title}</h3>
+      <h3 className="text-sm font-medium text-foreground">{title}</h3>
 
       {/* Chart area */}
       <div className="relative" style={{ height: chartHeight }}>
@@ -60,14 +58,14 @@ export function TrendChart({ data, title, isEmpty = false }: TrendChartProps) {
           className="absolute inset-0 h-full w-full"
         >
           {/* Area fill */}
-          <path d={areaPath} fill="currentColor" className="text-emerald-500/20" />
+          <path d={areaPath} fill="currentColor" className="text-success/25" />
           {/* Line */}
           <path
             d={linePath}
             fill="none"
             stroke="currentColor"
             strokeWidth="0.5"
-            className="text-emerald-500"
+            className="text-success"
           />
         </svg>
 
@@ -82,9 +80,9 @@ export function TrendChart({ data, title, isEmpty = false }: TrendChartProps) {
               transform: "translate(-50%, -50%)",
             }}
           >
-            <div className="h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-background" />
+            <div className="h-2 w-2 rounded-full bg-success ring-2 ring-surface" />
             {/* Tooltip on hover */}
-            <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-foreground px-2 py-1 text-xs text-background opacity-0 transition-opacity group-hover:opacity-100">
+            <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-surface-elevated px-2 py-1 text-xs text-foreground shadow-sm opacity-0 transition-opacity group-hover:opacity-100">
               {point.label}: {point.value}
             </div>
           </div>
@@ -92,7 +90,7 @@ export function TrendChart({ data, title, isEmpty = false }: TrendChartProps) {
       </div>
 
       {/* X-axis labels */}
-      <div className="flex justify-between text-xs text-foreground/50">
+      <div className="flex justify-between text-xs text-muted-foreground">
         {data.map((point, index) => {
           // Show first, last, and middle labels if enough data
           const showLabel =

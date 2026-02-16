@@ -40,7 +40,8 @@ Use structured logging with sanitization for any user-generated or external data
   - Always: `pnpm format:check`, `pnpm lint`
   - If TS/logic changes: `pnpm typecheck`
   - If behavior changes: `pnpm test`
-  - If user flows changed: `pnpm test:e2e`
+  - If user flows changes: `pnpm test:e2e`
+  - If UI/theme changes: `pnpm theme:check`
   - If you skip any, say why.
 - Playwright MCP usage:
   - If the task changes UI or user flows, use Playwright MCP to validate key interactions and DOM state.

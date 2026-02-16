@@ -53,7 +53,8 @@ These flows must be covered by Playwright E2E tests and should not regress:
 - Always: `pnpm format:check`, `pnpm lint`
 - If TS/logic changes: `pnpm typecheck`
 - If behavior changes: `pnpm test`
-- If user flows changed: `pnpm test:e2e`
+- If user flows changes: `pnpm test:e2e`
+- If UI/theme changes: `pnpm theme:check`
 - If you skip any, say why.
 
 ## Playwright MCP Usage

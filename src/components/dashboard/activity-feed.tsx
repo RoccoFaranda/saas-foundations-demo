@@ -20,25 +20,24 @@ export function ActivityFeed({
   helperText = "Showing latest 20 events.",
 }: ActivityFeedProps) {
   return (
-    <div
-      className="rounded-lg border border-foreground/10 bg-background"
-      data-testid="activity-feed"
-    >
-      <div className="border-b border-foreground/10 px-4 py-3">
+    <div className="rounded-lg border border-border bg-surface" data-testid="activity-feed">
+      <div className="border-b border-border px-4 py-3">
         <h2 className="font-medium">{title}</h2>
-        {activities.length > 0 && <p className="mt-1 text-xs text-foreground/50">{helperText}</p>}
+        {activities.length > 0 && (
+          <p className="mt-1 text-xs text-muted-foreground">{helperText}</p>
+        )}
       </div>
       {activities.length === 0 ? (
         <div className="flex h-40 items-center justify-center p-4">
-          <p className="text-center text-sm text-foreground/40">
+          <p className="text-center text-sm text-muted-foreground/80">
             Activity updates will appear here.
             <br />
-            <span className="text-xs">Check back after making changes.</span>
+            <span className="text-xs text-muted-foreground">Check back after making changes.</span>
           </p>
         </div>
       ) : (
         <ul
-          className="max-h-64 divide-y divide-foreground/5 overflow-y-auto"
+          className="max-h-64 divide-y divide-border/60 overflow-y-auto"
           data-testid="activity-list"
         >
           {activities.map((activity) => (
@@ -47,8 +46,10 @@ export function ActivityFeed({
               className="px-4 py-3"
               data-testid={`activity-item-${activity.id}`}
             >
-              <p className="text-sm text-foreground/80">{activity.message}</p>
-              <p className="mt-1 text-xs text-foreground/40">{formatTime(activity.timestamp)}</p>
+              <p className="text-sm text-foreground">{activity.message}</p>
+              <p className="mt-1 text-xs text-muted-foreground/80">
+                {formatTime(activity.timestamp)}
+              </p>
             </li>
           ))}
         </ul>

@@ -3,6 +3,11 @@ import type { ActivityEntry, ItemStatus, ItemTag, SortField, SortDirection } fro
 import { KpiCard } from "./kpi-card";
 import { ActivityFeed } from "./activity-feed";
 import { TableSkeleton } from "./table-skeleton";
+import { PageContainer } from "@/src/components/layout/page-container";
+
+function joinClasses(...parts: Array<string | undefined>) {
+  return parts.filter(Boolean).join(" ");
+}
 
 /**
  * KPI values for the dashboard header
@@ -26,7 +31,7 @@ export interface DashboardFilterState {
   sortDirection: SortDirection;
 }
 
-interface DashboardShellProps {
+export interface DashboardShellProps {
   /** Test ID for the root element */
   testId?: string;
   /** Page title */
@@ -55,6 +60,20 @@ interface DashboardShellProps {
   quickActionsContent?: ReactNode;
   /** Optional analytics content (charts) */
   analyticsContent?: ReactNode;
+  /** Optional classes for KPI section wrapper */
+  kpiSectionClassName?: string;
+  /** Optional classes for operational middle section wrapper */
+  operationalPanelsClassName?: string;
+  /** Optional classes for primary table surface */
+  tableSurfaceClassName?: string;
+  /** Optional classes for table actions wrapper */
+  tableActionsWrapperClassName?: string;
+  /** Optional classes for filter controls wrapper */
+  filterControlsWrapperClassName?: string;
+  /** Optional classes for analytics section wrapper */
+  analyticsSectionClassName?: string;
+  /** Optional root spacing override for embedded/story contexts */
+  containerClassName?: string;
 }
 
 /**
@@ -77,55 +96,67 @@ export function DashboardShell({
   activities,
   quickActionsContent,
   analyticsContent,
+  kpiSectionClassName,
+  operationalPanelsClassName,
+  tableSurfaceClassName,
+  tableActionsWrapperClassName,
+  filterControlsWrapperClassName,
+  analyticsSectionClassName,
+  containerClassName = "py-8",
 }: DashboardShellProps) {
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-8" data-testid={testId}>
+    <PageContainer className={containerClassName} data-testid={testId}>
       {/* Page Header */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">{title}</h1>
-          <p className="mt-1 text-sm text-foreground/60">{subtitle}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
         </div>
         {headerContent}
       </div>
 
       {/* KPI Cards */}
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div
+        className={joinClasses(
+          "mb-8 grid gap-4 transition-all sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5",
+          kpiSectionClassName
+        )}
+      >
         <KpiCard
           label="Total Projects"
-          value={isLoadingKpis ? "—" : kpis.total}
+          value={isLoadingKpis ? "-" : kpis.total}
           subtitle="Excludes archived"
         />
-        <KpiCard label="Active" value={isLoadingKpis ? "—" : kpis.active} subtitle="In progress" />
+        <KpiCard label="Active" value={isLoadingKpis ? "-" : kpis.active} subtitle="In progress" />
         <KpiCard
           label="Completed"
-          value={isLoadingKpis ? "—" : kpis.completed}
+          value={isLoadingKpis ? "-" : kpis.completed}
           subtitle="Finished"
         />
         <KpiCard
           label="Avg Progress"
-          value={isLoadingKpis ? "—" : `${kpis.avgProgress}%`}
+          value={isLoadingKpis ? "-" : `${kpis.avgProgress}%`}
           subtitle="Across non-archived"
         />
         <KpiCard
           label="Archived"
-          value={isLoadingKpis ? "—" : kpis.archived}
+          value={isLoadingKpis ? "-" : kpis.archived}
           subtitle="Hidden from main list"
         />
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className={joinClasses("grid gap-6 lg:grid-cols-3", operationalPanelsClassName)}>
         {/* Primary Panel - Table */}
         <div className="lg:col-span-2">
-          <div className="rounded-lg border border-foreground/10 bg-background">
+          <div className={joinClasses("surface-card transition-all", tableSurfaceClassName)}>
             {/* Header with filters */}
-            <div className="border-b border-foreground/10 px-4 py-3">
+            <div className="border-b border-border px-4 py-3">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <h2 className="font-medium">Projects</h2>
-                {tableActions}
+                {tableActions && <div className={tableActionsWrapperClassName}>{tableActions}</div>}
               </div>
-              {filterControls}
+              <div className={filterControlsWrapperClassName}>{filterControls}</div>
             </div>
 
             {/* Table content */}
@@ -142,8 +173,8 @@ export function DashboardShell({
 
           {/* Quick Actions Panel */}
           {quickActionsContent && (
-            <div className="rounded-lg border border-foreground/10 bg-background">
-              <div className="border-b border-foreground/10 px-4 py-3">
+            <div className="surface-card">
+              <div className="border-b border-border px-4 py-3">
                 <h2 className="font-medium">Quick Actions</h2>
               </div>
               <div className="space-y-2 p-4">{quickActionsContent}</div>
@@ -154,13 +185,13 @@ export function DashboardShell({
 
       {/* Analytics Section */}
       {analyticsContent && (
-        <div className="mt-6">
-          <div className="rounded-lg border border-foreground/10 bg-background p-6">
+        <div className={joinClasses("mt-6 transition-all", analyticsSectionClassName)}>
+          <div className="surface-card p-6">
             <h2 className="mb-4 font-medium">Analytics</h2>
             {analyticsContent}
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

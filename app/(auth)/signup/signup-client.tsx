@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
@@ -94,7 +94,9 @@ export default function SignupClient({
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-bold">Create an account</h1>
-          <p className="mt-2 text-sm text-foreground/60">Get started with SaaS Foundations Demo</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Get started with SaaS Foundations Demo
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -110,9 +112,7 @@ export default function SignupClient({
               required
               maxLength={255}
               disabled={isPending}
-              className={`w-full rounded-md border bg-background px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-foreground/20 disabled:cursor-not-allowed disabled:opacity-50 ${
-                fieldError === "email" ? "border-red-500" : "border-foreground/20"
-              }`}
+              className={`form-field form-field-md ${fieldError === "email" ? "border-danger" : ""}`}
               placeholder="you@example.com"
               aria-describedby={fieldError === "email" ? "email-error" : undefined}
             />
@@ -131,13 +131,11 @@ export default function SignupClient({
               minLength={8}
               maxLength={128}
               disabled={isPending}
-              className={`w-full rounded-md border bg-background px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-foreground/20 disabled:cursor-not-allowed disabled:opacity-50 ${
-                fieldError === "password" ? "border-red-500" : "border-foreground/20"
-              }`}
-              placeholder="••••••••"
+              className={`form-field form-field-md ${fieldError === "password" ? "border-danger" : ""}`}
+              placeholder="********"
               aria-describedby={fieldError === "password" ? "password-error" : undefined}
             />
-            <p className="mt-1 text-xs text-foreground/50">At least 8 characters</p>
+            <p className="mt-1 text-xs text-muted-foreground">At least 8 characters</p>
           </div>
 
           {siteKey && (
@@ -154,19 +152,13 @@ export default function SignupClient({
           )}
 
           {turnstileMessage && (
-            <div
-              className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-400"
-              role="alert"
-            >
+            <div className="state-error" role="alert">
               {turnstileMessage}
             </div>
           )}
 
           {error && (
-            <div
-              className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-400"
-              role="alert"
-            >
+            <div className="state-error" role="alert">
               {error}
             </div>
           )}
@@ -179,13 +171,13 @@ export default function SignupClient({
               Boolean(turnstileMisconfiguredMessage) ||
               Boolean(turnstileError)
             }
-            className="w-full rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            className="btn-primary btn-md w-full"
           >
             {isPending ? "Creating account..." : "Create account"}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-foreground/60">
+        <p className="mt-6 text-center text-sm text-muted-foreground">
           Already have an account?{" "}
           <Link href="/login" className="font-medium text-foreground hover:underline">
             Sign in

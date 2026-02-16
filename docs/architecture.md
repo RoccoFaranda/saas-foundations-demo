@@ -13,7 +13,7 @@ This is a single Next.js application that serves both:
 
 High-level components:
 
-- **Marketing (public):** landing pages, services/process, contact
+- **Marketing (public):** landing, features, pricing, technical, about/process, contact
 - **Demo (public / guest):** seeded data, interactive UI, edits reset on refresh
 - **App (authenticated):** per-user data persisted to the database
 - **API / Route Handlers:** auth lifecycle, CRUD endpoints, billing endpoints, webhooks, health
@@ -128,8 +128,9 @@ The app implements a complete email/password authentication lifecycle:
 Intended structure (may evolve slightly as features land):
 
 - `app/`
-  - `(marketing)/` marketing pages (home, about, process, foundations, contact)
-  - `(demo)/` guest demo routes (dashboard with seeded data)
+  - `(public)/` shared unauthenticated shell (site header/footer + public page chrome)
+    - `(marketing)/` marketing pages (home, features, pricing, technical, about, process, contact, privacy, terms)
+    - `(demo)/` guest demo routes (dashboard with seeded data)
   - `(auth)/` signup/login/verify/reset flows
   - `(app)/` authenticated routes (dashboard, items, settings, billing)
   - `api/` route handlers (auth, items, billing, webhooks, health)

@@ -1,25 +1,18 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { requireVerifiedUser } from "@/src/lib/auth";
 import { listItems, countItems } from "@/src/lib/items";
 import { listActivityLogs } from "@/src/lib/activity-log";
 import { mapDbItemsToUi, mapDbActivityLogsToUi } from "@/src/lib/dashboard/mappers";
-import {
-  parseDashboardSearchParams,
-  computeDashboardKpis,
-  DASHBOARD_PAGE_SIZE,
-} from "@/src/lib/dashboard/queries";
-import { computeStatusDistribution, computeCompletionTrend } from "@/src/lib/dashboard/analytics";
+import { parseDashboardSearchParams, DASHBOARD_PAGE_SIZE } from "@/src/lib/dashboard/queries";
 import { ItemStatus, ItemTag } from "@/src/generated/prisma/enums";
-import {
-  DashboardShell,
-  computeProgress,
-  StatusDistributionChart,
-  TrendChart,
-} from "@/src/components/dashboard";
+import { DashboardShell, StatusDistributionChart, TrendChart } from "@/src/components/dashboard";
 import type { SortField, SortDirection } from "@/src/components/dashboard/model";
+import { sortDashboardItems } from "@/src/lib/dashboard/query-core";
+import { buildDashboardMetrics } from "@/src/lib/dashboard/view-model";
 import {
   CreateProjectModalProvider,
   DashboardCreateProjectButton,
+  DashboardExportButton,
   DashboardFilters,
   DashboardMutations,
   DashboardPagination,
@@ -47,25 +40,20 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   };
 
   // Fetch global data in parallel - user scoped
-  const [totalCount, userItemCount, allItemsForKpis, allItemsForTrend, dbActivityLogs] =
-    await Promise.all([
-      // Total count for pagination (same filters)
-      countItems(userId, {
-        status: filterOptions.status,
-        tag: filterOptions.tag,
-        search: filterOptions.search,
-        includeArchived: filterOptions.includeArchived,
-      }),
-      // Any items for this user (regardless of current filters)
-      countItems(userId, { includeArchived: true }),
-      // All items (no filters) for KPIs - exclude archived for accurate metrics
-      listItems(userId, { includeArchived: false }),
-      // All items (including archived) for historical completion trend
-      listItems(userId, { includeArchived: true }),
-      // Recent activity logs
-      listActivityLogs(userId, { limit: 20 }),
-    ]);
-  const hasAnyItems = userItemCount > 0;
+  const [totalCount, allItemsForMetrics, dbActivityLogs] = await Promise.all([
+    // Total count for pagination (same filters)
+    countItems(userId, {
+      status: filterOptions.status,
+      tag: filterOptions.tag,
+      search: filterOptions.search,
+      includeArchived: filterOptions.includeArchived,
+    }),
+    // All items (including archived) for shared metric derivation
+    listItems(userId, { includeArchived: true }),
+    // Recent activity logs
+    listActivityLogs(userId, { limit: 20 }),
+  ]);
+  const hasAnyItems = allItemsForMetrics.length > 0;
 
   // Clamp page to valid range to avoid empty out-of-range pages
   const totalPages = Math.max(1, Math.ceil(totalCount / DASHBOARD_PAGE_SIZE));
@@ -73,54 +61,35 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const offset = (currentPage - 1) * DASHBOARD_PAGE_SIZE;
 
   // Fetch table items (supports progress and archived-date sort in-memory)
-  const dbItems =
+  const tableItemsPromise =
     params.sortBy === "progress" || params.sortBy === "archivedAt"
-      ? (() => {
-          return listItems(userId, filterOptions).then((filteredItems) => {
-            const sorted = [...filteredItems].sort((a, b) => {
-              if (params.sortBy === "progress") {
-                const comparison =
-                  computeProgress(a.checklistItems) - computeProgress(b.checklistItems);
-                return params.sortDir === "desc" ? -comparison : comparison;
-              }
-
-              const aArchivedTime = a.archivedAt ? new Date(a.archivedAt).getTime() : null;
-              const bArchivedTime = b.archivedAt ? new Date(b.archivedAt).getTime() : null;
-
-              if (aArchivedTime === null && bArchivedTime === null) {
-                return 0;
-              }
-              if (aArchivedTime === null) {
-                return 1;
-              }
-              if (bArchivedTime === null) {
-                return -1;
-              }
-
-              const comparison = aArchivedTime - bArchivedTime;
-              return params.sortDir === "desc" ? -comparison : comparison;
-            });
-            return sorted.slice(offset, offset + DASHBOARD_PAGE_SIZE);
+      ? listItems(userId, filterOptions).then((filteredItems) => {
+          const filteredUiItems = mapDbItemsToUi(filteredItems);
+          const sortedUiItems = sortDashboardItems(filteredUiItems, {
+            field: params.sortBy,
+            direction: params.sortDir,
           });
-        })()
+          return sortedUiItems.slice(offset, offset + DASHBOARD_PAGE_SIZE);
+        })
       : listItems(userId, {
           ...filterOptions,
           sortBy: params.sortBy,
           sortDirection: params.sortDir,
           limit: DASHBOARD_PAGE_SIZE,
           offset,
-        });
-  const resolvedDbItems = await dbItems;
+        }).then((dbItems) => mapDbItemsToUi(dbItems));
+  const items = await tableItemsPromise;
 
   // Map DB models to UI models
-  const items = mapDbItemsToUi(resolvedDbItems);
-  const allItems = mapDbItemsToUi(allItemsForKpis);
-  const allItemsIncludingArchived = mapDbItemsToUi(allItemsForTrend);
+  const allItemsIncludingArchived = mapDbItemsToUi(allItemsForMetrics);
   const activities = mapDbActivityLogsToUi(dbActivityLogs);
 
-  // Compute KPIs from all user items (unfiltered)
-  const archivedCount = Math.max(0, userItemCount - allItems.length);
-  const kpis = computeDashboardKpis(allItems, archivedCount);
+  // Shared KPI + analytics derivation used across dashboard surfaces
+  const metrics = buildDashboardMetrics({
+    kpiItems: allItemsIncludingArchived,
+    trendItems: allItemsIncludingArchived,
+  });
+  const { kpis, statusDistribution, completionTrend } = metrics;
 
   // Determine current sort for UI
   const sortField: SortField = params.sortBy;
@@ -136,7 +105,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       sortField={sortField}
       sortDirection={sortDirection}
       showArchived={params.showArchived}
-      hasArchivedItems={archivedCount > 0}
+      hasArchivedItems={kpis.archived > 0}
     />
   );
 
@@ -157,16 +126,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     </>
   );
 
-  // Analytics data
-  const statusDistribution = computeStatusDistribution(allItems);
-  const completionTrend = computeCompletionTrend(allItemsIncludingArchived);
-
   // Analytics content
   const analyticsContent = (
     <div className="grid gap-6 md:grid-cols-2">
       <div>
-        <h3 className="mb-1 text-sm font-medium text-foreground/80">Status Distribution</h3>
-        <p className="mb-4 text-xs text-foreground/50">Excludes archived projects</p>
+        <h3 className="mb-1 text-sm font-medium text-foreground">Status Distribution</h3>
+        <p className="mb-4 text-xs text-muted-foreground">Excludes archived projects</p>
         <StatusDistributionChart data={statusDistribution} isEmpty={kpis.total === 0} />
       </div>
       <div>
@@ -181,12 +146,11 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
   const tableActions = hasAnyItems ? (
     <div className="flex items-center gap-2">
-      <a
-        href={exportHref}
-        className="inline-flex h-8 items-center justify-center rounded-md border border-foreground/20 bg-background px-3 text-sm font-medium leading-none text-foreground/80 transition-colors hover:bg-foreground/5"
-      >
-        Export CSV
-      </a>
+      <DashboardExportButton
+        exportHref={exportHref}
+        rowCount={totalCount}
+        disabled={totalCount === 0}
+      />
       <DashboardCreateProjectButton hasItems={hasAnyItems} />
     </div>
   ) : null;
@@ -244,14 +208,7 @@ function QuickActionLink({
   active?: boolean;
 }) {
   return (
-    <Link
-      href={href}
-      className={`block w-full rounded-md border px-3 py-2 text-left text-sm transition-colors ${
-        active
-          ? "border-foreground/20 bg-foreground/10 text-foreground"
-          : "border-foreground/10 bg-foreground/5 text-foreground/60 hover:bg-foreground/10"
-      }`}
-    >
+    <Link href={href} className={`btn-panel ${active ? "btn-panel-active" : ""}`}>
       {label}
     </Link>
   );

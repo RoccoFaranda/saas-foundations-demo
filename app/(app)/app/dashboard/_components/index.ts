@@ -1,4 +1,5 @@
 export { DashboardFilters } from "./dashboard-filters";
+export { DashboardExportButton } from "./dashboard-export-button";
 export { DashboardMutations, DashboardCreateProjectButton } from "./dashboard-mutations";
 export { DashboardPagination } from "./dashboard-pagination";
 export { CreateProjectModalProvider } from "./create-project-modal-context";

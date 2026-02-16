@@ -22,21 +22,21 @@ function formatDateTime(isoString?: string | null): string {
 export function LifecycleDetails({ item, className }: LifecycleDetailsProps) {
   return (
     <div className={className}>
-      <p className="mb-2 text-xs font-medium uppercase tracking-wide text-foreground/50">
+      <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
         Lifecycle
       </p>
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-        <dt className="text-foreground/50">Created</dt>
-        <dd className="text-foreground/80">{formatDateTime(item.createdAt)}</dd>
+        <dt className="text-muted-foreground">Created</dt>
+        <dd className="text-foreground">{formatDateTime(item.createdAt)}</dd>
 
-        <dt className="text-foreground/50">Updated</dt>
-        <dd className="text-foreground/80">{formatDateTime(item.updatedAt)}</dd>
+        <dt className="text-muted-foreground">Updated</dt>
+        <dd className="text-foreground">{formatDateTime(item.updatedAt)}</dd>
 
-        <dt className="text-foreground/50">Completed</dt>
-        <dd className="text-foreground/80">{formatDateTime(item.completedAt)}</dd>
+        <dt className="text-muted-foreground">Completed</dt>
+        <dd className="text-foreground">{formatDateTime(item.completedAt)}</dd>
 
-        <dt className="text-foreground/50">Archived</dt>
-        <dd className="text-foreground/80">{formatDateTime(item.archivedAt)}</dd>
+        <dt className="text-muted-foreground">Archived</dt>
+        <dd className="text-foreground">{formatDateTime(item.archivedAt)}</dd>
       </dl>
     </div>
   );

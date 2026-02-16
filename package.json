@@ -24,6 +24,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test --project=chromium",
+    "test:e2e:theme": "playwright test e2e/theme.spec.ts --project=chromium",
+    "theme:check": "node scripts/theme/check-theme-implementation.mjs",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset",

@@ -1,9 +1,11 @@
+import { PageContainer } from "./layout/page-container";
+
 export function SiteFooter() {
   return (
-    <footer className="border-t border-foreground/10 bg-background">
-      <div className="mx-auto flex h-14 max-w-5xl items-center justify-center px-4 text-sm text-foreground/60">
+    <footer className="border-t border-border bg-surface">
+      <PageContainer className="flex h-14 items-center justify-center text-sm text-muted-foreground">
         <p>&copy; {new Date().getFullYear()} SaaS Foundations Demo</p>
-      </div>
+      </PageContainer>
     </footer>
   );
 }
