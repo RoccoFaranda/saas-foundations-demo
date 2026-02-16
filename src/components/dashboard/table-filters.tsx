@@ -56,29 +56,35 @@ export function TableFilters({
       {/* Search Input */}
       <div
         className={`relative min-w-44 flex-1 rounded-md transition-all ${
-          highlightSearch ? "ring-2 ring-info-border/70 ring-offset-0" : ""
-        } ${compact ? "min-w-32 sm:min-w-32 sm:basis-32 sm:flex-none" : ""} ${searchWrapperClassName ?? ""}`}
+          compact ? "min-w-32 sm:min-w-32 sm:basis-32 sm:flex-none" : ""
+        } ${searchWrapperClassName ?? ""}`}
       >
-        <svg
-          className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/80"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
+        <div
+          className={`relative rounded-md transition-all ${
+            highlightSearch ? "ring-2 ring-info-border/70 ring-offset-0" : ""
+          }`}
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+          <svg
+            className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/80"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+          <input
+            type="text"
+            placeholder="Search by name..."
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="form-field form-field-sm pl-8"
           />
-        </svg>
-        <input
-          type="text"
-          placeholder="Search by name..."
-          value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className="form-field form-field-sm pl-8"
-        />
+        </div>
       </div>
 
       {/* Status Filter */}

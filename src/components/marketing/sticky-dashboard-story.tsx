@@ -312,7 +312,12 @@ export function StickyDashboardStory() {
         </div>
 
         <div className="relative flex min-h-0 items-center justify-stretch">
-          <div className="relative w-full overflow-hidden rounded-2xl border border-border bg-surface-elevated/95 backdrop-blur">
+          <div
+            aria-hidden="true"
+            inert={true}
+            data-testid="story-preview-decorative"
+            className="relative w-full overflow-hidden rounded-2xl border border-border bg-surface-elevated/95 backdrop-blur"
+          >
             <div className="relative flex items-center border-b border-border px-4 py-2.5">
               <div className="flex items-center gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-danger" />
