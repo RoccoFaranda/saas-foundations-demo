@@ -83,21 +83,22 @@ test.describe("Theme toggle", () => {
     await page.goto("/");
 
     const themeToggle = page.getByTestId("theme-toggle");
-    const mainContent = page.locator("main");
     await expect(themeToggle).toBeVisible();
-    await expect(mainContent).toBeVisible();
+    await expect(page.locator("main")).toBeVisible();
 
     await themeToggle.selectOption("light");
-    await expect(mainContent).toHaveScreenshot("home-light.png", {
+    await expect(page).toHaveScreenshot("home-light.png", {
       animations: "disabled",
       caret: "hide",
+      fullPage: false,
       maxDiffPixelRatio: 0.015,
     });
 
     await themeToggle.selectOption("dark");
-    await expect(mainContent).toHaveScreenshot("home-dark.png", {
+    await expect(page).toHaveScreenshot("home-dark.png", {
       animations: "disabled",
       caret: "hide",
+      fullPage: false,
       maxDiffPixelRatio: 0.015,
     });
   });
@@ -106,22 +107,23 @@ test.describe("Theme toggle", () => {
     await page.goto("/demo");
 
     const themeToggle = page.getByTestId("theme-toggle");
-    const mainContent = page.locator("main");
     await expect(themeToggle).toBeVisible();
-    await expect(mainContent).toBeVisible();
+    await expect(page.locator("main")).toBeVisible();
     await expect(page.getByTestId("items-table")).toBeVisible();
 
     await themeToggle.selectOption("light");
-    await expect(mainContent).toHaveScreenshot("demo-light.png", {
+    await expect(page).toHaveScreenshot("demo-light.png", {
       animations: "disabled",
       caret: "hide",
+      fullPage: false,
       maxDiffPixelRatio: 0.015,
     });
 
     await themeToggle.selectOption("dark");
-    await expect(mainContent).toHaveScreenshot("demo-dark.png", {
+    await expect(page).toHaveScreenshot("demo-dark.png", {
       animations: "disabled",
       caret: "hide",
+      fullPage: false,
       maxDiffPixelRatio: 0.015,
     });
   });
