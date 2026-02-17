@@ -31,25 +31,26 @@ For detailed database setup instructions, see [Architecture Documentation](./doc
 
 ## Available Scripts
 
-| Script                | Description                                               |
-| --------------------- | --------------------------------------------------------- |
-| `pnpm dev`            | Start development server                                  |
-| `pnpm build`          | Build for production                                      |
-| `pnpm start`          | Start production server                                   |
-| `pnpm lint`           | Run ESLint                                                |
-| `pnpm format`         | Format code with Prettier                                 |
-| `pnpm format:check`   | Check code formatting                                     |
-| `pnpm typecheck`      | Run TypeScript type checking                              |
-| `pnpm test`           | Run unit tests (one-shot)                                 |
-| `pnpm test:watch`     | Run unit tests in watch mode                              |
-| `pnpm test:e2e`       | Run all Playwright E2E tests (chromium)                   |
-| `pnpm test:e2e:theme` | Run only theme-focused Playwright tests                   |
-| `pnpm theme:check`    | Validate theme tokens, contrast, and semantic style rules |
-| `pnpm db:generate`    | Generate Prisma client                                    |
-| `pnpm db:migrate`     | Run Prisma development migrations                         |
-| `pnpm db:reset`       | Reset database via Prisma                                 |
-| `pnpm db:seed`        | Seed database data                                        |
-| `pnpm db:studio`      | Open Prisma Studio                                        |
+| Script                  | Description                                                 |
+| ----------------------- | ----------------------------------------------------------- |
+| `pnpm dev`              | Start development server                                    |
+| `pnpm build`            | Build for production                                        |
+| `pnpm start`            | Start production server                                     |
+| `pnpm lint`             | Run ESLint                                                  |
+| `pnpm format`           | Format code with Prettier                                   |
+| `pnpm format:check`     | Check code formatting                                       |
+| `pnpm typecheck`        | Run TypeScript type checking                                |
+| `pnpm test`             | Run unit tests (one-shot)                                   |
+| `pnpm test:watch`       | Run unit tests in watch mode                                |
+| `pnpm test:e2e`         | Run Playwright E2E tests excluding `@landing-ui` (chromium) |
+| `pnpm test:e2e:landing` | Run only landing-page UI Playwright tests (`@landing-ui`)   |
+| `pnpm test:e2e:theme`   | Run only theme-focused Playwright tests                     |
+| `pnpm theme:check`      | Validate theme tokens, contrast, and semantic style rules   |
+| `pnpm db:generate`      | Generate Prisma client                                      |
+| `pnpm db:migrate`       | Run Prisma development migrations                           |
+| `pnpm db:reset`         | Reset database via Prisma                                   |
+| `pnpm db:seed`          | Seed database data                                          |
+| `pnpm db:studio`        | Open Prisma Studio                                          |
 
 ## Environment Variables
 
@@ -91,6 +92,7 @@ See `.env.example` for all available environment variables (when available).
    - Always: `pnpm format:check && pnpm lint && pnpm typecheck && pnpm test`
    - UI/theme changes: `pnpm theme:check`
    - User-flow changes: `pnpm test:e2e` (or `pnpm test:e2e:theme` for theme-only updates)
+   - Landing page UI updates: `pnpm test:e2e:landing`
 4. Open a pull request
 
 ## License

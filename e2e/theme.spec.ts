@@ -79,7 +79,9 @@ test.describe("Theme toggle", () => {
     await expect(page.locator("html")).not.toHaveClass(/dark/);
   });
 
-  test("home page visual baselines remain stable in light and dark", async ({ page }) => {
+  test("home page visual baselines remain stable in light and dark @landing-ui", async ({
+    page,
+  }) => {
     await page.goto("/");
 
     const themeToggle = page.getByTestId("theme-toggle");
