@@ -1,4 +1,5 @@
-﻿import Link from "next/link";
+import Link from "next/link";
+import { GitHubMark } from "./icons/github-mark";
 import { ThemeToggle } from "./theme-toggle";
 import { PageContainer } from "./layout/page-container";
 
@@ -19,6 +20,15 @@ export function SiteHeader() {
           <Link href="/login" className="link-subtle focus-ring">
             App
           </Link>
+          <a
+            href="https://github.com/RoccoFaranda/saas-foundations-demo"
+            target="_blank"
+            rel="noreferrer noopener"
+            className="link-subtle focus-ring inline-flex items-center gap-1"
+          >
+            <GitHubMark className="h-3.5 w-3.5" />
+            GitHub
+          </a>
           <ThemeToggle />
         </nav>
       </PageContainer>

@@ -37,15 +37,16 @@ export function HeroProofStrip({ pillars, sectionId }: HeroProofStripProps) {
   };
 
   return (
-    <div className="mx-auto mt-6 flex max-w-4xl flex-wrap items-center justify-center gap-2">
+    <div className="mt-6 flex flex-wrap items-center justify-center gap-2 lg:justify-start">
       {pillars.map((pillar) => (
         <button
           key={pillar.key}
           type="button"
           data-testid={`proof-chip-${pillar.key}`}
           onClick={() => activatePillar(pillar.key)}
-          className="focus-ring inline-flex rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-border-strong hover:text-foreground"
+          className="focus-ring inline-flex items-center gap-2 rounded-full border border-border/80 bg-surface-elevated/80 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-border-strong hover:bg-surface hover:text-foreground"
         >
+          <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-primary/65" />
           {pillar.chipLabel}
         </button>
       ))}

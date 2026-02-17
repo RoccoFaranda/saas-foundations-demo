@@ -5,7 +5,7 @@ test.describe("Marketing home page @landing-ui", () => {
     await page.goto("/");
 
     await expect(
-      page.getByRole("heading", { level: 1, name: "An SaaS demo you can click through and audit." })
+      page.getByRole("heading", { level: 1, name: "A production-style SaaS demo, end to end." })
     ).toBeVisible();
 
     const exploreCta = page.getByRole("link", { name: "Explore Demo" });

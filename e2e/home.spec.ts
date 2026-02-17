@@ -6,7 +6,7 @@ test.describe("Home page @landing-ui", () => {
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: /An SaaS demo you can click through and audit\./i,
+        name: /A production-style SaaS demo, end to end\./i,
       })
     ).toBeVisible();
   });
