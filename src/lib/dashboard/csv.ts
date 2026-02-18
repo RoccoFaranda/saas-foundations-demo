@@ -28,6 +28,9 @@ const csvHeaders = [
   "Archived At",
 ];
 
+const csvFormulaPrefixPattern = /^[\t\r\n ]*[=+\-@]/;
+const csvControlPrefixPattern = /^[\t\r\n]/;
+
 export function computeChecklistProgress(checklist: Array<{ done: boolean }>): number {
   if (checklist.length === 0) return 0;
   const doneCount = checklist.filter((item) => item.done).length;
@@ -64,10 +67,18 @@ function formatCsvDate(value?: string | Date | null): string {
   return value.toISOString();
 }
 
+function neutralizeSpreadsheetFormula(value: string): string {
+  if (csvControlPrefixPattern.test(value) || csvFormulaPrefixPattern.test(value)) {
+    return `'${value}`;
+  }
+  return value;
+}
+
 function escapeCsvValue(value: string | number | null | undefined): string {
-  const stringValue = String(value ?? "");
+  const stringValue =
+    typeof value === "string" ? neutralizeSpreadsheetFormula(value) : String(value ?? "");
   const escaped = stringValue.replace(/"/g, '""');
-  if (/[",\n]/.test(escaped)) {
+  if (/[",\n\r]/.test(escaped)) {
     return `"${escaped}"`;
   }
   return escaped;
