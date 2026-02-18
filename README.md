@@ -65,6 +65,26 @@ Create a `.env.local` file in the project root for local development:
 In local dev/test, the app falls back to `http://localhost:3000` if it is not set.
 See `.env.example` for all available environment variables (when available).
 
+## Health Endpoint
+
+The app exposes a runtime health endpoint at `GET /api/health`.
+
+- `200` when all checks pass (`status: "ok"`)
+- `503` when any check fails (`status: "degraded"`)
+
+Response shape:
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2026-02-18T00:00:00.000Z",
+  "checks": {
+    "database": { "status": "ok", "latencyMs": 4 },
+    "appUrl": { "status": "ok" }
+  }
+}
+```
+
 ## Project Structure
 
 ```
