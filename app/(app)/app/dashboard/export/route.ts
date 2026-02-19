@@ -4,6 +4,7 @@ import { listItems } from "@/src/lib/items";
 import { parseDashboardSearchParams } from "@/src/lib/dashboard/queries";
 import { buildProjectsCsv, computeChecklistProgress } from "@/src/lib/dashboard/csv";
 import { ItemStatus, ItemTag } from "@/src/generated/prisma/enums";
+import { enforceRateLimit, getRetryAfterSeconds } from "@/src/lib/auth/rate-limit";
 
 export async function GET(request: Request) {
   const user = await getCurrentUser();
@@ -12,6 +13,21 @@ export async function GET(request: Request) {
   }
   if (!user.emailVerified) {
     return NextResponse.redirect(new URL("/verify-email", request.url));
+  }
+
+  const exportRateLimit = await enforceRateLimit("dashboardExport", [`user:${user.id}`]);
+  if (exportRateLimit) {
+    const retryAfter = getRetryAfterSeconds(exportRateLimit.retryAt);
+    return NextResponse.json(
+      {
+        error: exportRateLimit.error,
+        retryAt: exportRateLimit.retryAt,
+      },
+      {
+        status: 429,
+        headers: retryAfter ? { "Retry-After": retryAfter } : undefined,
+      }
+    );
   }
 
   const { searchParams } = new URL(request.url);

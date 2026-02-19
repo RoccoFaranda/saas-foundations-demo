@@ -10,6 +10,12 @@ interface ExportResult {
   rowCount?: number;
 }
 
+interface ExportRequestError {
+  status?: number;
+  message?: string;
+  retryAt?: number;
+}
+
 export interface ExportCsvButtonProps {
   onExport: () => Promise<ExportResult>;
   disabled?: boolean;
@@ -30,7 +36,17 @@ export function ExportCsvButton({
   const { pushToast } = useToast();
   const [isPending, setIsPending] = useState(false);
   const [showPendingLabel, setShowPendingLabel] = useState(false);
+  const [rateLimitSecondsRemaining, setRateLimitSecondsRemaining] = useState<number | null>(null);
   const pendingLabelTimerRef = useRef<number | null>(null);
+
+  const isRateLimited = rateLimitSecondsRemaining !== null;
+
+  const formatRateLimitLabel = useCallback((remainingSeconds: number) => {
+    const safeSeconds = Math.max(remainingSeconds, 1);
+    const minutes = Math.floor(safeSeconds / 60);
+    const seconds = safeSeconds % 60;
+    return `Try again in ${minutes}:${seconds.toString().padStart(2, "0")}`;
+  }, []);
 
   const clearPendingLabelTimer = useCallback(() => {
     if (pendingLabelTimerRef.current) {
@@ -45,8 +61,32 @@ export function ExportCsvButton({
     };
   }, [clearPendingLabelTimer]);
 
+  useEffect(() => {
+    if (rateLimitSecondsRemaining === null) {
+      return;
+    }
+
+    if (rateLimitSecondsRemaining <= 0) {
+      setRateLimitSecondsRemaining(null);
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setRateLimitSecondsRemaining((current) => {
+        if (current === null || current <= 1) {
+          return null;
+        }
+        return current - 1;
+      });
+    }, 1000);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [rateLimitSecondsRemaining]);
+
   const handleClick = useCallback(async () => {
-    if (disabled || isPending) return;
+    if (disabled || isPending || isRateLimited) return;
 
     setIsPending(true);
     setShowPendingLabel(false);
@@ -68,17 +108,39 @@ export function ExportCsvButton({
         title: "CSV downloaded",
         description: `${result.filename}${rowSuffix}`,
       });
-    } catch {
+    } catch (error) {
+      const exportError = error as ExportRequestError;
+      const isRateLimited = exportError?.status === 429;
+      if (isRateLimited && typeof exportError?.retryAt === "number") {
+        const secondsUntilRetry = Math.ceil((exportError.retryAt - Date.now()) / 1000);
+        if (secondsUntilRetry > 0) {
+          setRateLimitSecondsRemaining(secondsUntilRetry);
+        }
+      }
+      const message = isRateLimited
+        ? typeof exportError?.message === "string" && exportError.message.trim()
+          ? exportError.message
+          : "Please try again."
+        : "Please try again.";
+
       pushToast({
-        title: "Export failed",
-        description: "Please try again.",
+        title: isRateLimited ? "Export rate limited" : "Export failed",
+        description: message,
       });
     } finally {
       clearPendingLabelTimer();
       setShowPendingLabel(false);
       setIsPending(false);
     }
-  }, [clearPendingLabelTimer, disabled, isPending, onExport, pendingDelayMs, pushToast]);
+  }, [
+    clearPendingLabelTimer,
+    disabled,
+    isPending,
+    isRateLimited,
+    onExport,
+    pendingDelayMs,
+    pushToast,
+  ]);
 
   return (
     <button
@@ -86,10 +148,14 @@ export function ExportCsvButton({
       onClick={() => {
         void handleClick();
       }}
-      disabled={disabled || isPending}
+      disabled={disabled || isPending || isRateLimited}
       className={className}
     >
-      {showPendingLabel ? pendingLabel : label}
+      {showPendingLabel
+        ? pendingLabel
+        : isRateLimited
+          ? formatRateLimitLabel(rateLimitSecondsRemaining)
+          : label}
     </button>
   );
 }

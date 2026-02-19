@@ -2,7 +2,19 @@ import "server-only";
 import { Ratelimit, type Duration } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
-export type AuthRateLimitAction = "signup" | "login" | "resendVerificationEmail" | "forgotPassword";
+export type AuthRateLimitAction =
+  | "signup"
+  | "login"
+  | "loginSlow"
+  | "resendVerificationEmail"
+  | "forgotPassword"
+  | "requestEmailChange"
+  | "changePassword"
+  | "resetPasswordPrecheck"
+  | "resetPassword"
+  | "verifyEmail"
+  | "verifyEmailChange"
+  | "dashboardExport";
 
 export interface RateLimitDecision {
   allowed: boolean;
@@ -31,14 +43,18 @@ const AUTH_RATE_LIMITS: Record<
   AuthRateLimitAction,
   { limit: number; window: Duration; windowMs: number }
 > = {
-  /* signup: { limit: 3, window: "10 m", windowMs: 10 * 60 * 1000 },
+  signup: { limit: 3, window: "10 m", windowMs: 10 * 60 * 1000 },
   login: { limit: 5, window: "1 m", windowMs: 60 * 1000 },
+  loginSlow: { limit: 20, window: "15 m", windowMs: 15 * 60 * 1000 },
   resendVerificationEmail: { limit: 3, window: "10 m", windowMs: 10 * 60 * 1000 },
-  forgotPassword: { limit: 3, window: "10 m", windowMs: 10 * 60 * 1000 }, */
-  signup: { limit: 3, window: "1 m", windowMs: 60 * 1000 },
-  login: { limit: 5, window: "1 m", windowMs: 60 * 1000 },
-  resendVerificationEmail: { limit: 3, window: "1 m", windowMs: 60 * 1000 },
-  forgotPassword: { limit: 3, window: "1 m", windowMs: 60 * 1000 },
+  forgotPassword: { limit: 3, window: "10 m", windowMs: 10 * 60 * 1000 },
+  requestEmailChange: { limit: 3, window: "10 m", windowMs: 10 * 60 * 1000 },
+  changePassword: { limit: 5, window: "10 m", windowMs: 10 * 60 * 1000 },
+  resetPasswordPrecheck: { limit: 20, window: "10 m", windowMs: 10 * 60 * 1000 },
+  resetPassword: { limit: 5, window: "10 m", windowMs: 10 * 60 * 1000 },
+  verifyEmail: { limit: 10, window: "10 m", windowMs: 10 * 60 * 1000 },
+  verifyEmailChange: { limit: 10, window: "10 m", windowMs: 10 * 60 * 1000 },
+  dashboardExport: { limit: 12, window: "10 m", windowMs: 10 * 60 * 1000 },
 };
 
 const limiterCache = new Map<AuthRateLimitAction, RateLimiter>();
@@ -61,6 +77,17 @@ function hasUpstashEnv(): boolean {
 
 function isProduction(): boolean {
   return process.env.NODE_ENV === "production";
+}
+
+function isUpstashRateLimitAnalyticsEnabled(): boolean {
+  const configured = process.env.UPSTASH_RATE_LIMIT_ANALYTICS;
+  if (configured === "true") {
+    return true;
+  }
+  if (configured === "false") {
+    return false;
+  }
+  return isProduction();
 }
 
 export function isInMemoryRateLimitFallbackEnabled(): boolean {
@@ -144,6 +171,7 @@ function createUpstashRateLimiter(
     redis: Redis.fromEnv(),
     limiter: Ratelimit.slidingWindow(limit, window),
     prefix: `auth:${action}`,
+    analytics: isUpstashRateLimitAnalyticsEnabled(),
   });
 
   return {

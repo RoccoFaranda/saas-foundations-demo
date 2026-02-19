@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { randomUUID } from "node:crypto";
 
 const authMock = vi.hoisted(() => vi.fn());
@@ -19,10 +19,38 @@ import { resetPassword } from "../auth/actions";
 import { createPasswordResetToken } from "../auth/tokens";
 import { verifyPassword } from "../auth/password";
 import prisma from "../db";
+import { setRateLimiterFactoryForTests, type RateLimiter } from "../ratelimit";
+
+const allowLimiter: RateLimiter = {
+  async limit() {
+    return {
+      allowed: true,
+      limit: 5,
+      remaining: 4,
+      resetAt: Date.now() + 60_000,
+    };
+  },
+};
+
+const blockLimiter: RateLimiter = {
+  async limit() {
+    return {
+      allowed: false,
+      limit: 5,
+      remaining: 0,
+      resetAt: Date.now() + 60_000,
+    };
+  },
+};
 
 describe("resetPassword", () => {
   beforeEach(async () => {
     // no-op; db cleaned between tests by test setup
+    setRateLimiterFactoryForTests(() => allowLimiter);
+  });
+
+  afterEach(() => {
+    setRateLimiterFactoryForTests(null);
   });
 
   it("should reset password with valid token", async () => {
@@ -116,5 +144,33 @@ describe("resetPassword", () => {
     if (!result.success) {
       expect(result.error).toContain("Invalid");
     }
+  });
+
+  it("should block when rate limited without consuming token", async () => {
+    const email = `reset-rate-${randomUUID()}@example.com`;
+    const user = await prisma.user.create({
+      data: { email, passwordHash: "hash" },
+    });
+
+    const { token } = await createPasswordResetToken(user.id);
+    setRateLimiterFactoryForTests(() => blockLimiter);
+
+    const blockedForm = new FormData();
+    blockedForm.set("token", token);
+    blockedForm.set("password", "newpassword123");
+
+    const blockedResult = await resetPassword(blockedForm);
+    expect(blockedResult.success).toBe(false);
+    if (!blockedResult.success) {
+      expect(blockedResult.error).toContain("Too many");
+      expect(blockedResult.retryAt).toBeTypeOf("number");
+    }
+
+    setRateLimiterFactoryForTests(() => allowLimiter);
+    const retryForm = new FormData();
+    retryForm.set("token", token);
+    retryForm.set("password", "newpassword123");
+    const retryResult = await resetPassword(retryForm);
+    expect(retryResult.success).toBe(true);
   });
 });

@@ -69,4 +69,41 @@ describe("DashboardExportButton", () => {
     expect(screen.getByText("CSV downloaded")).toBeInTheDocument();
     expect(screen.getByText("projects-2026.csv (12 rows)")).toBeInTheDocument();
   });
+
+  it("shows rate-limit toast when export endpoint returns 429", async () => {
+    const fetchMock = vi.fn(async () => {
+      return new Response(
+        JSON.stringify({
+          error: "Too many requests. Try again in 1 minute.",
+          retryAt: Date.now() + 60_000,
+        }),
+        {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    });
+
+    global.fetch = fetchMock as typeof fetch;
+
+    render(
+      <ToastProvider>
+        <DashboardExportButton exportHref="/app/dashboard/export" rowCount={12} />
+      </ToastProvider>
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Export CSV" }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith("/app/dashboard/export", {
+        method: "GET",
+        cache: "no-store",
+      });
+    });
+
+    expect(screen.getByText("Export rate limited")).toBeInTheDocument();
+    expect(screen.getByText("Too many requests. Try again in 1 minute.")).toBeInTheDocument();
+  });
 });

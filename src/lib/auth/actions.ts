@@ -24,18 +24,8 @@ import { AuthError } from "next-auth";
 import { logAuthEvent } from "./logging";
 import { getAppUrl } from "./urls";
 import { getCurrentUser, requireVerifiedUser } from "./session";
-import {
-  AUTH_RATE_LIMIT_ERROR,
-  AUTH_RATE_LIMIT_UNAVAILABLE_ERROR,
-  formatRateLimitMessage,
-  getAuthRateLimiter,
-  getFailClosedDecision,
-  getInMemoryRateLimiter,
-  isInMemoryRateLimitFallbackEnabled,
-  type AuthRateLimitAction,
-  type RateLimiter,
-} from "../ratelimit";
-import { headers } from "next/headers";
+import type { AuthRateLimitAction } from "../ratelimit";
+import { enforceRateLimit, getRequestIp, toHashedTokenIdentifier } from "./rate-limit";
 import { getTurnstilePolicy, verifyTurnstileToken } from "./turnstile";
 
 /**
@@ -55,68 +45,12 @@ async function enforceAuthRateLimit(
   action: AuthRateLimitAction,
   identifiers: string[]
 ): Promise<AuthActionResult | null> {
-  const limiter = getAuthRateLimiter(action);
-  const allowFallback = isInMemoryRateLimitFallbackEnabled();
-  let fallbackLimiter: RateLimiter | null = null;
-  let loggedLimiterError = false;
-  for (const identifier of identifiers) {
-    const normalizedIdentifier = identifier.trim();
-    if (!normalizedIdentifier) {
-      continue;
-    }
-
-    let result;
-    try {
-      const activeLimiter = fallbackLimiter ?? limiter;
-      result = await activeLimiter.limit(normalizedIdentifier);
-    } catch (error) {
-      if (!loggedLimiterError) {
-        loggedLimiterError = true;
-        console.warn("[rate-limit] Upstash error; applying fallback policy.", {
-          action,
-          error: error instanceof Error ? error.message : String(error),
-          allowFallback,
-        });
-      }
-
-      if (allowFallback) {
-        if (!fallbackLimiter) {
-          fallbackLimiter = getInMemoryRateLimiter(action);
-        }
-        result = await fallbackLimiter.limit(normalizedIdentifier);
-      } else {
-        result = getFailClosedDecision(action);
-      }
-    }
-
-    if (!result.allowed) {
-      const message =
-        result.reason === "unavailable"
-          ? AUTH_RATE_LIMIT_UNAVAILABLE_ERROR
-          : result.resetAt
-            ? formatRateLimitMessage(result.resetAt)
-            : AUTH_RATE_LIMIT_ERROR;
-      return { success: false, error: message, retryAt: result.resetAt };
-    }
+  const blocked = await enforceRateLimit(action, identifiers);
+  if (blocked) {
+    return { success: false, error: blocked.error, retryAt: blocked.retryAt };
   }
 
   return null;
-}
-
-async function getRequestIp(): Promise<string | null> {
-  try {
-    const requestHeaders = await headers();
-    const forwardedFor = requestHeaders.get("x-forwarded-for");
-    const realIp = requestHeaders.get("x-real-ip");
-    const source = forwardedFor ?? realIp;
-    if (!source) {
-      return null;
-    }
-    const [first] = source.split(",");
-    return first?.trim() ?? null;
-  } catch {
-    return null;
-  }
 }
 
 function isUniqueConstraintError(error: unknown): boolean {
@@ -352,6 +286,13 @@ export async function login(formData: FormData): Promise<AuthActionResult> {
     return loginRateLimit;
   }
 
+  const loginSlowRateLimit = await enforceAuthRateLimit("loginSlow", [
+    requestIp ? `ip:${requestIp}` : "",
+  ]);
+  if (loginSlowRateLimit) {
+    return loginSlowRateLimit;
+  }
+
   // Parse and validate input
   const rawInput = {
     email: rawEmail,
@@ -401,6 +342,15 @@ export async function login(formData: FormData): Promise<AuthActionResult> {
  * Consumes token and sets emailVerified timestamp
  */
 export async function verifyEmail(token: string): Promise<AuthActionResult> {
+  const requestIp = await getRequestIp();
+  const verifyRateLimit = await enforceAuthRateLimit("verifyEmail", [
+    requestIp ? `ip:${requestIp}` : "",
+    toHashedTokenIdentifier(token),
+  ]);
+  if (verifyRateLimit) {
+    return verifyRateLimit;
+  }
+
   if (!token || typeof token !== "string" || token.trim().length === 0) {
     logAuthEvent("verify_email_invalid_token");
     return { success: false, error: "Invalid or missing verification token" };
@@ -508,6 +458,15 @@ export async function forgotPassword(formData: FormData): Promise<AuthActionResu
 export async function resetPassword(formData: FormData): Promise<AuthActionResult> {
   const rawToken = formData.get("token");
   const rawPassword = formData.get("password");
+  const requestIp = await getRequestIp();
+  const resetRateLimit = await enforceAuthRateLimit("resetPassword", [
+    requestIp ? `ip:${requestIp}` : "",
+    toHashedTokenIdentifier(rawToken),
+  ]);
+  if (resetRateLimit) {
+    return resetRateLimit;
+  }
+
   const parsed = resetPasswordSchema.safeParse({
     token: typeof rawToken === "string" ? rawToken.trim() : "",
     password: typeof rawPassword === "string" ? rawPassword : "",
@@ -634,6 +593,14 @@ function generateEmailChangeHtml(verifyUrl: string, newEmail: string): string {
  */
 export async function changePassword(formData: FormData): Promise<AuthActionResult> {
   const user = await requireVerifiedUser();
+  const requestIp = await getRequestIp();
+  const changePasswordRateLimit = await enforceAuthRateLimit("changePassword", [
+    `user:${user.id}`,
+    requestIp ? `ip:${requestIp}` : "",
+  ]);
+  if (changePasswordRateLimit) {
+    return changePasswordRateLimit;
+  }
 
   const rawInput = {
     currentPassword: formData.get("currentPassword"),
@@ -694,6 +661,14 @@ export async function changePassword(formData: FormData): Promise<AuthActionResu
  */
 export async function requestEmailChange(formData: FormData): Promise<AuthActionResult> {
   const user = await requireVerifiedUser();
+  const requestIp = await getRequestIp();
+  const requestEmailChangeRateLimit = await enforceAuthRateLimit("requestEmailChange", [
+    `user:${user.id}`,
+    requestIp ? `ip:${requestIp}` : "",
+  ]);
+  if (requestEmailChangeRateLimit) {
+    return requestEmailChangeRateLimit;
+  }
 
   const rawInput = {
     currentPassword: formData.get("currentPassword"),
@@ -787,6 +762,15 @@ export async function requestEmailChange(formData: FormData): Promise<AuthAction
  * Consumes token and updates user email
  */
 export async function verifyEmailChange(token: string): Promise<AuthActionResult> {
+  const requestIp = await getRequestIp();
+  const verifyEmailChangeRateLimit = await enforceAuthRateLimit("verifyEmailChange", [
+    requestIp ? `ip:${requestIp}` : "",
+    toHashedTokenIdentifier(token),
+  ]);
+  if (verifyEmailChangeRateLimit) {
+    return verifyEmailChangeRateLimit;
+  }
+
   if (!token || typeof token !== "string" || token.trim().length === 0) {
     logAuthEvent("change_email_token_invalid");
     return { success: false, error: "Invalid or missing verification token" };

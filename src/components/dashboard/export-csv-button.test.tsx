@@ -114,4 +114,59 @@ describe("ExportCsvButton", () => {
     expect(button).toHaveTextContent("Export CSV");
     expect(URL.createObjectURL).not.toHaveBeenCalled();
   });
+
+  it("disables export until retryAt when rate limited, then re-enables", async () => {
+    vi.useFakeTimers();
+    const onExport = vi.fn(async () => {
+      throw Object.assign(new Error("Too many requests. Try again in 1 minute."), {
+        status: 429,
+        message: "Too many requests. Try again in 1 minute.",
+        retryAt: Date.now() + 2000,
+      });
+    });
+
+    render(
+      <ToastProvider>
+        <ExportCsvButton onExport={onExport} />
+      </ToastProvider>
+    );
+
+    const button = screen.getByRole("button", { name: "Export CSV" });
+    await act(async () => {
+      fireEvent.click(button);
+      await Promise.resolve();
+    });
+
+    expect(onExport).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Export rate limited")).toBeInTheDocument();
+    expect(button).toBeDisabled();
+    expect(button).toHaveTextContent("Try again in 0:02");
+
+    await act(async () => {
+      fireEvent.click(button);
+      await Promise.resolve();
+    });
+    expect(onExport).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    expect(button).toBeDisabled();
+    expect(button).toHaveTextContent("Try again in 0:01");
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(button).not.toBeDisabled();
+    expect(button).toHaveTextContent("Export CSV");
+
+    await act(async () => {
+      fireEvent.click(button);
+      await Promise.resolve();
+    });
+    expect(onExport).toHaveBeenCalledTimes(2);
+  });
 });

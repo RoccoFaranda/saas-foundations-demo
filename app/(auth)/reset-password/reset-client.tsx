@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { resetPassword } from "@/src/lib/auth/actions";
@@ -9,13 +9,49 @@ import { GENERIC_ACTION_ERROR } from "@/src/lib/ui/messages";
 type ResetClientProps = {
   token: string | null;
   tokenValid: boolean | null;
+  precheckError?: string | null;
 };
 
-export default function ResetClient({ token, tokenValid }: ResetClientProps) {
+export default function ResetClient({ token, tokenValid, precheckError }: ResetClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<boolean>(false);
+  const [isRateLimited, setIsRateLimited] = useState(false);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearRateLimitMessageRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+      }
+    };
+  }, []);
+
+  function applyRetryAt(nextRetryAt: number | null | undefined, onClearMessage?: () => void) {
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+    clearRateLimitMessageRef.current = onClearMessage ?? null;
+
+    if (nextRetryAt && nextRetryAt > Date.now()) {
+      setIsRateLimited(true);
+      const delay = Math.max(nextRetryAt - Date.now(), 0);
+      retryTimerRef.current = setTimeout(() => {
+        setIsRateLimited(false);
+        retryTimerRef.current = null;
+        clearRateLimitMessageRef.current?.();
+        clearRateLimitMessageRef.current = null;
+      }, delay);
+      return;
+    }
+
+    setIsRateLimited(false);
+    clearRateLimitMessageRef.current?.();
+    clearRateLimitMessageRef.current = null;
+  }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -30,14 +66,18 @@ export default function ResetClient({ token, tokenValid }: ResetClientProps) {
       try {
         const result = await resetPassword(formData);
         if (result.success) {
+          applyRetryAt(null);
           setSuccess(true);
           const redirectUrl = result.redirectUrl ?? "/login";
           // Redirect to login after short delay
           setTimeout(() => router.push(redirectUrl), 800);
         } else {
+          const retryAt = result.retryAt ?? null;
           setError(result.error);
+          applyRetryAt(retryAt, retryAt ? () => setError(null) : undefined);
         }
       } catch {
+        applyRetryAt(null);
         setError(GENERIC_ACTION_ERROR);
       }
     });
@@ -67,6 +107,7 @@ export default function ResetClient({ token, tokenValid }: ResetClientProps) {
 
   // Token present but invalid
   if (tokenValid === false) {
+    const isRateLimited = Boolean(precheckError);
     return (
       <main className="flex min-h-screen flex-col items-center justify-center p-4">
         <div className="w-full max-w-sm text-center">
@@ -87,9 +128,11 @@ export default function ResetClient({ token, tokenValid }: ResetClientProps) {
                 />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold">Reset link invalid</h1>
+            <h1 className="text-2xl font-bold">
+              {isRateLimited ? "Please try again shortly" : "Reset link invalid"}
+            </h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              This reset link is invalid, expired, or already used.
+              {precheckError ?? "This reset link is invalid, expired, or already used."}
             </p>
           </div>
 
@@ -153,7 +196,7 @@ export default function ResetClient({ token, tokenValid }: ResetClientProps) {
 
           <button
             type="submit"
-            disabled={isPending || success}
+            disabled={isPending || success || isRateLimited}
             className="btn-primary btn-md w-full"
           >
             {isPending ? "Resetting..." : "Reset password"}

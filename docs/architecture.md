@@ -190,7 +190,13 @@ Demo-safe behavior:
 
 - Backed by Redis (Upstash) for shared limits across instances.
 - In production, missing/invalid Upstash configuration fails closed by default unless `ALLOW_IN_MEMORY_RATE_LIMIT_FALLBACK=true` is set.
-- Used on auth endpoints and billing endpoints to mitigate abuse.
+- Upstash analytics is enabled by default in production (override with `UPSTASH_RATE_LIMIT_ANALYTICS=false`).
+- Blocked/unavailable limiter decisions are logged as structured auth events for tuning.
+- Currently enforced for:
+  - signup, login (fast + slow buckets, including direct credentials callback), forgot-password, resend-verification
+  - change-password, change-email request, verify-email, verify-email-change, reset-password
+  - authenticated CSV export (`/app/dashboard/export`)
+- Billing endpoint limits are planned for when billing routes are implemented.
 
 ### Stripe (test mode only)
 
@@ -223,7 +229,7 @@ Baseline security posture for this public demo:
   - verification/reset/email-change tokens are short-lived and single-use
   - tokens are stored as HMAC-SHA-256 hashes with a server-side secret
 - **Rate limiting**
-  - applied to signup/login/reset/resend verification/billing endpoints
+  - applied to signup/login/reset/resend verification, settings security actions, email verification flows, and CSV export
   - consider per-IP + per-user + global caps
 - **Account enumeration**
   - password reset requests return a generic success response
@@ -290,6 +296,7 @@ Rate limiting notes:
 
 - `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` are required for shared limits in production.
 - `ALLOW_IN_MEMORY_RATE_LIMIT_FALLBACK=true` opt-in enables in-memory fallback in production (weaker across instances).
+- `UPSTASH_RATE_LIMIT_ANALYTICS` controls Upstash analytics (`true`/`false`). Default is `true` in production and `false` otherwise.
 
 ### Database Migrations
 

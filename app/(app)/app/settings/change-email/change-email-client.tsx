@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { requestEmailChange } from "@/src/lib/auth/actions";
@@ -16,6 +16,41 @@ export default function ChangeEmailClient({ currentEmail }: ChangeEmailClientPro
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [fieldError, setFieldError] = useState<"email" | "password" | null>(null);
+  const [isRateLimited, setIsRateLimited] = useState(false);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearRateLimitMessageRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+      }
+    };
+  }, []);
+
+  function applyRetryAt(nextRetryAt: number | null | undefined, onClearMessage?: () => void) {
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+    clearRateLimitMessageRef.current = onClearMessage ?? null;
+
+    if (nextRetryAt && nextRetryAt > Date.now()) {
+      setIsRateLimited(true);
+      const delay = Math.max(nextRetryAt - Date.now(), 0);
+      retryTimerRef.current = setTimeout(() => {
+        setIsRateLimited(false);
+        retryTimerRef.current = null;
+        clearRateLimitMessageRef.current?.();
+        clearRateLimitMessageRef.current = null;
+      }, delay);
+      return;
+    }
+
+    setIsRateLimited(false);
+    clearRateLimitMessageRef.current?.();
+    clearRateLimitMessageRef.current = null;
+  }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -30,16 +65,20 @@ export default function ChangeEmailClient({ currentEmail }: ChangeEmailClientPro
         const result = await requestEmailChange(formData);
 
         if (result.success) {
+          applyRetryAt(null);
           setSuccess(true);
           setTimeout(() => {
             router.push("/app/settings");
             router.refresh();
           }, 2000);
         } else {
+          const retryAt = result.retryAt ?? null;
           setError(result.error);
           setFieldError(result.field ?? null);
+          applyRetryAt(retryAt, retryAt ? () => setError(null) : undefined);
         }
       } catch {
+        applyRetryAt(null);
         setError(GENERIC_ACTION_ERROR);
       }
     });
@@ -114,7 +153,7 @@ export default function ChangeEmailClient({ currentEmail }: ChangeEmailClientPro
 
           <button
             type="submit"
-            disabled={isPending || success}
+            disabled={isPending || success || isRateLimited}
             className="btn-primary btn-md w-full"
           >
             {isPending

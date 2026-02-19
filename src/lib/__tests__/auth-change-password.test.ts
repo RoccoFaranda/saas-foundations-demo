@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { randomUUID } from "node:crypto";
 
 const authMock = vi.hoisted(() => vi.fn());
@@ -18,10 +18,38 @@ vi.mock("next-auth", () => ({
 import { changePassword } from "../auth/actions";
 import { hashPassword, verifyPassword } from "../auth/password";
 import prisma from "../db";
+import { setRateLimiterFactoryForTests, type RateLimiter } from "../ratelimit";
+
+const allowLimiter: RateLimiter = {
+  async limit() {
+    return {
+      allowed: true,
+      limit: 5,
+      remaining: 4,
+      resetAt: Date.now() + 60_000,
+    };
+  },
+};
+
+const blockLimiter: RateLimiter = {
+  async limit() {
+    return {
+      allowed: false,
+      limit: 5,
+      remaining: 0,
+      resetAt: Date.now() + 60_000,
+    };
+  },
+};
 
 describe("changePassword", () => {
   beforeEach(async () => {
     // no-op; db cleaned between tests by test setup
+    setRateLimiterFactoryForTests(() => allowLimiter);
+  });
+
+  afterEach(() => {
+    setRateLimiterFactoryForTests(null);
   });
 
   it("should update password with valid current password", async () => {
@@ -115,6 +143,42 @@ describe("changePassword", () => {
     if (!result.success) {
       expect(result.error).toContain("at least 8 characters");
       expect(result.field).toBe("password");
+    }
+  });
+
+  it("should block when rate limited", async () => {
+    const email = `change-pw-rate-${randomUUID()}@example.com`;
+    const currentPassword = "currentpass123";
+    const newPassword = "newpassword456";
+    const currentHash = await hashPassword(currentPassword);
+
+    const user = await prisma.user.create({
+      data: { email, passwordHash: currentHash, emailVerified: new Date() },
+    });
+
+    authMock.mockResolvedValue({
+      user: { id: user.id, email: user.email, emailVerified: new Date(), sessionVersion: 0 },
+    });
+    setRateLimiterFactoryForTests(() => blockLimiter);
+
+    const form = new FormData();
+    form.set("currentPassword", currentPassword);
+    form.set("newPassword", newPassword);
+
+    const result = await changePassword(form);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toContain("Too many");
+      expect(result.retryAt).toBeTypeOf("number");
+    }
+
+    const unchanged = await prisma.user.findUnique({ where: { id: user.id } });
+    expect(unchanged).toBeTruthy();
+    if (unchanged) {
+      const stillMatches = await verifyPassword(currentPassword, unchanged.passwordHash);
+      expect(stillMatches).toBe(true);
+      const newMatches = await verifyPassword(newPassword, unchanged.passwordHash);
+      expect(newMatches).toBe(false);
     }
   });
 });

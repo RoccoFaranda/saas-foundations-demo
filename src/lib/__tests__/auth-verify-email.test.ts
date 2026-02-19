@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { randomUUID } from "node:crypto";
 
 vi.mock("server-only", () => ({}));
@@ -19,11 +19,36 @@ vi.mock("next-auth/providers/credentials", () => ({
 import { verifyEmail } from "../auth/actions";
 import { createEmailVerificationToken } from "../auth/tokens";
 import prisma from "../db";
+import { setRateLimiterFactoryForTests, type RateLimiter } from "../ratelimit";
+
+const allowLimiter: RateLimiter = {
+  async limit() {
+    return {
+      allowed: true,
+      limit: 10,
+      remaining: 9,
+      resetAt: Date.now() + 60_000,
+    };
+  },
+};
+
+const blockLimiter: RateLimiter = {
+  async limit() {
+    return {
+      allowed: false,
+      limit: 10,
+      remaining: 0,
+      resetAt: Date.now() + 60_000,
+    };
+  },
+};
 
 describe("verifyEmail", () => {
   let testUserId: string;
 
   beforeEach(async () => {
+    setRateLimiterFactoryForTests(() => allowLimiter);
+
     // Create a test user
     const user = await prisma.user.create({
       data: {
@@ -33,6 +58,10 @@ describe("verifyEmail", () => {
       },
     });
     testUserId = user.id;
+  });
+
+  afterEach(() => {
+    setRateLimiterFactoryForTests(null);
   });
 
   it("should verify a valid token and set emailVerified", async () => {
@@ -109,5 +138,21 @@ describe("verifyEmail", () => {
 
     const secondResult = await verifyEmail(secondToken);
     expect(secondResult.success).toBe(true);
+  });
+
+  it("should block when rate limited without consuming token", async () => {
+    const { token } = await createEmailVerificationToken(testUserId);
+    setRateLimiterFactoryForTests(() => blockLimiter);
+
+    const blockedResult = await verifyEmail(token);
+    expect(blockedResult.success).toBe(false);
+    if (!blockedResult.success) {
+      expect(blockedResult.error).toContain("Too many");
+      expect(blockedResult.retryAt).toBeTypeOf("number");
+    }
+
+    setRateLimiterFactoryForTests(() => allowLimiter);
+    const retryResult = await verifyEmail(token);
+    expect(retryResult.success).toBe(true);
   });
 });

@@ -32,7 +32,10 @@ export type AuthLogEvent =
   | "change_email_duplicate"
   | "change_email_token_sent"
   | "change_email_token_invalid"
-  | "change_email_success";
+  | "change_email_success"
+  | "rate_limit_blocked"
+  | "rate_limit_unavailable"
+  | "rate_limit_upstash_error";
 
 type AuthLogDetails = Record<string, string | number | boolean | null | undefined>;
 

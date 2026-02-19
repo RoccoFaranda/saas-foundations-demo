@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { randomUUID } from "node:crypto";
 
 const authMock = vi.hoisted(() => vi.fn());
@@ -20,11 +20,39 @@ import { createEmailChangeToken } from "../auth/tokens";
 import { hashPassword } from "../auth/password";
 import { testEmailHelpers } from "../auth/email";
 import prisma from "../db";
+import { setRateLimiterFactoryForTests, type RateLimiter } from "../ratelimit";
+
+const allowLimiter: RateLimiter = {
+  async limit() {
+    return {
+      allowed: true,
+      limit: 3,
+      remaining: 2,
+      resetAt: Date.now() + 60_000,
+    };
+  },
+};
+
+const blockLimiter: RateLimiter = {
+  async limit() {
+    return {
+      allowed: false,
+      limit: 3,
+      remaining: 0,
+      resetAt: Date.now() + 60_000,
+    };
+  },
+};
 
 describe("requestEmailChange", () => {
   beforeEach(() => {
     testEmailHelpers.reset();
     authMock.mockReset();
+    setRateLimiterFactoryForTests(() => allowLimiter);
+  });
+
+  afterEach(() => {
+    setRateLimiterFactoryForTests(null);
   });
 
   it("should send verification email for valid request", async () => {
@@ -144,11 +172,46 @@ describe("requestEmailChange", () => {
       expect(result.field).toBe("email");
     }
   });
+
+  it("should block when rate limited", async () => {
+    const oldEmail = `old-rate-${randomUUID()}@example.com`;
+    const newEmail = `new-rate-${randomUUID()}@example.com`;
+    const password = "password123";
+    const passwordHash = await hashPassword(password);
+
+    const user = await prisma.user.create({
+      data: { email: oldEmail, passwordHash, emailVerified: new Date() },
+    });
+
+    authMock.mockResolvedValue({
+      user: { id: user.id, email: user.email, emailVerified: new Date() },
+    });
+    setRateLimiterFactoryForTests(() => blockLimiter);
+
+    const form = new FormData();
+    form.set("currentPassword", password);
+    form.set("newEmail", newEmail);
+
+    const result = await requestEmailChange(form);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toContain("Too many");
+      expect(result.retryAt).toBeTypeOf("number");
+    }
+
+    const emails = testEmailHelpers.findByTo(newEmail);
+    expect(emails).toHaveLength(0);
+  });
 });
 
 describe("verifyEmailChange", () => {
   beforeEach(() => {
     authMock.mockReset();
+    setRateLimiterFactoryForTests(() => allowLimiter);
+  });
+
+  afterEach(() => {
+    setRateLimiterFactoryForTests(null);
   });
 
   it("should update email with valid token", async () => {
@@ -262,5 +325,29 @@ describe("verifyEmailChange", () => {
     // Original email should remain
     const unchanged = await prisma.user.findUnique({ where: { id: user.id } });
     expect(unchanged?.email).toBe(oldEmail);
+  });
+
+  it("should block when rate limited without consuming token", async () => {
+    const oldEmail = `old-rate-verify-${randomUUID()}@example.com`;
+    const newEmail = `new-rate-verify-${randomUUID()}@example.com`;
+    const passwordHash = "hash";
+
+    const user = await prisma.user.create({
+      data: { email: oldEmail, passwordHash, emailVerified: new Date() },
+    });
+
+    const { token } = await createEmailChangeToken(user.id, newEmail);
+    setRateLimiterFactoryForTests(() => blockLimiter);
+
+    const blockedResult = await verifyEmailChange(token);
+    expect(blockedResult.success).toBe(false);
+    if (!blockedResult.success) {
+      expect(blockedResult.error).toContain("Too many");
+      expect(blockedResult.retryAt).toBeTypeOf("number");
+    }
+
+    setRateLimiterFactoryForTests(() => allowLimiter);
+    const retryResult = await verifyEmailChange(token);
+    expect(retryResult.success).toBe(true);
   });
 });

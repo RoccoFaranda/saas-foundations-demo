@@ -18,7 +18,7 @@ vi.mock("next/headers", () => ({
   headers: () => new Headers({ "x-forwarded-for": "203.0.113.10" }),
 }));
 
-import { forgotPassword } from "../auth/actions";
+import { forgotPassword, login } from "../auth/actions";
 import { testEmailHelpers } from "../auth/email";
 import prisma from "../db";
 import { setRateLimiterFactoryForTests, type RateLimiter } from "../ratelimit";
@@ -77,6 +77,59 @@ describe("auth rate limiting", () => {
     const emails = testEmailHelpers.findByTo(email);
     expect(emails).toHaveLength(1);
     expect(identifiers).toEqual(expect.arrayContaining([`ip:203.0.113.10`, `email:${email}`]));
+  });
+
+  it("applies both login and loginSlow buckets on login", async () => {
+    const calls: Array<{ action: string; identifier: string }> = [];
+    const trackingFactory = (action: string): RateLimiter => ({
+      async limit(identifier) {
+        calls.push({ action, identifier });
+        return allowLimiter.limit(identifier);
+      },
+    });
+    setRateLimiterFactoryForTests((action) => trackingFactory(action));
+
+    const form = new FormData();
+    form.set("email", `login-rate-${randomUUID()}@example.com`);
+    form.set("password", "password123");
+    const result = await login(form);
+
+    expect(result.success).toBe(true);
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        { action: "login", identifier: "ip:203.0.113.10" },
+        { action: "loginSlow", identifier: "ip:203.0.113.10" },
+      ])
+    );
+    expect(
+      calls.some(
+        (call) =>
+          call.action === "login" &&
+          call.identifier.startsWith("email:") &&
+          call.identifier.endsWith("@example.com")
+      )
+    ).toBe(true);
+  });
+
+  it("blocks login when loginSlow bucket is rate limited", async () => {
+    setRateLimiterFactoryForTests((action) => {
+      if (action === "loginSlow") {
+        return blockLimiter;
+      }
+
+      return allowLimiter;
+    });
+
+    const form = new FormData();
+    form.set("email", `login-rate-block-${randomUUID()}@example.com`);
+    form.set("password", "password123");
+    const result = await login(form);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toContain("Too many");
+      expect(result.retryAt).toBeTypeOf("number");
+    }
   });
 
   it("blocks forgotPassword when rate limited", async () => {

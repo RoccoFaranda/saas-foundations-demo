@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -15,6 +15,41 @@ export default function ChangePasswordClient() {
   const [success, setSuccess] = useState(false);
   const [fieldError, setFieldError] = useState<"email" | "password" | null>(null);
   const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [isRateLimited, setIsRateLimited] = useState(false);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearRateLimitMessageRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+      }
+    };
+  }, []);
+
+  function applyRetryAt(nextRetryAt: number | null | undefined, onClearMessage?: () => void) {
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+    clearRateLimitMessageRef.current = onClearMessage ?? null;
+
+    if (nextRetryAt && nextRetryAt > Date.now()) {
+      setIsRateLimited(true);
+      const delay = Math.max(nextRetryAt - Date.now(), 0);
+      retryTimerRef.current = setTimeout(() => {
+        setIsRateLimited(false);
+        retryTimerRef.current = null;
+        clearRateLimitMessageRef.current?.();
+        clearRateLimitMessageRef.current = null;
+      }, delay);
+      return;
+    }
+
+    setIsRateLimited(false);
+    clearRateLimitMessageRef.current?.();
+    clearRateLimitMessageRef.current = null;
+  }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -29,6 +64,7 @@ export default function ChangePasswordClient() {
         const result = await changePassword(formData);
 
         if (result.success) {
+          applyRetryAt(null);
           setSuccess(true);
           setRefreshError(null);
           try {
@@ -41,10 +77,13 @@ export default function ChangePasswordClient() {
             router.refresh();
           }, 1500);
         } else {
+          const retryAt = result.retryAt ?? null;
           setError(result.error);
           setFieldError(result.field ?? null);
+          applyRetryAt(retryAt, retryAt ? () => setError(null) : undefined);
         }
       } catch {
+        applyRetryAt(null);
         setError(GENERIC_ACTION_ERROR);
       }
     });
@@ -118,7 +157,7 @@ export default function ChangePasswordClient() {
 
           <button
             type="submit"
-            disabled={isPending || success}
+            disabled={isPending || success || isRateLimited}
             className="btn-primary btn-md w-full"
           >
             {isPending ? "Changing password..." : success ? "Password changed!" : "Change Password"}

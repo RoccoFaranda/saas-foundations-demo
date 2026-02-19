@@ -1,7 +1,11 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getAuthRateLimiter, setRateLimiterFactoryForTests } from "../ratelimit";
+import {
+  getAuthRateLimiter,
+  setRateLimiterFactoryForTests,
+  type AuthRateLimitAction,
+} from "../ratelimit";
 
 describe("getAuthRateLimiter in production", () => {
   beforeEach(() => {
@@ -34,5 +38,26 @@ describe("getAuthRateLimiter in production", () => {
 
     expect(result.allowed).toBe(true);
     expect(result.remaining).toBeLessThan(result.limit);
+  });
+
+  it("supports the extended action set with in-memory fallback", async () => {
+    vi.stubEnv("ALLOW_IN_MEMORY_RATE_LIMIT_FALLBACK", "true");
+    const actions: AuthRateLimitAction[] = [
+      "loginSlow",
+      "requestEmailChange",
+      "changePassword",
+      "resetPasswordPrecheck",
+      "resetPassword",
+      "verifyEmail",
+      "verifyEmailChange",
+      "dashboardExport",
+    ];
+
+    for (const action of actions) {
+      const limiter = getAuthRateLimiter(action);
+      const result = await limiter.limit(`test:${action}`);
+      expect(result.allowed).toBe(true);
+      expect(result.limit).toBeGreaterThan(0);
+    }
   });
 });
