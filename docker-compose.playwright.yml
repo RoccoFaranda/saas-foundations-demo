@@ -1,0 +1,31 @@
+services:
+  playwright-linux:
+    build:
+      context: .
+      dockerfile: docker/playwright/Dockerfile
+      args:
+        NODE_VERSION: "24.12.0"
+    working_dir: /work
+    environment:
+      SKIP_DOCKER_CHECK: "1"
+      NEXT_DIST_DIR: ".next-e2e-linux"
+      SNAPSHOT_GREP: "@visual-landing"
+      SNAPSHOT_OUTPUT_PREFIX: "test-results-snapshots-linux"
+    volumes:
+      - ./:/work
+      - playwright_node_modules:/work/node_modules
+      - playwright_pnpm_store:/pnpm-store
+    entrypoint: ["/bin/bash", "-lc"]
+    command:
+      - >
+        set -euo pipefail &&
+        corepack enable &&
+        corepack prepare pnpm@10.27.0 --activate &&
+        pnpm config set store-dir /pnpm-store &&
+        pnpm install --frozen-lockfile &&
+        pnpm exec playwright test --project=chromium --grep "$$SNAPSHOT_GREP" --update-snapshots --output="$${SNAPSHOT_OUTPUT_PREFIX}-update" &&
+        pnpm exec playwright test --project=chromium --grep "$$SNAPSHOT_GREP" --output="$${SNAPSHOT_OUTPUT_PREFIX}-verify"
+
+volumes:
+  playwright_node_modules:
+  playwright_pnpm_store:

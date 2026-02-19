@@ -8,6 +8,8 @@ if (fs.existsSync(testEnvPath)) {
   dotenv.config({ path: testEnvPath, override: true });
 }
 
+const defaultE2eDistDir = process.platform === "win32" ? ".next-e2e-win" : ".next-e2e-linux";
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
@@ -33,7 +35,7 @@ export default defineConfig({
     env: {
       ...process.env,
       PORT: "3001",
-      NEXT_DIST_DIR: ".next-e2e",
+      NEXT_DIST_DIR: process.env.NEXT_DIST_DIR ?? defaultE2eDistDir,
     },
   },
 });

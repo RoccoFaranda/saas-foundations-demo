@@ -4,13 +4,18 @@ test.describe("Marketing home page @landing-ui", () => {
   test("renders finalized hero copy, CTA links, and six proof chips", async ({ page }) => {
     await page.goto("/");
 
+    const heroSection = page.locator("section").first();
+
     await expect(
-      page.getByRole("heading", { level: 1, name: "A production-style SaaS demo, end to end." })
+      heroSection.getByRole("heading", {
+        level: 1,
+        name: "A production-style SaaS demo, end to end.",
+      })
     ).toBeVisible();
 
-    const exploreCta = page.getByRole("link", { name: "Explore Demo" });
-    const technicalCta = page.getByRole("link", { name: "View Technical Scope" });
-    const contactCta = page.getByRole("link", { name: "Contact", exact: true });
+    const exploreCta = heroSection.getByRole("link", { name: "Explore Demo" });
+    const technicalCta = heroSection.getByRole("link", { name: "View Technical Scope" });
+    const contactCta = heroSection.getByRole("link", { name: "Contact", exact: true });
 
     await expect(exploreCta).toHaveAttribute("href", "/demo");
     await expect(technicalCta).toHaveAttribute("href", "/technical");

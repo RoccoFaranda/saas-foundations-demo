@@ -31,26 +31,26 @@ For detailed database setup instructions, see [Architecture Documentation](./doc
 
 ## Available Scripts
 
-| Script                  | Description                                                 |
-| ----------------------- | ----------------------------------------------------------- |
-| `pnpm dev`              | Start development server                                    |
-| `pnpm build`            | Build for production                                        |
-| `pnpm start`            | Start production server                                     |
-| `pnpm lint`             | Run ESLint                                                  |
-| `pnpm format`           | Format code with Prettier                                   |
-| `pnpm format:check`     | Check code formatting                                       |
-| `pnpm typecheck`        | Run TypeScript type checking                                |
-| `pnpm test`             | Run unit tests (one-shot)                                   |
-| `pnpm test:watch`       | Run unit tests in watch mode                                |
-| `pnpm test:e2e`         | Run Playwright E2E tests excluding `@landing-ui` (chromium) |
-| `pnpm test:e2e:landing` | Run only landing-page UI Playwright tests (`@landing-ui`)   |
-| `pnpm test:e2e:theme`   | Run only theme-focused Playwright tests                     |
-| `pnpm theme:check`      | Validate theme tokens, contrast, and semantic style rules   |
-| `pnpm db:generate`      | Generate Prisma client                                      |
-| `pnpm db:migrate`       | Run Prisma development migrations                           |
-| `pnpm db:reset`         | Reset database via Prisma                                   |
-| `pnpm db:seed`          | Seed database data                                          |
-| `pnpm db:studio`        | Open Prisma Studio                                          |
+| Script                    | Description                                                         |
+| ------------------------- | ------------------------------------------------------------------- |
+| `pnpm dev`                | Start development server                                            |
+| `pnpm build`              | Build for production                                                |
+| `pnpm start`              | Start production server                                             |
+| `pnpm lint`               | Run ESLint                                                          |
+| `pnpm format`             | Format code with Prettier                                           |
+| `pnpm format:check`       | Check code formatting                                               |
+| `pnpm typecheck`          | Run TypeScript type checking                                        |
+| `pnpm test`               | Run unit tests (one-shot)                                           |
+| `pnpm test:watch`         | Run unit tests in watch mode                                        |
+| `pnpm test:e2e`           | Run all Playwright E2E tests (chromium)                             |
+| `pnpm test:e2e:snapshots` | Update + verify visual snapshots with `--scope` and `--target` args |
+| `pnpm test:e2e:theme`     | Run only theme-focused Playwright tests                             |
+| `pnpm theme:check`        | Validate theme tokens, contrast, and semantic style rules           |
+| `pnpm db:generate`        | Generate Prisma client                                              |
+| `pnpm db:migrate`         | Run Prisma development migrations                                   |
+| `pnpm db:reset`           | Reset database via Prisma                                           |
+| `pnpm db:seed`            | Seed database data                                                  |
+| `pnpm db:studio`          | Open Prisma Studio                                                  |
 
 ## Environment Variables
 
@@ -64,6 +64,31 @@ Create a `.env.local` file in the project root for local development:
 `NEXT_PUBLIC_APP_URL` must be an absolute URL in production/preview so emails can include valid links.
 In local dev/test, the app falls back to `http://localhost:3000` if it is not set.
 See `.env.example` for all available environment variables (when available).
+
+## Snapshot Updates
+
+Use the dispatcher command for visual snapshot updates:
+
+```bash
+pnpm test:e2e:snapshots -- --scope <scope> --target <target>
+```
+
+- Scopes: `landing`, `demo`, `technical`, `all`
+- Targets: `win`, `linux`, `both`
+- Defaults: `--scope landing --target both`
+
+Examples:
+
+```bash
+# Landing snapshots on Linux only (CI-compatible baselines)
+pnpm test:e2e:snapshots -- --scope landing --target linux
+
+# Demo snapshots on Windows only
+pnpm test:e2e:snapshots -- --scope demo --target win
+
+# All visual snapshots on both environments
+pnpm test:e2e:snapshots -- --scope all --target both
+```
 
 ## Health Endpoint
 
@@ -112,7 +137,8 @@ Response shape:
    - Always: `pnpm format:check && pnpm lint && pnpm typecheck && pnpm test`
    - UI/theme changes: `pnpm theme:check`
    - User-flow changes: `pnpm test:e2e` (or `pnpm test:e2e:theme` for theme-only updates)
-   - Landing page UI updates: `pnpm test:e2e:landing`
+   - Landing page UI updates: `pnpm test:e2e -- --grep @landing-ui` during iteration, then `pnpm test:e2e` before merge
+   - Snapshot baseline updates: `pnpm test:e2e:snapshots -- --scope landing --target linux`
 4. Open a pull request
 
 ## License
