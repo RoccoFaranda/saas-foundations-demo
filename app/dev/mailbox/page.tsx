@@ -1,45 +1,20 @@
 import { notFound } from "next/navigation";
-import { getDevMailboxMessages } from "@/src/lib/auth/dev-mailbox";
-
-export const dynamic = "force-dynamic";
+import DevMailboxClient from "./dev-mailbox-client";
 
 export default async function DevMailboxPage() {
   if (process.env.NODE_ENV !== "development") {
     notFound();
   }
 
-  const messages = (await getDevMailboxMessages()).slice().reverse();
-
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6" suppressHydrationWarning>
+    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
       <header className="space-y-2">
         <h1 className="text-2xl font-bold">Dev Mailbox</h1>
         <p className="text-sm text-muted-foreground">
           Local-only inbox for testing verification and reset links.
         </p>
       </header>
-
-      {messages.length === 0 ? (
-        <div className="state-info p-4">No messages yet.</div>
-      ) : (
-        <div className="space-y-4">
-          {messages.map((message, index) => (
-            <div key={`${message.subject}-${index}`} className="surface-card p-4">
-              <div className="text-sm text-muted-foreground">To</div>
-              <div className="mb-3 text-sm font-medium">{message.to}</div>
-              <div className="text-sm text-muted-foreground">Subject</div>
-              <div className="mb-3 text-sm font-medium">{message.subject}</div>
-              {message.html ? (
-                <div className="prose prose-invert max-w-none text-sm">
-                  <div dangerouslySetInnerHTML={{ __html: message.html }} />
-                </div>
-              ) : (
-                <pre className="whitespace-pre-wrap text-sm text-foreground">{message.text}</pre>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+      <DevMailboxClient />
     </main>
   );
 }
