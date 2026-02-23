@@ -40,6 +40,8 @@ model User {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   sessionVersion  Int              @default(0)
+  deletionRequestedAt DateTime?
+  deletionScheduledFor DateTime?
 
   // Relations
   items                   Item[]
@@ -47,8 +49,10 @@ model User {
   emailVerificationTokens EmailVerificationToken[]
   passwordResetTokens     PasswordResetToken[]
   emailChangeTokens       EmailChangeToken[]
+  accountDeletionTokens   AccountDeletionToken[]
   billingCustomer         BillingCustomer?
 
+  @@index([deletionScheduledFor])
   @@map("users")
 }
 
@@ -151,6 +155,21 @@ model EmailChangeToken {
 
   @@index([userId])
   @@map("email_change_tokens")
+}
+
+model AccountDeletionToken {
+  id          String    @id @default(cuid())
+  userId      String
+  hashedToken String    @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("account_deletion_tokens")
 }
 
 model StripeEvent {

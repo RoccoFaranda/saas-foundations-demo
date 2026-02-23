@@ -8,6 +8,7 @@ import {
   resetPasswordSchema,
   changePasswordSchema,
   changeEmailSchema,
+  deleteAccountSchema,
 } from "../validation/auth";
 import { hashPassword, verifyPassword } from "./password";
 import {
@@ -17,6 +18,8 @@ import {
   verifyPasswordResetToken,
   createEmailChangeToken,
   verifyEmailChangeToken,
+  createAccountDeletionToken,
+  verifyAccountDeletionToken,
 } from "./tokens";
 import { getEmailAdapter } from "./email";
 import { signIn, signOut } from "./config";
@@ -24,9 +27,11 @@ import { AuthError } from "next-auth";
 import { logAuthEvent } from "./logging";
 import { getAppUrl } from "./urls";
 import { getCurrentUser, requireVerifiedUser } from "./session";
+import { getAccountDeletionGraceDays, getAccountDeletionScheduledFor } from "./account-deletion";
 import type { AuthRateLimitAction } from "../ratelimit";
 import { enforceRateLimit, getRequestIp, toHashedTokenIdentifier } from "./rate-limit";
 import { getTurnstilePolicy, verifyTurnstileToken } from "./turnstile";
+import { GENERIC_ACTION_ERROR } from "../ui/messages";
 
 /**
  * Action result type for auth actions
@@ -587,6 +592,25 @@ function generateEmailChangeHtml(verifyUrl: string, newEmail: string): string {
   `;
 }
 
+function formatDeletionSchedule(scheduledFor: Date): string {
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "UTC",
+  }).format(scheduledFor);
+}
+
+function generateAccountDeletionScheduledHtml(restoreUrl: string, scheduledFor: Date): string {
+  const formattedSchedule = formatDeletionSchedule(scheduledFor);
+  return `
+    <h1>Account deletion scheduled</h1>
+    <p>Your account is now deactivated and scheduled for permanent deletion on <strong>${formattedSchedule} UTC</strong>.</p>
+    <p>If this was a mistake, restore your account before then:</p>
+    <p><a href="${restoreUrl}">Restore account</a></p>
+    <p>After the deadline passes, your account and associated data are permanently removed.</p>
+  `;
+}
+
 /**
  * Change password action
  * Requires authenticated and verified user
@@ -813,6 +837,207 @@ export async function verifyEmailChange(token: string): Promise<AuthActionResult
 
   logAuthEvent("change_email_success", { userId: tokenRecord.userId });
   return { success: true, tokenUserId: tokenRecord.userId };
+}
+
+/**
+ * Request account deletion action (stage 1).
+ * Deactivates the account immediately and schedules a hard delete after a grace period.
+ */
+export async function requestAccountDeletion(formData: FormData): Promise<AuthActionResult> {
+  const user = await requireVerifiedUser();
+  const requestIp = await getRequestIp();
+  const deleteAccountRateLimit = await enforceAuthRateLimit("deleteAccountRequest", [
+    `user:${user.id}`,
+    requestIp ? `ip:${requestIp}` : "",
+  ]);
+  if (deleteAccountRateLimit) {
+    return deleteAccountRateLimit;
+  }
+
+  const parsed = deleteAccountSchema.safeParse({
+    currentPassword: formData.get("currentPassword"),
+    confirmation: formData.get("confirmation"),
+  });
+  if (!parsed.success) {
+    const firstIssue = parsed.error.issues[0];
+    logAuthEvent("delete_account_validation_failed", { userId: user.id });
+    return {
+      success: false,
+      error: firstIssue?.message ?? "Invalid input",
+      field: firstIssue?.path[0] === "currentPassword" ? "password" : undefined,
+    };
+  }
+
+  const userRecord = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { passwordHash: true },
+  });
+  if (!userRecord) {
+    logAuthEvent("delete_account_error", { userId: user.id, reason: "user_not_found" });
+    return { success: false, error: GENERIC_ACTION_ERROR };
+  }
+
+  const isCurrentPasswordValid = await verifyPassword(
+    parsed.data.currentPassword,
+    userRecord.passwordHash
+  );
+  if (!isCurrentPasswordValid) {
+    logAuthEvent("delete_account_invalid_current_password", { userId: user.id });
+    return {
+      success: false,
+      error: "Current password is incorrect",
+      field: "password",
+    };
+  }
+
+  // TODO(billing): block deletion when active subscription state is implemented.
+  const now = new Date();
+  const scheduledFor = getAccountDeletionScheduledFor(now);
+
+  let restoreToken: string;
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const { count } = await tx.user.updateMany({
+        where: { id: user.id },
+        data: {
+          deletionRequestedAt: now,
+          deletionScheduledFor: scheduledFor,
+          sessionVersion: { increment: 1 },
+        },
+      });
+      if (count === 0) {
+        throw new Error("User not found while scheduling deletion.");
+      }
+
+      // Clear outstanding auth tokens now that the account is deactivated.
+      await tx.emailVerificationToken.updateMany({
+        where: { userId: user.id, usedAt: null },
+        data: { usedAt: now },
+      });
+      await tx.passwordResetToken.updateMany({
+        where: { userId: user.id, usedAt: null },
+        data: { usedAt: now },
+      });
+      await tx.emailChangeToken.updateMany({
+        where: { userId: user.id, usedAt: null },
+        data: { usedAt: now },
+      });
+
+      const { token } = await createAccountDeletionToken(user.id, scheduledFor, tx);
+      return { token };
+    });
+
+    restoreToken = result.token;
+  } catch (error) {
+    logAuthEvent("delete_account_error", {
+      userId: user.id,
+      reason: "transaction_failed",
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return { success: false, error: GENERIC_ACTION_ERROR };
+  }
+
+  try {
+    const appUrl = getAppUrl();
+    const restoreUrl = `${appUrl}/restore-account?token=${restoreToken}`;
+    const emailAdapter = getEmailAdapter();
+    await emailAdapter.send({
+      to: user.email,
+      subject: "Account deletion scheduled - SaaS Foundations Demo",
+      html: generateAccountDeletionScheduledHtml(restoreUrl, scheduledFor),
+      text:
+        `Your account is scheduled for permanent deletion on ${formatDeletionSchedule(scheduledFor)} UTC. ` +
+        `Restore before then: ${restoreUrl}`,
+    });
+  } catch (error) {
+    // Do not block deletion if email delivery fails; account stays deactivated.
+    logAuthEvent("delete_account_error", {
+      userId: user.id,
+      reason: "restore_email_failed",
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  logAuthEvent("delete_account_requested", {
+    userId: user.id,
+    graceDays: getAccountDeletionGraceDays(),
+    scheduledFor: scheduledFor.toISOString(),
+  });
+
+  const signOutUrl = await signOut({ redirect: false, redirectTo: "/login?deleted=scheduled" });
+  const redirectUrl =
+    typeof signOutUrl === "string" ? toPathWithSearch(signOutUrl) : "/login?deleted=scheduled";
+  return { success: true, redirectUrl };
+}
+
+/**
+ * Restore an account scheduled for deletion (stage 1 rollback).
+ */
+export async function restoreAccount(token: string): Promise<AuthActionResult> {
+  const requestIp = await getRequestIp();
+  const restoreRateLimit = await enforceAuthRateLimit("deleteAccountRestore", [
+    requestIp ? `ip:${requestIp}` : "",
+    toHashedTokenIdentifier(token),
+  ]);
+  if (restoreRateLimit) {
+    return restoreRateLimit;
+  }
+
+  if (!token || typeof token !== "string" || token.trim().length === 0) {
+    logAuthEvent("delete_account_restore_invalid_token");
+    return { success: false, error: "Invalid or missing restore token" };
+  }
+
+  let tokenRecord: Awaited<ReturnType<typeof verifyAccountDeletionToken>>;
+  try {
+    tokenRecord = await verifyAccountDeletionToken(token);
+  } catch (error) {
+    logAuthEvent("delete_account_error", {
+      reason: "restore_token_verify_failed",
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return { success: false, error: GENERIC_ACTION_ERROR };
+  }
+
+  if (!tokenRecord) {
+    logAuthEvent("delete_account_restore_invalid_token");
+    return { success: false, error: "Invalid, expired, or already used restore token" };
+  }
+
+  const now = new Date();
+  let restoredUsers: number;
+  try {
+    const { count } = await prisma.user.updateMany({
+      where: {
+        id: tokenRecord.userId,
+        deletionScheduledFor: { gt: now },
+      },
+      data: {
+        deletionRequestedAt: null,
+        deletionScheduledFor: null,
+        sessionVersion: { increment: 1 },
+      },
+    });
+    restoredUsers = count;
+  } catch (error) {
+    logAuthEvent("delete_account_error", {
+      userId: tokenRecord.userId,
+      reason: "restore_update_failed",
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return { success: false, error: GENERIC_ACTION_ERROR };
+  }
+
+  if (restoredUsers === 0) {
+    logAuthEvent("delete_account_restore_invalid_token", {
+      userId: tokenRecord.userId,
+      reason: "not_pending_deletion",
+    });
+    return { success: false, error: "This restore link is no longer valid" };
+  }
+
+  logAuthEvent("delete_account_restore_success", { userId: tokenRecord.userId });
+  return { success: true, redirectUrl: "/login?restored=success" };
 }
 
 /**

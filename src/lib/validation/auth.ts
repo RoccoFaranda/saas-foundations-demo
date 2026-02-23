@@ -85,3 +85,17 @@ export const changeEmailSchema = z.object({
 
 export type ChangeEmailInput = z.input<typeof changeEmailSchema>;
 export type ChangeEmailOutput = z.output<typeof changeEmailSchema>;
+
+/**
+ * Delete account schema
+ */
+export const deleteAccountSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required"),
+  confirmation: z
+    .string()
+    .trim()
+    .refine((value) => value === "DELETE", "Please type DELETE to confirm account deletion"),
+});
+
+export type DeleteAccountInput = z.input<typeof deleteAccountSchema>;
+export type DeleteAccountOutput = z.output<typeof deleteAccountSchema>;

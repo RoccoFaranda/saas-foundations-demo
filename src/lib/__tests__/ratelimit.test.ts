@@ -46,6 +46,8 @@ describe("getAuthRateLimiter in production", () => {
       "loginSlow",
       "requestEmailChange",
       "changePassword",
+      "deleteAccountRequest",
+      "deleteAccountRestore",
       "resetPasswordPrecheck",
       "resetPassword",
       "verifyEmail",

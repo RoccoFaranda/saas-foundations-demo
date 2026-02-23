@@ -10,6 +10,8 @@ export type AuthRateLimitAction =
   | "forgotPassword"
   | "requestEmailChange"
   | "changePassword"
+  | "deleteAccountRequest"
+  | "deleteAccountRestore"
   | "resetPasswordPrecheck"
   | "resetPassword"
   | "verifyEmail"
@@ -50,6 +52,8 @@ const AUTH_RATE_LIMITS: Record<
   forgotPassword: { limit: 3, window: "10 m", windowMs: 10 * 60 * 1000 },
   requestEmailChange: { limit: 3, window: "10 m", windowMs: 10 * 60 * 1000 },
   changePassword: { limit: 5, window: "10 m", windowMs: 10 * 60 * 1000 },
+  deleteAccountRequest: { limit: 3, window: "24 h", windowMs: 24 * 60 * 60 * 1000 },
+  deleteAccountRestore: { limit: 10, window: "10 m", windowMs: 10 * 60 * 1000 },
   resetPasswordPrecheck: { limit: 20, window: "10 m", windowMs: 10 * 60 * 1000 },
   resetPassword: { limit: 5, window: "10 m", windowMs: 10 * 60 * 1000 },
   verifyEmail: { limit: 10, window: "10 m", windowMs: 10 * 60 * 1000 },

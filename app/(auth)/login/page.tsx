@@ -24,6 +24,17 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const callbackUrl = typeof callbackParam === "string" ? callbackParam : "";
   const resetParam = resolvedSearchParams?.reset;
   const resetSuccess = resetParam === "success";
+  const deletedParam = resolvedSearchParams?.deleted;
+  const deletionScheduled = deletedParam === "scheduled";
+  const restoredParam = resolvedSearchParams?.restored;
+  const accountRestored = restoredParam === "success";
 
-  return <LoginClient callbackUrl={callbackUrl} resetSuccess={resetSuccess} />;
+  return (
+    <LoginClient
+      callbackUrl={callbackUrl}
+      resetSuccess={resetSuccess}
+      deletionScheduled={deletionScheduled}
+      accountRestored={accountRestored}
+    />
+  );
 }

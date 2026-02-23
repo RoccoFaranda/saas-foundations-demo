@@ -5,6 +5,8 @@ import type {
   EmailVerificationToken,
   PasswordResetToken,
   EmailChangeToken,
+  AccountDeletionToken,
+  Prisma,
 } from "../../generated/prisma/client";
 
 function getTokenHashSecret(): string {
@@ -220,6 +222,79 @@ export async function verifyEmailChangeToken(token: string): Promise<EmailChange
   }
 
   return prisma.emailChangeToken.findUnique({
+    where: { hashedToken },
+  });
+}
+
+async function createAccountDeletionTokenWithClient(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  expiresAt: Date
+): Promise<{ token: string; record: AccountDeletionToken }> {
+  const token = generateToken();
+  const hashedToken = hashToken(token);
+  const now = new Date();
+
+  await tx.accountDeletionToken.updateMany({
+    where: {
+      userId,
+      usedAt: null,
+    },
+    data: { usedAt: now },
+  });
+
+  const record = await tx.accountDeletionToken.create({
+    data: {
+      userId,
+      hashedToken,
+      expiresAt,
+    },
+  });
+
+  return { token, record };
+}
+
+/**
+ * Create an account deletion restore token.
+ * The token expires at the same time as the scheduled deletion date.
+ */
+export async function createAccountDeletionToken(
+  userId: string,
+  expiresAt: Date,
+  tx?: Prisma.TransactionClient
+): Promise<{ token: string; record: AccountDeletionToken }> {
+  if (tx) {
+    return createAccountDeletionTokenWithClient(tx, userId, expiresAt);
+  }
+
+  return prisma.$transaction((innerTx) =>
+    createAccountDeletionTokenWithClient(innerTx, userId, expiresAt)
+  );
+}
+
+/**
+ * Verify and consume an account deletion restore token.
+ */
+export async function verifyAccountDeletionToken(
+  token: string
+): Promise<AccountDeletionToken | null> {
+  const hashedToken = hashToken(token);
+  const now = new Date();
+
+  const { count } = await prisma.accountDeletionToken.updateMany({
+    where: {
+      hashedToken,
+      usedAt: null,
+      expiresAt: { gt: now },
+    },
+    data: { usedAt: now },
+  });
+
+  if (count === 0) {
+    return null;
+  }
+
+  return prisma.accountDeletionToken.findUnique({
     where: { hashedToken },
   });
 }

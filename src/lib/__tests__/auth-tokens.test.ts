@@ -8,6 +8,8 @@ import {
   verifyPasswordResetToken,
   createEmailChangeToken,
   verifyEmailChangeToken,
+  createAccountDeletionToken,
+  verifyAccountDeletionToken,
 } from "../auth/tokens";
 import prisma from "../db";
 import { vi } from "vitest";
@@ -28,6 +30,9 @@ describe("Auth Token utilities", () => {
       where: { userId: TEST_USER_1 },
     });
     await prisma.emailChangeToken.deleteMany({
+      where: { userId: TEST_USER_1 },
+    });
+    await prisma.accountDeletionToken.deleteMany({
       where: { userId: TEST_USER_1 },
     });
 
@@ -187,6 +192,39 @@ describe("Auth Token utilities", () => {
 
       expect(dbRecord?.hashedToken).not.toBe(token);
       expect(dbRecord?.hashedToken).toHaveLength(64);
+    });
+  });
+
+  describe("AccountDeletionToken", () => {
+    it("should create and verify a token", async () => {
+      const { token, record } = await createAccountDeletionToken(
+        TEST_USER_1,
+        new Date(Date.now() + 60 * 60 * 1000)
+      );
+
+      expect(token).toBeDefined();
+      expect(record.userId).toBe(TEST_USER_1);
+
+      const verified = await verifyAccountDeletionToken(token);
+      expect(verified).toBeDefined();
+      expect(verified?.userId).toBe(TEST_USER_1);
+    });
+
+    it("should reject expired tokens", async () => {
+      const { token } = await createAccountDeletionToken(TEST_USER_1, new Date(Date.now() - 1000));
+      const verified = await verifyAccountDeletionToken(token);
+      expect(verified).toBeNull();
+    });
+
+    it("should reject used tokens", async () => {
+      const { token } = await createAccountDeletionToken(
+        TEST_USER_1,
+        new Date(Date.now() + 60 * 60 * 1000)
+      );
+
+      await verifyAccountDeletionToken(token);
+      const secondVerify = await verifyAccountDeletionToken(token);
+      expect(secondVerify).toBeNull();
     });
   });
 });

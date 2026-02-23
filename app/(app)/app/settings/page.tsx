@@ -29,6 +29,16 @@ export default async function SettingsPage() {
             <p className="mt-1 text-sm text-muted-foreground">Update your email address</p>
           </Link>
 
+          <Link
+            href="/app/settings/delete-account"
+            className="surface-card motion-colors block border border-danger-border/70 px-6 py-4 hover:bg-danger-soft/40 focus-ring"
+          >
+            <h2 className="text-lg font-semibold text-danger">Delete Account</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Permanently delete your account and all associated data
+            </p>
+          </Link>
+
           <Link href="/app/dashboard" className="btn-link text-sm">
             ← Back to dashboard
           </Link>

@@ -9,9 +9,16 @@ import { GENERIC_ACTION_ERROR } from "@/src/lib/ui/messages";
 type LoginClientProps = {
   callbackUrl: string;
   resetSuccess?: boolean;
+  deletionScheduled?: boolean;
+  accountRestored?: boolean;
 };
 
-export default function LoginClient({ callbackUrl, resetSuccess }: LoginClientProps) {
+export default function LoginClient({
+  callbackUrl,
+  resetSuccess,
+  deletionScheduled,
+  accountRestored,
+}: LoginClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -95,6 +102,24 @@ export default function LoginClient({ callbackUrl, resetSuccess }: LoginClientPr
             role="status"
           >
             Your password has been reset. Please sign in again.
+          </div>
+        )}
+
+        {deletionScheduled && (
+          <div
+            className="mb-4 rounded-md border border-info-border bg-info-soft px-3 py-2 text-sm text-info"
+            role="status"
+          >
+            Account deletion was scheduled. Check your email for the restore link.
+          </div>
+        )}
+
+        {accountRestored && (
+          <div
+            className="mb-4 rounded-md border border-success-border bg-success-soft px-3 py-2 text-sm text-success"
+            role="status"
+          >
+            Account restored. You can sign in again.
           </div>
         )}
 

@@ -104,6 +104,16 @@ The app implements a complete email/password authentication lifecycle:
 7. Token is marked as used
 8. If signed in, session is refreshed and user is redirected to settings/dashboard; if logged out, user is prompted to sign in
 
+### Account Deletion Flow (Two-stage)
+
+1. Verified user navigates to `/app/settings/delete-account`
+2. User confirms deletion with current password + typed `DELETE`
+3. Server deactivates account immediately (`deletionRequestedAt`, `deletionScheduledFor`) and invalidates active tokens/sessions
+4. Restore token is generated and emailed to the account owner (`/restore-account?token=...`)
+5. User is signed out and redirected to `/login?deleted=scheduled`
+6. If user restores before deadline, token is consumed and deletion fields are cleared
+7. A scheduled internal purge job hard-deletes users whose `deletionScheduledFor` has passed
+
 ### Session Management
 
 - **Strategy:** JWT sessions (Auth.js compatible with Credentials provider)
@@ -114,11 +124,11 @@ The app implements a complete email/password authentication lifecycle:
 
 ### Token Security
 
-- All tokens (verification, reset, email change) are:
+- All tokens (verification, reset, email change, account restore) are:
   - Generated using cryptographically secure random bytes (32 bytes, base64url encoded)
   - Stored as HMAC-SHA-256 hashes in database (never plaintext)
   - Single-use (marked as used after consumption)
-  - Time-limited (default 1 hour expiry)
+  - Time-limited (default 1 hour for auth tokens; account restore tokens expire at deletion deadline)
   - Invalidated when new tokens are issued (prevents multiple active tokens)
 
 ---
@@ -195,6 +205,7 @@ Demo-safe behavior:
 - Currently enforced for:
   - signup, login (fast + slow buckets, including direct credentials callback), forgot-password, resend-verification
   - change-password, change-email request, verify-email, verify-email-change, reset-password
+  - account deletion request + restore token flow
   - authenticated CSV export (`/app/dashboard/export`)
 - Billing endpoint limits are planned for when billing routes are implemented.
 
@@ -297,6 +308,9 @@ Rate limiting notes:
 - `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` are required for shared limits in production.
 - `ALLOW_IN_MEMORY_RATE_LIMIT_FALLBACK=true` opt-in enables in-memory fallback in production (weaker across instances).
 - `UPSTASH_RATE_LIMIT_ANALYTICS` controls Upstash analytics (`true`/`false`). Default is `true` in production and `false` otherwise.
+- `ACCOUNT_DELETION_GRACE_DAYS` controls restore window before final purge (default `14`).
+- `ACCOUNT_DELETION_PURGE_BATCH_SIZE` controls the max users purged per cron invocation (default `100`).
+- `ACCOUNT_DELETION_CRON_SECRET` secures `POST /api/internal/account-deletion/purge`.
 
 ### Database Migrations
 

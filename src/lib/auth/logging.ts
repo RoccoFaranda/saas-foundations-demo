@@ -33,6 +33,13 @@ export type AuthLogEvent =
   | "change_email_token_sent"
   | "change_email_token_invalid"
   | "change_email_success"
+  | "delete_account_validation_failed"
+  | "delete_account_invalid_current_password"
+  | "delete_account_requested"
+  | "delete_account_restore_invalid_token"
+  | "delete_account_restore_success"
+  | "delete_account_purged"
+  | "delete_account_error"
   | "rate_limit_blocked"
   | "rate_limit_unavailable"
   | "rate_limit_upstash_error";

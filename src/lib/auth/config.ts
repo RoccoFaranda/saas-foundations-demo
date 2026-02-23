@@ -41,6 +41,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             passwordHash: true,
             emailVerified: true,
             sessionVersion: true,
+            deletionScheduledFor: true,
           },
         });
 
@@ -51,6 +52,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // Verify password with Argon2id
         const isValid = await verifyPassword(password, user.passwordHash);
         if (!isValid) {
+          return null;
+        }
+
+        if (user.deletionScheduledFor && user.deletionScheduledFor > new Date()) {
           return null;
         }
 
