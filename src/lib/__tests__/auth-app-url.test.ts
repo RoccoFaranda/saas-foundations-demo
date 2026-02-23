@@ -61,6 +61,7 @@ describe("app URL errors in auth actions", () => {
     const form = new FormData();
     form.set("email", email);
     form.set("password", "password123");
+    form.set("termsAccepted", "true");
     form.set("cf-turnstile-response", "valid-token");
 
     const result = await signup(form);

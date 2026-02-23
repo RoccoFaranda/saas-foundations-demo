@@ -26,6 +26,8 @@ global.fetch = fetchMock;
 import { signup } from "../auth/actions";
 import { testEmailHelpers } from "../auth/email";
 import { setRateLimiterFactoryForTests } from "../ratelimit";
+import prisma from "../db";
+import { PRIVACY_VERSION, TERMS_VERSION } from "../../content/legal/legal-metadata";
 
 describe("signup", () => {
   beforeEach(() => {
@@ -44,6 +46,7 @@ describe("signup", () => {
     const form = new FormData();
     form.set("email", email);
     form.set("password", "password123");
+    form.set("termsAccepted", "true");
 
     const result = await signup(form);
 
@@ -63,6 +66,7 @@ describe("signup", () => {
     const form = new FormData();
     form.set("email", email);
     form.set("password", "password123");
+    form.set("termsAccepted", "true");
     form.set("cf-turnstile-response", "invalid-token");
 
     const result = await signup(form);
@@ -80,6 +84,26 @@ describe("signup", () => {
     );
   });
 
+  it("should fail when terms are not accepted", async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ success: true }),
+    });
+
+    const email = `signup-test-${randomUUID()}@example.com`;
+    const form = new FormData();
+    form.set("email", email);
+    form.set("password", "password123");
+    form.set("cf-turnstile-response", "valid-token");
+
+    const result = await signup(form);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toBe("You must agree to the Terms and Privacy Policy");
+    }
+  });
+
   it("should succeed when Turnstile verification passes", async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
@@ -92,6 +116,7 @@ describe("signup", () => {
     const form = new FormData();
     form.set("email", email);
     form.set("password", "password123");
+    form.set("termsAccepted", "true");
     form.set("cf-turnstile-response", "valid-token");
 
     const result = await signup(form);
@@ -105,6 +130,22 @@ describe("signup", () => {
     const emails = testEmailHelpers.findByTo(email);
     expect(emails).toHaveLength(1);
     expect(emails[0].subject).toContain("Verify your email");
+
+    const createdUser = await prisma.user.findUnique({
+      where: { email },
+      select: {
+        termsAcceptedAt: true,
+        termsVersionAccepted: true,
+        privacyAcknowledgedAt: true,
+        privacyVersionAcknowledged: true,
+      },
+    });
+
+    expect(createdUser).not.toBeNull();
+    expect(createdUser?.termsAcceptedAt).toBeInstanceOf(Date);
+    expect(createdUser?.termsVersionAccepted).toBe(TERMS_VERSION);
+    expect(createdUser?.privacyAcknowledgedAt).toBeInstanceOf(Date);
+    expect(createdUser?.privacyVersionAcknowledged).toBe(PRIVACY_VERSION);
   });
 
   it("should skip Turnstile verification when secret key is not configured", async () => {
@@ -117,6 +158,7 @@ describe("signup", () => {
     const form = new FormData();
     form.set("email", email);
     form.set("password", "password123");
+    form.set("termsAccepted", "true");
     // No Turnstile token provided
 
     const result = await signup(form);
@@ -140,6 +182,7 @@ describe("signup", () => {
     const form = new FormData();
     form.set("email", email);
     form.set("password", "password123");
+    form.set("termsAccepted", "true");
     // No Turnstile token provided
 
     const result = await signup(form);
@@ -165,6 +208,7 @@ describe("signup", () => {
     const form = new FormData();
     form.set("email", email);
     form.set("password", "password123");
+    form.set("termsAccepted", "true");
 
     const result = await signup(form);
 
@@ -184,6 +228,7 @@ describe("signup", () => {
     const form = new FormData();
     form.set("email", email);
     form.set("password", "password123");
+    form.set("termsAccepted", "true");
     form.set("cf-turnstile-response", "token");
 
     const result = await signup(form);
@@ -204,6 +249,7 @@ describe("signup", () => {
     const form = new FormData();
     form.set("email", email);
     form.set("password", "password123");
+    form.set("termsAccepted", "true");
     form.set("cf-turnstile-response", "token");
 
     const result = await signup(form);

@@ -80,6 +80,7 @@ describe("Auth Validation Schemas", () => {
       const result = signupSchema.safeParse({
         email: "test@example.com",
         password: "password123",
+        termsAccepted: true,
       });
       expect(result.success).toBe(true);
     });
@@ -94,6 +95,16 @@ describe("Auth Validation Schemas", () => {
     it("should reject missing password", () => {
       const result = signupSchema.safeParse({
         email: "test@example.com",
+        termsAccepted: true,
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("should reject when terms are not accepted", () => {
+      const result = signupSchema.safeParse({
+        email: "test@example.com",
+        password: "password123",
+        termsAccepted: false,
       });
       expect(result.success).toBe(false);
     });
@@ -102,6 +113,7 @@ describe("Auth Validation Schemas", () => {
       const result = signupSchema.safeParse({
         email: "test@example.com",
         password: "short",
+        termsAccepted: true,
       });
       expect(result.success).toBe(false);
     });

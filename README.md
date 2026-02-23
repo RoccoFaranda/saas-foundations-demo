@@ -131,6 +131,19 @@ Response shape:
 - [Decisions](./docs/decisions.md) - Architecture Decision Records (ADRs)
 - [Theme Tokens](./docs/theme-tokens.md) - Theme token contract, recipes, and quality gates
 
+## Legal Maintenance
+
+When shipping legal-copy updates:
+
+1. Update legal metadata constants in `src/content/legal/legal-metadata.ts`:
+   - `PRIVACY_EFFECTIVE_DATE`, `TERMS_EFFECTIVE_DATE`
+   - `PRIVACY_VERSION`, `TERMS_VERSION`
+   - Legal contact identity fields
+2. Update policy/terms copy in:
+   - `src/content/legal/privacy.ts`
+   - `src/content/legal/terms.ts`
+3. If acceptance evidence schema changes, add a Prisma migration and regenerate the Prisma client.
+
 ## Contributing
 
 1. Create a feature branch from `main`

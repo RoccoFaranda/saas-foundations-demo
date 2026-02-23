@@ -39,6 +39,21 @@ export default async function SettingsPage() {
             </p>
           </Link>
 
+          <section className="surface-card px-6 py-4">
+            <h2 className="text-lg font-semibold">Legal</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Review the latest legal documents that apply to this demo.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link href="/terms" className="btn-secondary btn-sm">
+                Terms and Conditions
+              </Link>
+              <Link href="/privacy" className="btn-secondary btn-sm">
+                Privacy Policy
+              </Link>
+            </div>
+          </section>
+
           <Link href="/app/dashboard" className="btn-link text-sm">
             ← Back to dashboard
           </Link>

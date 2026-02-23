@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { forgotPassword } from "@/src/lib/auth/actions";
+import { LegalInlineLinks } from "@/src/components/legal/legal-inline-links";
 import { GENERIC_ACTION_ERROR } from "@/src/lib/ui/messages";
 
 export default function ForgotClient() {
@@ -117,6 +118,10 @@ export default function ForgotClient() {
             Sign in
           </Link>
         </p>
+
+        <div className="mt-6">
+          <LegalInlineLinks variant="compact" />
+        </div>
       </div>
     </main>
   );

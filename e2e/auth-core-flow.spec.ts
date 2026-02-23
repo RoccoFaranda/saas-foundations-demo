@@ -91,6 +91,7 @@ test.describe("Auth core flow", () => {
     // Step 2: Fill and submit signup form
     await page.getByLabel("Email").fill(testEmail);
     await page.getByLabel("Password").fill(testPassword);
+    await page.getByRole("checkbox", { name: /Terms and Conditions/i }).check();
 
     // Check if Turnstile is present using locators (more reliable than waitForFunction)
     const turnstileInput = page.locator(

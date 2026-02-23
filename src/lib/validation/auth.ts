@@ -22,11 +22,23 @@ export const emailSchema = z.preprocess(
 );
 
 /**
+ * Required checkbox for legal acceptance on signup.
+ * Accept common checkbox payloads from form submissions.
+ */
+export const termsAcceptedSchema = z
+  .preprocess(
+    (val) => val === true || val === "true" || val === "on" || val === "1" || val === 1,
+    z.boolean()
+  )
+  .refine((value) => value, "You must agree to the Terms and Privacy Policy");
+
+/**
  * Signup form schema
  */
 export const signupSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
+  termsAccepted: termsAcceptedSchema,
 });
 
 export type SignupInput = z.input<typeof signupSchema>;

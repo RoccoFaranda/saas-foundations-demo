@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { login } from "@/src/lib/auth/actions";
+import { LegalInlineLinks } from "@/src/components/legal/legal-inline-links";
 import { GENERIC_ACTION_ERROR } from "@/src/lib/ui/messages";
 
 type LoginClientProps = {
@@ -187,6 +188,10 @@ export default function LoginClient({
             Sign up
           </Link>
         </p>
+
+        <div className="mt-6">
+          <LegalInlineLinks variant="compact" />
+        </div>
       </div>
     </main>
   );

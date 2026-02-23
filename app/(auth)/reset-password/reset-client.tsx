@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { resetPassword } from "@/src/lib/auth/actions";
+import { LegalInlineLinks } from "@/src/components/legal/legal-inline-links";
 import { GENERIC_ACTION_ERROR } from "@/src/lib/ui/messages";
 
 type ResetClientProps = {
@@ -100,6 +101,10 @@ export default function ResetClient({ token, tokenValid, precheckError }: ResetC
               Send reset email
             </Link>
           </div>
+
+          <div className="mt-6">
+            <LegalInlineLinks variant="compact" />
+          </div>
         </div>
       </main>
     );
@@ -143,6 +148,10 @@ export default function ResetClient({ token, tokenValid, precheckError }: ResetC
             <Link href="/login" className="btn-link text-sm">
               Back to login
             </Link>
+          </div>
+
+          <div className="mt-6">
+            <LegalInlineLinks variant="compact" />
           </div>
         </div>
       </main>
@@ -202,6 +211,10 @@ export default function ResetClient({ token, tokenValid, precheckError }: ResetC
             {isPending ? "Resetting..." : "Reset password"}
           </button>
         </form>
+
+        <div className="mt-6">
+          <LegalInlineLinks variant="compact" />
+        </div>
       </div>
     </main>
   );

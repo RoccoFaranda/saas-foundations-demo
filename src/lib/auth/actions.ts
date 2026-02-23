@@ -32,6 +32,7 @@ import type { AuthRateLimitAction } from "../ratelimit";
 import { enforceRateLimit, getRequestIp, toHashedTokenIdentifier } from "./rate-limit";
 import { getTurnstilePolicy, verifyTurnstileToken } from "./turnstile";
 import { GENERIC_ACTION_ERROR } from "../ui/messages";
+import { PRIVACY_VERSION, TERMS_VERSION } from "../../content/legal/legal-metadata";
 
 /**
  * Action result type for auth actions
@@ -174,6 +175,7 @@ export async function signup(formData: FormData): Promise<AuthActionResult> {
   const rawInput = {
     email: rawEmail,
     password: formData.get("password"),
+    termsAccepted: formData.get("termsAccepted"),
   };
 
   const parsed = signupSchema.safeParse(rawInput);
@@ -185,6 +187,7 @@ export async function signup(formData: FormData): Promise<AuthActionResult> {
   }
 
   const { email, password } = parsed.data;
+  const legalAcceptedAt = new Date();
 
   // Check if user already exists
   const existingUser = await prisma.user.findUnique({
@@ -212,6 +215,10 @@ export async function signup(formData: FormData): Promise<AuthActionResult> {
       data: {
         email,
         passwordHash,
+        termsAcceptedAt: legalAcceptedAt,
+        termsVersionAccepted: TERMS_VERSION,
+        privacyAcknowledgedAt: legalAcceptedAt,
+        privacyVersionAcknowledged: PRIVACY_VERSION,
       },
     });
   } catch (error) {

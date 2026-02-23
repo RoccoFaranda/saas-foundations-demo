@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Turnstile from "react-turnstile";
 import { signup } from "@/src/lib/auth/actions";
+import { LegalInlineLinks } from "@/src/components/legal/legal-inline-links";
 import { GENERIC_ACTION_ERROR } from "@/src/lib/ui/messages";
 
 type SignupClientProps = {
@@ -138,6 +139,29 @@ export default function SignupClient({
             <p className="mt-1 text-xs text-muted-foreground">At least 8 characters</p>
           </div>
 
+          <div className="flex items-start gap-3">
+            <input
+              id="termsAccepted"
+              name="termsAccepted"
+              type="checkbox"
+              value="true"
+              required
+              disabled={isPending}
+              className="mt-1 h-4 w-4 rounded border-border text-primary focus-ring"
+            />
+            <label htmlFor="termsAccepted" className="text-sm leading-5 text-muted-foreground">
+              By creating an account, I confirm I have read and agree to the{" "}
+              <Link href="/terms" className="font-medium text-foreground hover:underline">
+                Terms and Conditions
+              </Link>{" "}
+              and acknowledge the{" "}
+              <Link href="/privacy" className="font-medium text-foreground hover:underline">
+                Privacy Policy
+              </Link>
+              .
+            </label>
+          </div>
+
           {siteKey && (
             <div>
               <Turnstile
@@ -183,6 +207,10 @@ export default function SignupClient({
             Sign in
           </Link>
         </p>
+
+        <div className="mt-6">
+          <LegalInlineLinks variant="compact" />
+        </div>
       </div>
     </main>
   );
