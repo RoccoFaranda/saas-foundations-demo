@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { resetPassword } from "@/src/lib/auth/actions";
+import { AuthWordmark } from "@/src/components/auth/auth-wordmark";
 import { LegalInlineLinks } from "@/src/components/legal/legal-inline-links";
 import { GENERIC_ACTION_ERROR } from "@/src/lib/ui/messages";
 
@@ -89,6 +90,7 @@ export default function ResetClient({ token, tokenValid, precheckError }: ResetC
     return (
       <main className="flex min-h-screen flex-col items-center justify-center p-4">
         <div className="w-full max-w-sm text-center">
+          <AuthWordmark />
           <div className="mb-8">
             <h1 className="text-2xl font-bold">Reset your password</h1>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -116,6 +118,7 @@ export default function ResetClient({ token, tokenValid, precheckError }: ResetC
     return (
       <main className="flex min-h-screen flex-col items-center justify-center p-4">
         <div className="w-full max-w-sm text-center">
+          <AuthWordmark />
           <div className="mb-8">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-danger-soft text-danger">
               <svg
@@ -162,6 +165,7 @@ export default function ResetClient({ token, tokenValid, precheckError }: ResetC
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4">
       <div className="w-full max-w-sm">
+        <AuthWordmark />
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-bold">Choose a new password</h1>
           <p className="mt-2 text-sm text-muted-foreground">

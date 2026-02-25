@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { verifyEmailChange } from "@/src/lib/auth/actions";
+import { AuthWordmark } from "@/src/components/auth/auth-wordmark";
 import { LegalInlineLinks } from "@/src/components/legal/legal-inline-links";
 import { GENERIC_ACTION_ERROR } from "@/src/lib/ui/messages";
 
@@ -88,6 +89,7 @@ export default function VerifyEmailChangeClient({ token }: VerifyEmailChangeClie
     return (
       <main className="flex min-h-screen flex-col items-center justify-center p-4">
         <div className="w-full max-w-sm text-center">
+          <AuthWordmark />
           <div className="state-loading mb-8 flex-col gap-2">
             <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-border border-t-foreground" />
             <h1 className="text-2xl font-bold text-foreground">Verifying email change...</h1>
@@ -103,6 +105,7 @@ export default function VerifyEmailChangeClient({ token }: VerifyEmailChangeClie
     return (
       <main className="flex min-h-screen flex-col items-center justify-center p-4">
         <div className="w-full max-w-sm text-center">
+          <AuthWordmark />
           <div className="mb-8">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-success-soft text-success">
               <svg
@@ -167,6 +170,7 @@ export default function VerifyEmailChangeClient({ token }: VerifyEmailChangeClie
     return (
       <main className="flex min-h-screen flex-col items-center justify-center p-4">
         <div className="w-full max-w-sm text-center">
+          <AuthWordmark />
           <div className="mb-8">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-danger-soft text-danger">
               <svg

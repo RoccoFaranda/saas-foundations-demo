@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { forgotPassword } from "@/src/lib/auth/actions";
+import { AuthWordmark } from "@/src/components/auth/auth-wordmark";
 import { LegalInlineLinks } from "@/src/components/legal/legal-inline-links";
 import { GENERIC_ACTION_ERROR } from "@/src/lib/ui/messages";
 
@@ -72,6 +73,7 @@ export default function ForgotClient() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4">
       <div className="w-full max-w-sm">
+        <AuthWordmark />
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-bold">Forgot password</h1>
           <p className="mt-2 text-sm text-muted-foreground">

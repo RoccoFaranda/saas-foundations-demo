@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import Turnstile from "react-turnstile";
 import { signup } from "@/src/lib/auth/actions";
+import { AuthWordmark } from "@/src/components/auth/auth-wordmark";
 import { linkIdentityWithRetry } from "@/src/lib/consent/link-identity";
 import { LegalInlineLinks } from "@/src/components/legal/legal-inline-links";
 import { GENERIC_ACTION_ERROR } from "@/src/lib/ui/messages";
@@ -110,6 +111,7 @@ export default function SignupClient({
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4">
       <div className="w-full max-w-sm">
+        <AuthWordmark />
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-bold">Create an account</h1>
           <p className="mt-2 text-sm text-muted-foreground">

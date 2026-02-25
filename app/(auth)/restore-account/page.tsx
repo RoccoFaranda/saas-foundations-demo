@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { restoreAccount } from "@/src/lib/auth/actions";
+import { AuthWordmark } from "@/src/components/auth/auth-wordmark";
 import { LegalInlineLinks } from "@/src/components/legal/legal-inline-links";
 
 type RestoreAccountPageProps = {
@@ -18,6 +19,7 @@ export default async function RestoreAccountPage({ searchParams }: RestoreAccoun
     return (
       <main className="flex min-h-screen flex-col items-center justify-center p-4">
         <div className="w-full max-w-sm text-center">
+          <AuthWordmark />
           <div className="mb-8">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-danger-soft text-danger">
               <svg
@@ -57,6 +59,7 @@ export default async function RestoreAccountPage({ searchParams }: RestoreAccoun
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4">
       <div className="w-full max-w-sm text-center">
+        <AuthWordmark />
         <div className="mb-8">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-danger-soft text-danger">
             <svg
