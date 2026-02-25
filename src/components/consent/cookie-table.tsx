@@ -70,7 +70,10 @@ function PageTable() {
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={`${row.serviceId}-${row.key}`} className="border-b border-border/70 align-top">
+            <tr
+              key={`${row.serviceId}-${row.storageType}-${row.key}`}
+              className="border-b border-border/70 align-top"
+            >
               <td className="px-3 py-2">{CATEGORY_LABELS[row.category]}</td>
               <td className="px-3 py-2">{row.required ? "Yes" : "No"}</td>
               <td className="px-3 py-2">
@@ -117,7 +120,7 @@ function ModalTable() {
               <tbody>
                 {group.rows.map((row) => (
                   <tr
-                    key={`${row.serviceId}-${row.key}`}
+                    key={`${row.serviceId}-${row.storageType}-${row.key}`}
                     className="border-b border-border/60 align-top"
                   >
                     <td className="px-2 py-2">

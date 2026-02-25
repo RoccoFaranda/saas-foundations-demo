@@ -66,6 +66,30 @@ const baseServices: ConsentManagedService[] = [
         duration: "Session (secure context only)",
         purpose: "Secure session token variant used in HTTPS contexts.",
       },
+      {
+        key: "authjs.csrf-token",
+        storageType: "cookie",
+        duration: "Session",
+        purpose: "Protects Auth.js form submissions against cross-site request forgery.",
+      },
+      {
+        key: "__Host-authjs.csrf-token",
+        storageType: "cookie",
+        duration: "Session (secure context only)",
+        purpose: "Secure CSRF token variant used in HTTPS contexts.",
+      },
+      {
+        key: "authjs.callback-url",
+        storageType: "cookie",
+        duration: "Session",
+        purpose: "Stores the post-authentication return URL for Auth.js flows.",
+      },
+      {
+        key: "__Secure-authjs.callback-url",
+        storageType: "cookie",
+        duration: "Session (secure context only)",
+        purpose: "Secure callback URL variant used in HTTPS contexts.",
+      },
     ],
   },
   {
@@ -82,6 +106,42 @@ const baseServices: ConsentManagedService[] = [
         storageType: "cookie",
         duration: "1 year",
         purpose: "Persists display theme preference across visits.",
+      },
+      {
+        key: "theme",
+        storageType: "local_storage",
+        duration: "Persistent until changed or cleared",
+        purpose: "Allows theme resolution before hydration and across sessions.",
+      },
+    ],
+  },
+  {
+    id: "consent_preference_and_replay",
+    name: "Cookie preference state and replay reliability",
+    category: "necessary",
+    essential: true,
+    description:
+      "Stores consent choices and reliability metadata used for replay and cross-tab sync.",
+    provider: "SaaS Foundations Demo",
+    party: "first_party",
+    entries: [
+      {
+        key: "sf_consent",
+        storageType: "cookie",
+        duration: "180 days",
+        purpose: "Persists cookie consent state, consent context ID, and consent version.",
+      },
+      {
+        key: "sf-consent-audit-queue:v2",
+        storageType: "local_storage",
+        duration: "Up to 7 days (auto-pruned)",
+        purpose: "Temporarily stores signed replay tokens when audit persistence must retry.",
+      },
+      {
+        key: "sf-consent-sync-event",
+        storageType: "local_storage",
+        duration: "Ephemeral (overwritten on updates)",
+        purpose: "Broadcasts consent updates across tabs when BroadcastChannel fallback is needed.",
       },
     ],
   },

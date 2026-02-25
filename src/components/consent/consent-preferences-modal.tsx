@@ -347,7 +347,10 @@ function CategoryRows({ rows }: { rows: ConsentTableRow[] }) {
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={`${row.serviceId}-${row.key}`} className="border-b border-border/60 align-top">
+            <tr
+              key={`${row.serviceId}-${row.storageType}-${row.key}`}
+              className="border-b border-border/60 align-top"
+            >
               <td className="px-2 py-2 font-mono text-xs">{row.key}</td>
               <td className="px-2 py-2">
                 <div className="font-medium text-foreground">{row.serviceName}</div>

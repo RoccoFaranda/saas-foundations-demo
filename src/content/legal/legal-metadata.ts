@@ -1,7 +1,7 @@
 export const PRIVACY_EFFECTIVE_DATE = "February 23, 2026";
 export const TERMS_EFFECTIVE_DATE = "February 23, 2026";
 export const COOKIE_DECLARATION_EFFECTIVE_DATE = "February 24, 2026";
-export const COOKIE_DECLARATION_LAST_UPDATED = "February 24, 2026";
+export const COOKIE_DECLARATION_LAST_UPDATED = "February 25, 2026";
 
 export const PRIVACY_VERSION = "2026.02.23";
 export const TERMS_VERSION = "2026.02.23";

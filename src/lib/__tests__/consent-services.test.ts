@@ -38,6 +38,27 @@ describe("consent services registry", () => {
     }
   });
 
+  it("includes core cookie and storage identifiers used at runtime", async () => {
+    const consentServices = await loadConsentServicesModule("false");
+    const rows = consentServices.getConsentTableRows();
+
+    expect(rows.some((row) => row.key === "sf_consent" && row.storageType === "cookie")).toBe(true);
+    expect(
+      rows.some((row) => row.key === "authjs.csrf-token" && row.storageType === "cookie")
+    ).toBe(true);
+    expect(
+      rows.some((row) => row.key === "authjs.callback-url" && row.storageType === "cookie")
+    ).toBe(true);
+    expect(rows.some((row) => row.key === "theme" && row.storageType === "local_storage")).toBe(
+      true
+    );
+    expect(
+      rows.some(
+        (row) => row.key === "sf-consent-audit-queue:v2" && row.storageType === "local_storage"
+      )
+    ).toBe(true);
+  });
+
   it("sorts rows deterministically by category, service name, and key", async () => {
     const consentServices = await loadConsentServicesModule("false");
     const rows = consentServices.getConsentTableRows();
