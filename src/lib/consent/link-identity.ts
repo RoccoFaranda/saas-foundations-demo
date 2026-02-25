@@ -8,25 +8,16 @@ import { CONSENT_COOKIE_NAME, CONSENT_EVENT_SOURCE_IDENTITY_LINK, CONSENT_VERSIO
 import { consentStateSchema } from "./schema";
 import type { ConsentState } from "./types";
 
-const RETRYABLE_STATUS_CODES = new Set([401, 403, 429, 500, 502, 503, 504]);
+const QUEUEABLE_STATUS_CODES = new Set([401, 403, 500, 502, 503, 504]);
 
 interface LinkIdentityOptions {
-  maxAttempts?: number;
-  baseDelayMs?: number;
-  maxDelayMs?: number;
   fetchImpl?: typeof fetch;
 }
 
-function sleep(delayMs: number) {
-  return new Promise<void>((resolve) => {
-    setTimeout(resolve, delayMs);
-  });
-}
-
-function getRetryDelayMs(attempt: number, baseDelayMs: number, maxDelayMs: number) {
-  const exponential = baseDelayMs * Math.pow(2, attempt - 1);
-  return Math.min(maxDelayMs, exponential);
-}
+export type LinkIdentityResult =
+  | { ok: true }
+  | { ok: false; reason: "rate_limited"; retryAt?: number; error?: string }
+  | { ok: false; reason: "queued_for_replay" | "failed" };
 
 function getCookieValueFromDocument(key: string): string | null {
   if (typeof document === "undefined") {
@@ -136,10 +127,10 @@ function buildIdentityLinkReplayPayload(
   };
 }
 
-function queueIdentityLinkReplay(eventId: string, occurredAt: string) {
+function queueIdentityLinkReplay(eventId: string, occurredAt: string): boolean {
   const payload = buildIdentityLinkReplayPayload(eventId, occurredAt);
   if (!payload) {
-    return;
+    return false;
   }
 
   enqueueConsentAuditReplay({
@@ -147,62 +138,99 @@ function queueIdentityLinkReplay(eventId: string, occurredAt: string) {
     payload,
   });
   void flushConsentAuditReplayQueue();
+  return true;
+}
+
+async function parseRateLimitedResponse(response: Response): Promise<{
+  retryAt?: number;
+  error?: string;
+}> {
+  let retryAt: number | undefined;
+  let error: string | undefined;
+
+  try {
+    const payload = (await response.json()) as {
+      retryAt?: unknown;
+      error?: unknown;
+    };
+
+    retryAt = typeof payload.retryAt === "number" ? payload.retryAt : undefined;
+    error = typeof payload.error === "string" ? payload.error : undefined;
+  } catch {
+    // Ignore malformed rate-limit payloads.
+  }
+
+  if (retryAt) {
+    return { retryAt, error };
+  }
+
+  const retryAfter = response.headers.get("Retry-After");
+  if (!retryAfter) {
+    return { error };
+  }
+
+  const retryAfterSeconds = Number.parseInt(retryAfter, 10);
+  if (!Number.isFinite(retryAfterSeconds) || retryAfterSeconds <= 0) {
+    return { error };
+  }
+
+  return { retryAt: Date.now() + retryAfterSeconds * 1000, error };
 }
 
 export async function linkIdentityWithRetry({
-  maxAttempts = 3,
-  baseDelayMs = 200,
-  maxDelayMs = 1000,
   fetchImpl = fetch,
-}: LinkIdentityOptions = {}): Promise<boolean> {
-  const safeMaxAttempts = Math.max(1, maxAttempts);
-  const safeBaseDelayMs = Math.max(0, baseDelayMs);
-  const safeMaxDelayMs = Math.max(safeBaseDelayMs, maxDelayMs);
+}: LinkIdentityOptions = {}): Promise<LinkIdentityResult> {
   const auditEventId = createConsentAuditEventId();
   const auditOccurredAt = createConsentAuditOccurredAt();
 
-  for (let attempt = 1; attempt <= safeMaxAttempts; attempt += 1) {
-    try {
-      const response = await fetchImpl("/api/consent/link", {
-        method: "POST",
-        cache: "no-store",
-        keepalive: true,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          eventId: auditEventId,
-          occurredAt: auditOccurredAt,
-        }),
-      });
+  try {
+    const response = await fetchImpl("/api/consent/link", {
+      method: "POST",
+      cache: "no-store",
+      keepalive: true,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        eventId: auditEventId,
+        occurredAt: auditOccurredAt,
+      }),
+    });
 
-      if (response.ok) {
-        return true;
-      }
-
-      const shouldRetry = RETRYABLE_STATUS_CODES.has(response.status) && attempt < safeMaxAttempts;
-      if (!shouldRetry) {
-        if (RETRYABLE_STATUS_CODES.has(response.status)) {
-          queueIdentityLinkReplay(auditEventId, auditOccurredAt);
-        }
-        console.warn(
-          `[consent] Identity link request failed with status ${response.status}; not retrying.`
-        );
-        return false;
-      }
-    } catch (error) {
-      if (attempt >= safeMaxAttempts) {
-        queueIdentityLinkReplay(auditEventId, auditOccurredAt);
-        console.warn("[consent] Identity link request failed after retries:", error);
-        return false;
-      }
+    if (response.ok) {
+      return { ok: true };
     }
 
-    const delayMs = getRetryDelayMs(attempt, safeBaseDelayMs, safeMaxDelayMs);
-    if (delayMs > 0) {
-      await sleep(delayMs);
+    if (response.status === 429) {
+      const rateLimited = await parseRateLimitedResponse(response);
+      console.warn("[consent] Identity link rate limited.");
+      return {
+        ok: false,
+        reason: "rate_limited",
+        retryAt: rateLimited.retryAt,
+        error: rateLimited.error,
+      };
     }
+
+    if (QUEUEABLE_STATUS_CODES.has(response.status)) {
+      const queued = queueIdentityLinkReplay(auditEventId, auditOccurredAt);
+      console.warn(
+        `[consent] Identity link request failed with status ${response.status}; queued replay.`
+      );
+      return {
+        ok: false,
+        reason: queued ? "queued_for_replay" : "failed",
+      };
+    }
+
+    console.warn(`[consent] Identity link request failed with status ${response.status}.`);
+    return { ok: false, reason: "failed" };
+  } catch (error) {
+    const queued = queueIdentityLinkReplay(auditEventId, auditOccurredAt);
+    console.warn("[consent] Identity link request failed:", error);
+    return {
+      ok: false,
+      reason: queued ? "queued_for_replay" : "failed",
+    };
   }
-
-  return false;
 }

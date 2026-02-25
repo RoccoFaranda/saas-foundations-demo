@@ -1,25 +1,44 @@
+// @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createConsentState, serializeConsentStateForCookie } from "./state";
 import { linkIdentityWithRetry } from "./link-identity";
+
+const AUDIT_QUEUE_STORAGE_KEY = "sf-consent-audit-queue:v1";
+
+function setConsentCookie() {
+  const state = createConsentState({
+    source: "preferences_save",
+    categories: {
+      functional: true,
+      analytics: false,
+      marketing: false,
+    },
+  });
+
+  document.cookie = `sf_consent=${serializeConsentStateForCookie(state)}; path=/`;
+}
 
 describe("linkIdentityWithRetry", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    window.localStorage.clear();
+
+    // Prevent queue flush from attempting real network requests.
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 503 })));
+    setConsentCookie();
   });
 
-  it("succeeds on first successful response", async () => {
-    const fetchImpl = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-    } as Response);
+  it("returns ok on first successful response", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      new Response(null, {
+        status: 200,
+      })
+    );
 
-    const linked = await linkIdentityWithRetry({
-      fetchImpl,
-      maxAttempts: 3,
-      baseDelayMs: 1,
-      maxDelayMs: 1,
-    });
+    const result = await linkIdentityWithRetry({ fetchImpl });
 
-    expect(linked).toBe(true);
+    expect(result).toEqual({ ok: true });
     expect(fetchImpl).toHaveBeenCalledTimes(1);
     expect(fetchImpl).toHaveBeenCalledWith(
       "/api/consent/link",
@@ -27,61 +46,65 @@ describe("linkIdentityWithRetry", () => {
     );
   });
 
-  it("retries retryable status codes and succeeds when a later attempt returns ok", async () => {
-    const fetchImpl = vi
-      .fn()
-      .mockResolvedValueOnce({
-        ok: false,
-        status: 401,
-      } as Response)
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-      } as Response);
+  it("treats 429 as terminal and does not queue replay", async () => {
+    const retryAt = Date.now() + 60_000;
+    const fetchImpl = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ error: "Too many requests", retryAt }), {
+        status: 429,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
 
-    const linked = await linkIdentityWithRetry({
-      fetchImpl,
-      maxAttempts: 3,
-      baseDelayMs: 1,
-      maxDelayMs: 1,
-    });
+    const result = await linkIdentityWithRetry({ fetchImpl });
 
-    expect(linked).toBe(true);
-    expect(fetchImpl).toHaveBeenCalledTimes(2);
-  });
-
-  it("does not retry non-retryable status codes", async () => {
-    const fetchImpl = vi.fn().mockResolvedValue({
+    expect(result).toEqual({
       ok: false,
-      status: 400,
-    } as Response);
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-
-    const linked = await linkIdentityWithRetry({
-      fetchImpl,
-      maxAttempts: 3,
-      baseDelayMs: 1,
-      maxDelayMs: 1,
+      reason: "rate_limited",
+      retryAt,
+      error: "Too many requests",
     });
-
-    expect(linked).toBe(false);
     expect(fetchImpl).toHaveBeenCalledTimes(1);
-    expect(warnSpy).toHaveBeenCalled();
+    expect(window.localStorage.getItem(AUDIT_QUEUE_STORAGE_KEY)).toBeNull();
   });
 
-  it("retries network errors and fails after max attempts", async () => {
+  it("queues replay for retryable non-429 failures", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      new Response(null, {
+        status: 503,
+      })
+    );
+
+    const result = await linkIdentityWithRetry({ fetchImpl });
+
+    expect(result).toEqual({ ok: false, reason: "queued_for_replay" });
+    const queueRaw = window.localStorage.getItem(AUDIT_QUEUE_STORAGE_KEY);
+    expect(queueRaw).not.toBeNull();
+
+    const queue = JSON.parse(String(queueRaw)) as Array<{ kind: string }>;
+    expect(queue).toHaveLength(1);
+    expect(queue[0]?.kind).toBe("identity_link");
+  });
+
+  it("does not queue replay for non-retryable failures", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      new Response(null, {
+        status: 400,
+      })
+    );
+
+    const result = await linkIdentityWithRetry({ fetchImpl });
+
+    expect(result).toEqual({ ok: false, reason: "failed" });
+    expect(window.localStorage.getItem(AUDIT_QUEUE_STORAGE_KEY)).toBeNull();
+  });
+
+  it("queues replay for network errors", async () => {
     const fetchImpl = vi.fn().mockRejectedValue(new Error("network down"));
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-    const linked = await linkIdentityWithRetry({
-      fetchImpl,
-      maxAttempts: 2,
-      baseDelayMs: 1,
-      maxDelayMs: 1,
-    });
+    const result = await linkIdentityWithRetry({ fetchImpl });
 
-    expect(linked).toBe(false);
-    expect(fetchImpl).toHaveBeenCalledTimes(2);
-    expect(warnSpy).toHaveBeenCalled();
+    expect(result).toEqual({ ok: false, reason: "queued_for_replay" });
+    const queueRaw = window.localStorage.getItem(AUDIT_QUEUE_STORAGE_KEY);
+    expect(queueRaw).not.toBeNull();
   });
 });

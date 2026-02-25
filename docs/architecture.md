@@ -191,8 +191,12 @@ Consent preference and identity-link audit events currently use a two-stage reli
    - retries transient DB failures in-request,
    - enforces idempotency and dedupe semantics.
 3. API response returns explicit audit metadata (`auditAccepted`, `persisted`, `reason`, `auditEventId`).
-4. If audit is not accepted, or a request-level/network failure occurs, the client enqueues a replay payload in localStorage.
+4. For non-`429` failures where replay is allowed, the client enqueues a replay payload in localStorage.
 5. Client flushes replay payloads via `POST /api/consent/audit` (on mount/online/visibility events) until accepted or dropped by retry policy.
+6. Strict limiter semantics are enforced:
+   - `POST /api/consent` `429` blocks preference changes and does not enqueue replay.
+   - `POST /api/consent/link` `429` does not enqueue replay and blocks auth continuation in login/signup UX.
+   - `POST /api/consent/audit` `429` drops queued replay items (no retry).
 
 Idempotency and dedupe behavior:
 
@@ -243,6 +247,10 @@ Demo-safe behavior:
   - change-password, change-email request, verify-email, verify-email-change, reset-password
   - account deletion request + restore token flow
   - authenticated CSV export (`/app/dashboard/export`)
+  - consent audit endpoints:
+    - `POST /api/consent` (`20 / 10m`; keyed by `consentId` + IP)
+    - `POST /api/consent/link` (`100 / 10m`; keyed by user + IP)
+    - `POST /api/consent/audit` (`150 / 10m`; keyed by `consentId` + IP)
 - Billing endpoint limits are planned for when billing routes are implemented.
 
 ### Stripe (test mode only)
@@ -276,7 +284,7 @@ Baseline security posture for this public demo:
   - verification/reset/email-change tokens are short-lived and single-use
   - tokens are stored as HMAC-SHA-256 hashes with a server-side secret
 - **Rate limiting**
-  - applied to signup/login/reset/resend verification, settings security actions, email verification flows, and CSV export
+  - applied to signup/login/reset/resend verification, settings security actions, email verification flows, consent audit endpoints, and CSV export
   - consider per-IP + per-user + global caps
 - **Account enumeration**
   - password reset requests return a generic success response

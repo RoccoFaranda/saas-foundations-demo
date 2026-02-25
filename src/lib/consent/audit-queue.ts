@@ -7,8 +7,8 @@ const MAX_QUEUE_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const BASE_RETRY_DELAY_MS = 1000;
 const MAX_RETRY_DELAY_MS = 5 * 60 * 1000;
 
-const RETRYABLE_STATUS_CODES = new Set([401, 429, 500, 502, 503, 504]);
-const NON_RETRYABLE_STATUS_CODES = new Set([400, 404, 405, 409, 422]);
+const RETRYABLE_STATUS_CODES = new Set([401, 500, 502, 503, 504]);
+const NON_RETRYABLE_STATUS_CODES = new Set([400, 404, 405, 409, 422, 429]);
 
 export type ConsentAuditReplaySource = ConsentSource | typeof CONSENT_EVENT_SOURCE_IDENTITY_LINK;
 export type ConsentAuditQueueItemKind = "consent" | "identity_link";

@@ -132,6 +132,113 @@ describe("ConsentProvider cross-tab sync", () => {
     );
   });
 
+  it("treats /api/consent 429 as terminal (no local change, no replay enqueue)", async () => {
+    const retryAt = Date.now() + 60_000;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url === "/api/consent" && init?.method === "POST") {
+          return {
+            ok: false,
+            status: 429,
+            json: async () => ({
+              error: "Too many requests. Try again in 1 minute.",
+              retryAt,
+            }),
+          } as Response;
+        }
+
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ state: null }),
+        } as Response;
+      })
+    );
+
+    const user = userEvent.setup();
+
+    render(
+      <ConsentProvider initialConsentState={null}>
+        <ConsentAnalyticsProbe />
+      </ConsentProvider>
+    );
+
+    const acceptAllButton = screen.getByRole("button", { name: "Accept all" });
+    await user.click(acceptAllButton);
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        "/api/consent",
+        expect.objectContaining({
+          method: "POST",
+        })
+      );
+    });
+
+    expect(screen.getByTestId("analytics-consent")).toHaveTextContent("false");
+    expect(JSON.parse(window.localStorage.getItem("sf-consent-audit-queue:v1") ?? "[]")).toEqual(
+      []
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent("Too many requests");
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Accept all" })).toBeDisabled();
+    });
+  });
+
+  it("keeps modal close enabled after /api/consent 429 while save actions are locked", async () => {
+    const retryAt = Date.now() + 60_000;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url === "/api/consent" && init?.method === "POST") {
+          return {
+            ok: false,
+            status: 429,
+            json: async () => ({
+              error: "Too many requests. Try again in 1 minute.",
+              retryAt,
+            }),
+          } as Response;
+        }
+
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ state: null }),
+        } as Response;
+      })
+    );
+
+    const user = userEvent.setup();
+
+    render(
+      <ConsentProvider initialConsentState={null}>
+        <div>Child</div>
+      </ConsentProvider>
+    );
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent(CONSENT_OPEN_PREFERENCES_EVENT));
+    });
+
+    await user.click(screen.getByRole("button", { name: "Save preferences" }));
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        "/api/consent",
+        expect.objectContaining({
+          method: "POST",
+        })
+      );
+    });
+
+    expect(screen.getByRole("button", { name: "Close" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Save preferences" })).toBeDisabled();
+  });
+
   it("refreshes consent state when another tab broadcasts an update", async () => {
     const syncedState = createConsentState({
       source: "preferences_save",

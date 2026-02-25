@@ -11,6 +11,9 @@ vi.hoisted(() => {
 const createConsentEventMock = vi.hoisted(() => vi.fn());
 const findLatestConsentEventMock = vi.hoisted(() => vi.fn());
 const authMock = vi.hoisted(() => vi.fn());
+const enforceRateLimitMock = vi.hoisted(() => vi.fn());
+const getRequestIpFromHeadersMock = vi.hoisted(() => vi.fn());
+const getRetryAfterSecondsMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/src/lib/db", () => ({
   default: {
@@ -23,6 +26,12 @@ vi.mock("@/src/lib/db", () => ({
 
 vi.mock("@/src/lib/auth/config", () => ({
   auth: authMock,
+}));
+
+vi.mock("@/src/lib/auth/rate-limit", () => ({
+  enforceRateLimit: enforceRateLimitMock,
+  getRequestIpFromHeaders: getRequestIpFromHeadersMock,
+  getRetryAfterSeconds: getRetryAfterSecondsMock,
 }));
 
 import { GET, POST } from "./route";
@@ -40,9 +49,15 @@ describe("api/consent route", () => {
     createConsentEventMock.mockReset();
     findLatestConsentEventMock.mockReset();
     authMock.mockReset();
+    enforceRateLimitMock.mockReset();
+    getRequestIpFromHeadersMock.mockReset();
+    getRetryAfterSecondsMock.mockReset();
     authMock.mockResolvedValue({ user: { id: "user-1" } });
     createConsentEventMock.mockResolvedValue({ id: "consent-event-1" });
     findLatestConsentEventMock.mockResolvedValue(null);
+    enforceRateLimitMock.mockResolvedValue(null);
+    getRequestIpFromHeadersMock.mockReturnValue("203.0.113.10");
+    getRetryAfterSecondsMock.mockReturnValue("60");
   });
 
   it("persists and sets cookie for a valid consent payload", async () => {
@@ -101,6 +116,38 @@ describe("api/consent route", () => {
     expect(body.state.categories.analytics).toBe(false);
     expect(body.state.categories.marketing).toBe(false);
     expect(body.auditAccepted).toBe(true);
+  });
+
+  it("returns 429 when consent write is rate limited", async () => {
+    enforceRateLimitMock.mockResolvedValue({
+      error: "Too many requests. Try again in 1 minute.",
+      retryAt: Date.now() + 60_000,
+    });
+
+    const response = await POST(
+      new Request("https://example.com/api/consent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          source: "preferences_save",
+          categories: {
+            functional: true,
+            analytics: false,
+            marketing: false,
+          },
+        }),
+      })
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("60");
+    expect(body).toEqual(
+      expect.objectContaining({
+        error: "Too many requests. Try again in 1 minute.",
+      })
+    );
+    expect(createConsentEventMock).not.toHaveBeenCalled();
   });
 
   it("no-ops persistence when latest event already matches current user and signature", async () => {

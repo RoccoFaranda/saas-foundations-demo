@@ -16,7 +16,10 @@ export type AuthRateLimitAction =
   | "resetPassword"
   | "verifyEmail"
   | "verifyEmailChange"
-  | "dashboardExport";
+  | "dashboardExport"
+  | "consentWrite"
+  | "consentLink"
+  | "consentAuditReplay";
 
 export interface RateLimitDecision {
   allowed: boolean;
@@ -59,6 +62,9 @@ const AUTH_RATE_LIMITS: Record<
   verifyEmail: { limit: 10, window: "10 m", windowMs: 10 * 60 * 1000 },
   verifyEmailChange: { limit: 10, window: "10 m", windowMs: 10 * 60 * 1000 },
   dashboardExport: { limit: 12, window: "10 m", windowMs: 10 * 60 * 1000 },
+  consentWrite: { limit: 20, window: "10 m", windowMs: 10 * 60 * 1000 },
+  consentLink: { limit: 100, window: "10 m", windowMs: 10 * 60 * 1000 },
+  consentAuditReplay: { limit: 150, window: "10 m", windowMs: 10 * 60 * 1000 },
 };
 
 const limiterCache = new Map<AuthRateLimitAction, RateLimiter>();

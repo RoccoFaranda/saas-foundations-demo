@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/src/lib/auth/config";
+import {
+  enforceRateLimit,
+  getRequestIpFromHeaders,
+  getRetryAfterSeconds,
+} from "@/src/lib/auth/rate-limit";
 import { CONSENT_EVENT_SOURCE_IDENTITY_LINK } from "@/src/lib/consent/config";
 import { persistConsentAuditEventWithRetry } from "@/src/lib/consent/audit-server";
 import { consentAuditReplayPayloadSchema } from "@/src/lib/consent/schema";
@@ -24,6 +29,29 @@ export async function POST(request: Request) {
   const parsed = consentAuditReplayPayloadSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid audit payload." }, { status: 400 });
+  }
+
+  const requestIp = getRequestIpFromHeaders(request.headers);
+  const replayRateLimit = await enforceRateLimit("consentAuditReplay", [
+    `consent:${parsed.data.consentId}`,
+    requestIp ? `ip:${requestIp}` : "",
+  ]);
+  if (replayRateLimit) {
+    const retryAfter = getRetryAfterSeconds(replayRateLimit.retryAt);
+    return NextResponse.json(
+      {
+        auditAccepted: false,
+        persisted: false,
+        reason: "rate_limited",
+        auditEventId: parsed.data.eventId,
+        error: replayRateLimit.error,
+        retryAt: replayRateLimit.retryAt,
+      },
+      {
+        status: 429,
+        headers: retryAfter ? { "Retry-After": retryAfter } : undefined,
+      }
+    );
   }
 
   let userId: string | null = null;

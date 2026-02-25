@@ -19,6 +19,7 @@ describe("ConsentPreferencesModal", () => {
       <ConsentPreferencesModal
         isOpen
         isSaving={false}
+        isActionsDisabled={false}
         gpcLocked={false}
         initialCategories={{ ...BASE_CATEGORIES }}
         onClose={vi.fn()}
@@ -36,6 +37,7 @@ describe("ConsentPreferencesModal", () => {
       <ConsentPreferencesModal
         isOpen
         isSaving={false}
+        isActionsDisabled={false}
         gpcLocked={false}
         initialCategories={{ ...BASE_CATEGORIES }}
         onClose={vi.fn()}
@@ -53,6 +55,7 @@ describe("ConsentPreferencesModal", () => {
       <ConsentPreferencesModal
         isOpen
         isSaving={false}
+        isActionsDisabled={false}
         gpcLocked={false}
         initialCategories={{ ...BASE_CATEGORIES }}
         onClose={vi.fn()}
@@ -68,6 +71,7 @@ describe("ConsentPreferencesModal", () => {
       <ConsentPreferencesModal
         isOpen={false}
         isSaving={false}
+        isActionsDisabled={false}
         gpcLocked={false}
         initialCategories={{ ...BASE_CATEGORIES }}
         onClose={vi.fn()}
@@ -79,6 +83,7 @@ describe("ConsentPreferencesModal", () => {
       <ConsentPreferencesModal
         isOpen
         isSaving={false}
+        isActionsDisabled={false}
         gpcLocked={false}
         initialCategories={{ ...BASE_CATEGORIES }}
         onClose={vi.fn()}

@@ -53,6 +53,9 @@ describe("getAuthRateLimiter in production", () => {
       "verifyEmail",
       "verifyEmailChange",
       "dashboardExport",
+      "consentWrite",
+      "consentLink",
+      "consentAuditReplay",
     ];
 
     for (const action of actions) {

@@ -5,6 +5,9 @@ import { createConsentState, serializeConsentStateForCookie } from "@/src/lib/co
 const createConsentEventMock = vi.hoisted(() => vi.fn());
 const findLatestConsentEventMock = vi.hoisted(() => vi.fn());
 const authMock = vi.hoisted(() => vi.fn());
+const enforceRateLimitMock = vi.hoisted(() => vi.fn());
+const getRequestIpFromHeadersMock = vi.hoisted(() => vi.fn());
+const getRetryAfterSecondsMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/src/lib/db", () => ({
   default: {
@@ -19,6 +22,12 @@ vi.mock("@/src/lib/auth/config", () => ({
   auth: authMock,
 }));
 
+vi.mock("@/src/lib/auth/rate-limit", () => ({
+  enforceRateLimit: enforceRateLimitMock,
+  getRequestIpFromHeaders: getRequestIpFromHeadersMock,
+  getRetryAfterSeconds: getRetryAfterSecondsMock,
+}));
+
 import { POST } from "./route";
 
 describe("api/consent/link route", () => {
@@ -26,9 +35,15 @@ describe("api/consent/link route", () => {
     createConsentEventMock.mockReset();
     findLatestConsentEventMock.mockReset();
     authMock.mockReset();
+    enforceRateLimitMock.mockReset();
+    getRequestIpFromHeadersMock.mockReset();
+    getRetryAfterSecondsMock.mockReset();
     authMock.mockResolvedValue({ user: { id: "user-1" } });
     createConsentEventMock.mockResolvedValue({ id: "consent-event-1" });
     findLatestConsentEventMock.mockResolvedValue(null);
+    enforceRateLimitMock.mockResolvedValue(null);
+    getRequestIpFromHeadersMock.mockReturnValue("203.0.113.10");
+    getRetryAfterSecondsMock.mockReturnValue("60");
   });
 
   it("persists identity_link when authenticated and consent cookie exists", async () => {
@@ -54,6 +69,10 @@ describe("api/consent/link route", () => {
     expect(body.auditAccepted).toBe(true);
     expect(body.persisted).toBe(true);
     expect(body.reason).toBe("linked");
+    expect(enforceRateLimitMock).toHaveBeenCalledWith("consentLink", [
+      "user:user-1",
+      "ip:203.0.113.10",
+    ]);
     expect(createConsentEventMock).toHaveBeenCalledTimes(1);
   });
 
@@ -126,6 +145,43 @@ describe("api/consent/link route", () => {
     expect(body.reason).toBe("missing_consent_state");
     expect(createConsentEventMock).not.toHaveBeenCalled();
     expect(findLatestConsentEventMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 429 when identity-link write is rate limited", async () => {
+    enforceRateLimitMock.mockResolvedValue({
+      error: "Too many requests. Try again in 1 minute.",
+      retryAt: Date.now() + 60_000,
+    });
+
+    const state = createConsentState({
+      source: "preferences_save",
+      categories: {
+        functional: true,
+        analytics: false,
+        marketing: false,
+      },
+    });
+
+    const response = await POST(
+      new Request("https://example.com/api/consent/link", {
+        method: "POST",
+        headers: { Cookie: `sf_consent=${serializeConsentStateForCookie(state)}` },
+      })
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("60");
+    expect(body).toEqual(
+      expect.objectContaining({
+        linked: false,
+        auditAccepted: false,
+        persisted: false,
+        reason: "rate_limited",
+        error: "Too many requests. Try again in 1 minute.",
+      })
+    );
+    expect(createConsentEventMock).not.toHaveBeenCalled();
   });
 
   it("returns already_represented_by_latest_event when latest consent event matches current user/signature", async () => {

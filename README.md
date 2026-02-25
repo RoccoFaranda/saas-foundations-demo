@@ -167,9 +167,16 @@ When adding non-essential scripts/services:
    - `POST /api/consent` and `POST /api/consent/link` attempt an immediate audit write.
    - Audit writes use server-side transient retry logic before returning.
    - Consent write responses expose audit metadata: `auditAccepted`, `persisted`, `reason`, `auditEventId`.
-   - When audit persistence is not accepted (or request-level failure occurs), the client stores a replay payload in localStorage and retries in the background.
+   - For non-`429` failures where replay is allowed, the client stores a replay payload in localStorage and retries in the background.
+   - `POST /api/consent` `429` is strict: preference change is blocked and no replay payload is queued.
    - Replay delivery uses `POST /api/consent/audit`.
-   - Identity-link writes use client retries first, then queue replay (`identity_link`) on terminal retryable failures.
+   - `POST /api/consent/audit` `429` is strict: queued replay items are dropped (not retried).
+   - `POST /api/consent/link` `429` is strict: identity-link replay is not queued and auth continuation is blocked in login/signup UX.
+   - Non-`429` identity-link failures can enqueue replay (`identity_link`) for background delivery.
+   - Active abuse-rate limits (hard `429`) are enforced for:
+     - `POST /api/consent` (`20 / 10m`; keyed by `consentId` + IP)
+     - `POST /api/consent/link` (`100 / 10m`; keyed by user + IP)
+     - `POST /api/consent/audit` (`150 / 10m`; keyed by `consentId` + IP)
 9. Future hardening (planned, not implemented):
    - Add a server-side durable outbox/queue so events accepted by the server can still be persisted after DB outages without depending only on browser-side replay.
 

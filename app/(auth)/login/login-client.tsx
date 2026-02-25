@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { login } from "@/src/lib/auth/actions";
 import { linkIdentityWithRetry } from "@/src/lib/consent/link-identity";
 import { LegalInlineLinks } from "@/src/components/legal/legal-inline-links";
@@ -77,7 +77,19 @@ export default function LoginClient({
         if (result.success) {
           applyRetryAt(null);
           await update();
-          void linkIdentityWithRetry();
+          const linkResult = await linkIdentityWithRetry();
+          if (!linkResult.ok && linkResult.reason === "rate_limited") {
+            const rateLimitError =
+              linkResult.error ?? "Too many requests. Please wait before trying again.";
+            setError(rateLimitError);
+            applyRetryAt(
+              linkResult.retryAt ?? null,
+              linkResult.retryAt ? () => setError(null) : undefined
+            );
+            await signOut({ redirect: false });
+            return;
+          }
+
           const destination = result.redirectUrl ?? "/app/dashboard";
           router.push(destination);
           router.refresh();

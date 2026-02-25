@@ -83,6 +83,8 @@ export function ConsentProvider({ initialConsentState, children }: ConsentProvid
     normalizeConsentState(initialConsentState)
   );
   const [isSaving, setIsSaving] = useState(false);
+  const [isRateLimited, setIsRateLimited] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
   const [gpcDetected, setGpcDetected] = useState(false);
   const gpcSyncAttemptedRef = useRef(false);
@@ -90,6 +92,35 @@ export function ConsentProvider({ initialConsentState, children }: ConsentProvid
   const syncChannelRef = useRef<BroadcastChannel | null>(null);
   const syncFetchInFlightRef = useRef(false);
   const syncFetchQueuedRef = useRef(false);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+      }
+    };
+  }, []);
+
+  const applyRetryAt = useCallback((nextRetryAt: number | null | undefined) => {
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+
+    if (nextRetryAt && nextRetryAt > Date.now()) {
+      setIsRateLimited(true);
+      const delay = Math.max(nextRetryAt - Date.now(), 0);
+      retryTimerRef.current = setTimeout(() => {
+        setIsRateLimited(false);
+        retryTimerRef.current = null;
+        setSaveError(null);
+      }, delay);
+      return;
+    }
+
+    setIsRateLimited(false);
+  }, []);
 
   const parseConsentPayloadState = useCallback((value: unknown) => {
     if (value === null || value === undefined) {
@@ -177,10 +208,12 @@ export function ConsentProvider({ initialConsentState, children }: ConsentProvid
   }, []);
 
   const persistConsent = useCallback(
-    async (source: ConsentSource, categories: OptionalConsentCategories) => {
+    async (source: ConsentSource, categories: OptionalConsentCategories): Promise<boolean> => {
       const auditEventId = createConsentAuditEventId();
       const auditOccurredAt = createConsentAuditOccurredAt();
       setIsSaving(true);
+      setSaveError(null);
+
       try {
         const response = await fetch("/api/consent", {
           method: "POST",
@@ -192,9 +225,36 @@ export function ConsentProvider({ initialConsentState, children }: ConsentProvid
             occurredAt: auditOccurredAt,
           }),
         });
+
         if (!response.ok) {
+          if (response.status === 429) {
+            let errorMessage = "Too many requests. Please wait and try again.";
+            let retryAt: number | undefined;
+
+            try {
+              const payload = (await response.json()) as {
+                error?: unknown;
+                retryAt?: unknown;
+              };
+              if (typeof payload.error === "string") {
+                errorMessage = payload.error;
+              }
+              if (typeof payload.retryAt === "number") {
+                retryAt = payload.retryAt;
+              }
+            } catch {
+              // Ignore malformed payloads on rate-limited responses.
+            }
+
+            setSaveError(errorMessage);
+            applyRetryAt(retryAt);
+            return false;
+          }
+
           throw new Error("Failed to persist cookie preferences.");
         }
+
+        applyRetryAt(null);
         const payload = (await response.json()) as {
           state?: unknown;
           auditAccepted?: boolean;
@@ -218,7 +278,10 @@ export function ConsentProvider({ initialConsentState, children }: ConsentProvid
           });
           void flushConsentAuditReplayQueue();
         }
+
+        return true;
       } catch (error) {
+        applyRetryAt(null);
         console.error("[consent] Failed to save consent preferences:", error);
         // Keep local UI state in sync even when persistence fails.
         const fallbackState = createConsentState({
@@ -233,11 +296,12 @@ export function ConsentProvider({ initialConsentState, children }: ConsentProvid
           payload: createReplayPayloadFromState(fallbackState, auditEventId, auditOccurredAt),
         });
         void flushConsentAuditReplayQueue();
+        return true;
       } finally {
         setIsSaving(false);
       }
     },
-    [broadcastConsentUpdated, consentState?.consentId, parseConsentPayloadState]
+    [applyRetryAt, broadcastConsentUpdated, consentState?.consentId, parseConsentPayloadState]
   );
 
   useEffect(() => {
@@ -364,6 +428,7 @@ export function ConsentProvider({ initialConsentState, children }: ConsentProvid
   const currentCategories = consentState?.categories ?? DEFAULT_CONSENT_CATEGORIES;
   const shouldShowBanner =
     HAS_NON_ESSENTIAL_CONSENT_SERVICES && !consentState && !isPreferencesOpen;
+  const isInteractionLocked = isSaving || isRateLimited;
 
   return (
     <ConsentContext.Provider value={contextValue}>
@@ -372,18 +437,23 @@ export function ConsentProvider({ initialConsentState, children }: ConsentProvid
       <ConsentPreferencesModal
         isOpen={isPreferencesOpen}
         isSaving={isSaving}
+        isActionsDisabled={isInteractionLocked}
         gpcLocked={gpcDetected}
+        errorMessage={saveError}
         initialCategories={currentCategories}
         onClose={() => setIsPreferencesOpen(false)}
-        onSave={(categories) => {
-          void persistConsent("preferences_save", categories);
-          setIsPreferencesOpen(false);
+        onSave={async (categories) => {
+          const saved = await persistConsent("preferences_save", categories);
+          if (saved) {
+            setIsPreferencesOpen(false);
+          }
         }}
       />
 
       {shouldShowBanner ? (
         <ConsentBanner
-          isSaving={isSaving}
+          isSaving={isInteractionLocked}
+          errorMessage={saveError}
           onAcceptAll={() => {
             void persistConsent("banner_accept_all", {
               functional: true,

@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 
 interface ConsentBannerProps {
   isSaving: boolean;
+  errorMessage?: string | null;
   onAcceptAll: () => void;
   onRejectAll: () => void;
   onCustomize: () => void;
@@ -11,6 +12,7 @@ interface ConsentBannerProps {
 
 export function ConsentBanner({
   isSaving,
+  errorMessage,
   onAcceptAll,
   onRejectAll,
   onCustomize,
@@ -76,6 +78,11 @@ export function ConsentBanner({
             We use necessary cookies for core functionality. Optional cookies are off by default and
             only enabled if you choose.
           </p>
+          {errorMessage ? (
+            <p className="mt-2 text-sm text-danger" role="alert">
+              {errorMessage}
+            </p>
+          ) : null}
         </div>
         <div className="flex flex-wrap gap-2">
           <button

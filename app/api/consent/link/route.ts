@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/src/lib/auth/config";
+import {
+  enforceRateLimit,
+  getRequestIpFromHeaders,
+  getRetryAfterSeconds,
+} from "@/src/lib/auth/rate-limit";
 import { CONSENT_COOKIE_NAME, CONSENT_EVENT_SOURCE_IDENTITY_LINK } from "@/src/lib/consent/config";
 import { createConsentAuditEventId } from "@/src/lib/consent/audit-metadata";
 import { persistConsentAuditEventWithRetry } from "@/src/lib/consent/audit-server";
@@ -60,6 +65,29 @@ export async function POST(request: Request) {
   const state = normalizeConsentState(rawState);
   if (!state) {
     return NextResponse.json({ linked: false, reason: "missing_consent_state" });
+  }
+
+  const requestIp = getRequestIpFromHeaders(request.headers);
+  const linkRateLimit = await enforceRateLimit("consentLink", [
+    `user:${userId}`,
+    requestIp ? `ip:${requestIp}` : "",
+  ]);
+  if (linkRateLimit) {
+    const retryAfter = getRetryAfterSeconds(linkRateLimit.retryAt);
+    return NextResponse.json(
+      {
+        linked: false,
+        auditAccepted: false,
+        persisted: false,
+        reason: "rate_limited",
+        error: linkRateLimit.error,
+        retryAt: linkRateLimit.retryAt,
+      },
+      {
+        status: 429,
+        headers: retryAfter ? { "Retry-After": retryAfter } : undefined,
+      }
+    );
   }
 
   const auditEventId = payload.eventId ?? createConsentAuditEventId();

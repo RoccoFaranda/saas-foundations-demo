@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/src/lib/auth/config";
+import {
+  enforceRateLimit,
+  getRequestIpFromHeaders,
+  getRetryAfterSeconds,
+} from "@/src/lib/auth/rate-limit";
 import { CONSENT_COOKIE_NAME } from "@/src/lib/consent/config";
 import { createConsentAuditEventId } from "@/src/lib/consent/audit-metadata";
 import { persistConsentAuditEventWithRetry } from "@/src/lib/consent/audit-server";
@@ -90,6 +95,25 @@ export async function POST(request: Request) {
     gpcHonored: shouldHonorGpc,
     consentId: existingState?.consentId,
   });
+
+  const requestIp = getRequestIpFromHeaders(request.headers);
+  const consentRateLimit = await enforceRateLimit("consentWrite", [
+    `consent:${state.consentId}`,
+    requestIp ? `ip:${requestIp}` : "",
+  ]);
+  if (consentRateLimit) {
+    const retryAfter = getRetryAfterSeconds(consentRateLimit.retryAt);
+    return NextResponse.json(
+      {
+        error: consentRateLimit.error,
+        retryAt: consentRateLimit.retryAt,
+      },
+      {
+        status: 429,
+        headers: retryAfter ? { "Retry-After": retryAfter } : undefined,
+      }
+    );
+  }
 
   const auditEventId = parsed.data.eventId ?? createConsentAuditEventId();
   const auditOccurredAt = parsed.data.occurredAt ?? state.updatedAt;

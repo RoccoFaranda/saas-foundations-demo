@@ -62,7 +62,9 @@ function CategoryDisclosure({ summary, children }: CategoryDisclosureProps) {
 interface ConsentPreferencesModalProps {
   isOpen: boolean;
   isSaving: boolean;
+  isActionsDisabled: boolean;
   gpcLocked: boolean;
+  errorMessage?: string | null;
   initialCategories: ConsentCategories;
   onClose: () => void;
   onSave: (categories: Omit<ConsentCategories, "necessary">) => void;
@@ -71,7 +73,9 @@ interface ConsentPreferencesModalProps {
 export function ConsentPreferencesModal({
   isOpen,
   isSaving,
+  isActionsDisabled,
   gpcLocked,
+  errorMessage,
   initialCategories,
   onClose,
   onSave,
@@ -93,7 +97,9 @@ export function ConsentPreferencesModal({
       <ConsentPreferencesModalBody
         initialCategories={initialCategories}
         isSaving={isSaving}
+        isActionsDisabled={isActionsDisabled}
         gpcLocked={gpcLocked}
+        errorMessage={errorMessage}
         onClose={onClose}
         onSave={onSave}
         rowsByCategory={rowsByCategory}
@@ -106,7 +112,9 @@ export function ConsentPreferencesModal({
 interface ConsentPreferencesModalBodyProps {
   initialCategories: ConsentCategories;
   isSaving: boolean;
+  isActionsDisabled: boolean;
   gpcLocked: boolean;
+  errorMessage?: string | null;
   onClose: () => void;
   onSave: (categories: Omit<ConsentCategories, "necessary">) => void;
   rowsByCategory: Map<ConsentCategory, ConsentTableRow[]>;
@@ -116,7 +124,9 @@ interface ConsentPreferencesModalBodyProps {
 function ConsentPreferencesModalBody({
   initialCategories,
   isSaving,
+  isActionsDisabled,
   gpcLocked,
+  errorMessage,
   onClose,
   onSave,
   rowsByCategory,
@@ -165,7 +175,7 @@ function ConsentPreferencesModalBody({
             <input
               type="checkbox"
               checked={functional}
-              disabled={isSaving || gpcLocked}
+              disabled={isActionsDisabled || gpcLocked}
               onChange={(event) => setFunctional(event.currentTarget.checked)}
               className="mt-1 h-4 w-4 rounded border-border text-primary focus-ring"
               aria-label="Functional cookies"
@@ -189,7 +199,7 @@ function ConsentPreferencesModalBody({
             <input
               type="checkbox"
               checked={analytics}
-              disabled={isSaving || gpcLocked}
+              disabled={isActionsDisabled || gpcLocked}
               onChange={(event) => setAnalytics(event.currentTarget.checked)}
               className="mt-1 h-4 w-4 rounded border-border text-primary focus-ring"
               aria-label="Analytics cookies"
@@ -213,7 +223,7 @@ function ConsentPreferencesModalBody({
             <input
               type="checkbox"
               checked={marketing}
-              disabled={isSaving || gpcLocked}
+              disabled={isActionsDisabled || gpcLocked}
               onChange={(event) => setMarketing(event.currentTarget.checked)}
               className="mt-1 h-4 w-4 rounded border-border text-primary focus-ring"
               aria-label="Marketing cookies"
@@ -245,6 +255,11 @@ function ConsentPreferencesModalBody({
           Optional categories currently have no active cookie technologies in this release.
         </p>
       ) : null}
+      {errorMessage ? (
+        <p className="mt-4 rounded-lg border border-danger-border bg-danger-soft px-3 py-2 text-xs text-danger">
+          {errorMessage}
+        </p>
+      ) : null}
 
       <div className="mt-3">
         <Link href="/cookies" className="btn-link text-sm">
@@ -257,7 +272,7 @@ function ConsentPreferencesModalBody({
           <button
             type="button"
             className="btn-secondary btn-sm"
-            disabled={isSaving || gpcLocked}
+            disabled={isActionsDisabled || gpcLocked}
             onClick={() => {
               setFunctional(false);
               setAnalytics(false);
@@ -269,7 +284,7 @@ function ConsentPreferencesModalBody({
           <button
             type="button"
             className="btn-secondary btn-sm"
-            disabled={isSaving || gpcLocked}
+            disabled={isActionsDisabled || gpcLocked}
             onClick={() => {
               setFunctional(true);
               setAnalytics(true);
@@ -292,7 +307,7 @@ function ConsentPreferencesModalBody({
             ref={saveButtonRef}
             type="button"
             className="btn-primary btn-sm"
-            disabled={isSaving}
+            disabled={isActionsDisabled}
             onClick={() => {
               onSave({
                 functional,
