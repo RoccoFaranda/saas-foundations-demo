@@ -19,7 +19,6 @@ import {
 import {
   enqueueConsentAuditReplay,
   flushConsentAuditReplayQueue,
-  type ConsentAuditReplayPayload,
 } from "@/src/lib/consent/audit-queue";
 import {
   createConsentAuditEventId,
@@ -60,22 +59,6 @@ const ConsentContext = createContext<ConsentContextValue | null>(null);
 interface ConsentProviderProps {
   initialConsentState: ConsentState | null;
   children: ReactNode;
-}
-
-function createReplayPayloadFromState(
-  state: ConsentState,
-  eventId: string,
-  occurredAt: string
-): ConsentAuditReplayPayload {
-  return {
-    eventId,
-    occurredAt,
-    consentId: state.consentId,
-    version: state.version,
-    source: state.source,
-    gpcHonored: state.gpcHonored,
-    categories: state.categories,
-  };
 }
 
 export function ConsentProvider({ initialConsentState, children }: ConsentProviderProps) {
@@ -258,6 +241,8 @@ export function ConsentProvider({ initialConsentState, children }: ConsentProvid
         const payload = (await response.json()) as {
           state?: unknown;
           auditAccepted?: boolean;
+          auditEventId?: unknown;
+          replayToken?: unknown;
         };
         const nextState = parseConsentPayloadState(payload.state ?? null);
         const resolvedState =
@@ -272,11 +257,22 @@ export function ConsentProvider({ initialConsentState, children }: ConsentProvid
         broadcastConsentUpdated();
 
         if (payload.auditAccepted === false) {
-          enqueueConsentAuditReplay({
-            kind: "consent",
-            payload: createReplayPayloadFromState(resolvedState, auditEventId, auditOccurredAt),
-          });
-          void flushConsentAuditReplayQueue();
+          const replayToken =
+            typeof payload.replayToken === "string" ? payload.replayToken : undefined;
+          if (replayToken) {
+            const replayEventId =
+              typeof payload.auditEventId === "string" ? payload.auditEventId : auditEventId;
+            enqueueConsentAuditReplay({
+              kind: "consent",
+              eventId: replayEventId,
+              replayToken,
+            });
+            void flushConsentAuditReplayQueue();
+          } else {
+            console.warn(
+              "[consent] Consent audit was not accepted and no replay token was returned."
+            );
+          }
         }
 
         return true;
@@ -291,11 +287,6 @@ export function ConsentProvider({ initialConsentState, children }: ConsentProvid
           consentId: consentState?.consentId,
         });
         setConsentState(fallbackState);
-        enqueueConsentAuditReplay({
-          kind: "consent",
-          payload: createReplayPayloadFromState(fallbackState, auditEventId, auditOccurredAt),
-        });
-        void flushConsentAuditReplayQueue();
         return true;
       } finally {
         setIsSaving(false);

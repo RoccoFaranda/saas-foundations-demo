@@ -178,7 +178,7 @@ describe("ConsentProvider cross-tab sync", () => {
     });
 
     expect(screen.getByTestId("analytics-consent")).toHaveTextContent("false");
-    expect(JSON.parse(window.localStorage.getItem("sf-consent-audit-queue:v1") ?? "[]")).toEqual(
+    expect(JSON.parse(window.localStorage.getItem("sf-consent-audit-queue:v2") ?? "[]")).toEqual(
       []
     );
     expect(screen.getByRole("alert")).toHaveTextContent("Too many requests");
@@ -237,6 +237,108 @@ describe("ConsentProvider cross-tab sync", () => {
 
     expect(screen.getByRole("button", { name: "Close" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Save preferences" })).toBeDisabled();
+  });
+
+  it("queues replay only when /api/consent returns a signed replay token", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url === "/api/consent" && init?.method === "POST") {
+          const body = JSON.parse(String(init.body)) as {
+            source: "preferences_save" | "banner_accept_all" | "banner_reject_all" | "gpc";
+            categories: { functional: boolean; analytics: boolean; marketing: boolean };
+          };
+          const state = createConsentState({
+            source: body.source,
+            categories: body.categories,
+          });
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({
+              state,
+              auditAccepted: false,
+              auditEventId: "audit-event-1",
+              replayToken: "signed-replay-token-1",
+            }),
+          } as Response;
+        }
+
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ state: null }),
+        } as Response;
+      })
+    );
+
+    const user = userEvent.setup();
+
+    render(
+      <ConsentProvider initialConsentState={null}>
+        <div>Child</div>
+      </ConsentProvider>
+    );
+
+    await user.click(screen.getByRole("button", { name: "Accept all" }));
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        "/api/consent",
+        expect.objectContaining({
+          method: "POST",
+        })
+      );
+    });
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        "/api/consent/audit",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ replayToken: "signed-replay-token-1" }),
+        })
+      );
+    });
+    expect(JSON.parse(window.localStorage.getItem("sf-consent-audit-queue:v2") ?? "[]")).toEqual(
+      []
+    );
+  });
+
+  it("does not queue replay when /api/consent request fails before server response", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url === "/api/consent" && init?.method === "POST") {
+          throw new Error("network down");
+        }
+
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ state: null }),
+        } as Response;
+      })
+    );
+
+    const user = userEvent.setup();
+
+    render(
+      <ConsentProvider initialConsentState={null}>
+        <ConsentAnalyticsProbe />
+      </ConsentProvider>
+    );
+
+    await user.click(screen.getByRole("button", { name: "Accept all" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("analytics-consent")).toHaveTextContent("true");
+    });
+    expect(JSON.parse(window.localStorage.getItem("sf-consent-audit-queue:v2") ?? "[]")).toEqual(
+      []
+    );
   });
 
   it("refreshes consent state when another tab broadcasts an update", async () => {

@@ -1,31 +1,18 @@
-import { CONSENT_EVENT_SOURCE_IDENTITY_LINK } from "./config";
-import type { ConsentCategories, ConsentSource } from "./types";
-
-const CONSENT_AUDIT_QUEUE_STORAGE_KEY = "sf-consent-audit-queue:v1";
+const CONSENT_AUDIT_QUEUE_STORAGE_KEY = "sf-consent-audit-queue:v2";
 const MAX_QUEUE_ITEMS = 200;
 const MAX_QUEUE_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const BASE_RETRY_DELAY_MS = 1000;
 const MAX_RETRY_DELAY_MS = 5 * 60 * 1000;
 
 const RETRYABLE_STATUS_CODES = new Set([401, 500, 502, 503, 504]);
-const NON_RETRYABLE_STATUS_CODES = new Set([400, 404, 405, 409, 422, 429]);
+const NON_RETRYABLE_STATUS_CODES = new Set([400, 403, 404, 405, 409, 410, 422, 429]);
 
-export type ConsentAuditReplaySource = ConsentSource | typeof CONSENT_EVENT_SOURCE_IDENTITY_LINK;
 export type ConsentAuditQueueItemKind = "consent" | "identity_link";
-
-export interface ConsentAuditReplayPayload {
-  eventId: string;
-  occurredAt: string;
-  consentId: string;
-  version: string;
-  source: ConsentAuditReplaySource;
-  gpcHonored: boolean;
-  categories: ConsentCategories;
-}
 
 interface ConsentAuditQueueItem {
   kind: ConsentAuditQueueItemKind;
-  payload: ConsentAuditReplayPayload;
+  eventId: string;
+  replayToken: string;
   attemptCount: number;
   queuedAt: string;
   nextAttemptAt: number;
@@ -71,16 +58,8 @@ function readQueueFromStorage(): ConsentAuditQueueItem[] {
       const candidate = item as Partial<ConsentAuditQueueItem>;
       return (
         (candidate.kind === "consent" || candidate.kind === "identity_link") &&
-        typeof candidate.payload?.eventId === "string" &&
-        typeof candidate.payload?.occurredAt === "string" &&
-        typeof candidate.payload?.consentId === "string" &&
-        typeof candidate.payload?.version === "string" &&
-        typeof candidate.payload?.source === "string" &&
-        typeof candidate.payload?.gpcHonored === "boolean" &&
-        typeof candidate.payload?.categories?.necessary === "boolean" &&
-        typeof candidate.payload?.categories?.functional === "boolean" &&
-        typeof candidate.payload?.categories?.analytics === "boolean" &&
-        typeof candidate.payload?.categories?.marketing === "boolean" &&
+        typeof candidate.eventId === "string" &&
+        typeof candidate.replayToken === "string" &&
         typeof candidate.attemptCount === "number" &&
         typeof candidate.queuedAt === "string" &&
         typeof candidate.nextAttemptAt === "number"
@@ -141,19 +120,19 @@ function shouldRetryForStatus(status: number): boolean {
 
 export function enqueueConsentAuditReplay(input: {
   kind: ConsentAuditQueueItemKind;
-  payload: ConsentAuditReplayPayload;
+  eventId: string;
+  replayToken: string;
 }): void {
   if (!isBrowserEnvironment()) {
     return;
   }
 
   const nowMs = Date.now();
-  const existing = readQueueFromStorage().filter(
-    (item) => item.payload.eventId !== input.payload.eventId
-  );
+  const existing = readQueueFromStorage().filter((item) => item.eventId !== input.eventId);
   existing.push({
     kind: input.kind,
-    payload: input.payload,
+    eventId: input.eventId,
+    replayToken: input.replayToken,
     attemptCount: 0,
     queuedAt: new Date(nowMs).toISOString(),
     nextAttemptAt: nowMs,
@@ -191,7 +170,9 @@ async function doFlushConsentAuditReplayQueue({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(item.payload),
+        body: JSON.stringify({
+          replayToken: item.replayToken,
+        }),
       });
 
       if (response.ok) {

@@ -1,22 +1,8 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createConsentState, serializeConsentStateForCookie } from "./state";
 import { linkIdentityWithRetry } from "./link-identity";
 
-const AUDIT_QUEUE_STORAGE_KEY = "sf-consent-audit-queue:v1";
-
-function setConsentCookie() {
-  const state = createConsentState({
-    source: "preferences_save",
-    categories: {
-      functional: true,
-      analytics: false,
-      marketing: false,
-    },
-  });
-
-  document.cookie = `sf_consent=${serializeConsentStateForCookie(state)}; path=/`;
-}
+const AUDIT_QUEUE_STORAGE_KEY = "sf-consent-audit-queue:v2";
 
 describe("linkIdentityWithRetry", () => {
   beforeEach(() => {
@@ -26,7 +12,6 @@ describe("linkIdentityWithRetry", () => {
 
     // Prevent queue flush from attempting real network requests.
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 503 })));
-    setConsentCookie();
   });
 
   it("returns ok on first successful response", async () => {
@@ -67,11 +52,17 @@ describe("linkIdentityWithRetry", () => {
     expect(window.localStorage.getItem(AUDIT_QUEUE_STORAGE_KEY)).toBeNull();
   });
 
-  it("queues replay for retryable non-429 failures", async () => {
+  it("queues replay for retryable failures when server returns replay token", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(
-      new Response(null, {
-        status: 503,
-      })
+      new Response(
+        JSON.stringify({
+          replayToken: "signed-replay-token",
+        }),
+        {
+          status: 503,
+          headers: { "Content-Type": "application/json" },
+        }
+      )
     );
 
     const result = await linkIdentityWithRetry({ fetchImpl });
@@ -80,15 +71,16 @@ describe("linkIdentityWithRetry", () => {
     const queueRaw = window.localStorage.getItem(AUDIT_QUEUE_STORAGE_KEY);
     expect(queueRaw).not.toBeNull();
 
-    const queue = JSON.parse(String(queueRaw)) as Array<{ kind: string }>;
+    const queue = JSON.parse(String(queueRaw)) as Array<{ kind: string; replayToken: string }>;
     expect(queue).toHaveLength(1);
     expect(queue[0]?.kind).toBe("identity_link");
+    expect(queue[0]?.replayToken).toBe("signed-replay-token");
   });
 
-  it("does not queue replay for non-retryable failures", async () => {
+  it("does not queue replay for retryable failures when no replay token is returned", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(
       new Response(null, {
-        status: 400,
+        status: 503,
       })
     );
 
@@ -98,13 +90,12 @@ describe("linkIdentityWithRetry", () => {
     expect(window.localStorage.getItem(AUDIT_QUEUE_STORAGE_KEY)).toBeNull();
   });
 
-  it("queues replay for network errors", async () => {
+  it("does not queue replay for network errors", async () => {
     const fetchImpl = vi.fn().mockRejectedValue(new Error("network down"));
 
     const result = await linkIdentityWithRetry({ fetchImpl });
 
-    expect(result).toEqual({ ok: false, reason: "queued_for_replay" });
-    const queueRaw = window.localStorage.getItem(AUDIT_QUEUE_STORAGE_KEY);
-    expect(queueRaw).not.toBeNull();
+    expect(result).toEqual({ ok: false, reason: "failed" });
+    expect(window.localStorage.getItem(AUDIT_QUEUE_STORAGE_KEY)).toBeNull();
   });
 });

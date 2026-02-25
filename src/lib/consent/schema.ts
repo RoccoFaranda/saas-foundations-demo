@@ -48,13 +48,7 @@ export const consentLinkPayloadSchema = z.object({
 });
 
 export const consentAuditReplayPayloadSchema = z.object({
-  eventId: z.string().min(1),
-  occurredAt: z.iso.datetime(),
-  consentId: z.string().min(1),
-  version: z.string().min(1),
-  source: consentAuditSourceSchema,
-  gpcHonored: z.boolean(),
-  categories: consentCategoriesSchema,
+  replayToken: z.string().min(1),
 });
 
 export const consentSyncMessageSchema = z.object({

@@ -305,3 +305,21 @@ Use this structure for new ADRs:
   - Improves source-of-truth durability after server receipt during DB outages.
   - Adds operational complexity (queue infrastructure, drain job, observability, dead-letter handling).
   - Does not remove the need for client replay; both layers are required for stronger end-to-end reliability.
+
+---
+
+## ADR-023: Require signed consent replay tokens and consent-context binding
+
+- **Status:** Accepted
+- **Context:** `POST /api/consent/audit` previously accepted full client-provided event payloads, which allowed fabrication of replay events without server-issued provenance.
+- **Decision:** Harden consent replay ingestion with Option 2 + 3:
+  - `POST /api/consent/audit` accepts `{ replayToken }` only.
+  - Replay tokens are server-signed (HMAC-SHA-256) with versioned claims and expiry.
+  - Replay claims are bound to the current consent cookie context (`consentId` must match).
+  - `identity_link` replay claims require authenticated user match (`claim.userId === session.user.id`).
+  - Client replay queue stores signed tokens only and drops legacy unsigned queue entries.
+  - Keep optimistic consent UX for no-response failures: local preference still applies, but unsigned replay is not queued.
+- **Consequences:**
+  - Substantially improves audit integrity by preventing direct unsigned fabrication via replay endpoint.
+  - Some no-response client actions can still be missing from audit history (intentional tradeoff for UX).
+  - Introduces signing secret management (`CONSENT_AUDIT_SIGNING_SECRET`) and token verification logic.

@@ -190,13 +190,18 @@ Consent preference and identity-link audit events currently use a two-stage reli
    - attempts immediate insert into `cookie_consent_events`,
    - retries transient DB failures in-request,
    - enforces idempotency and dedupe semantics.
-3. API response returns explicit audit metadata (`auditAccepted`, `persisted`, `reason`, `auditEventId`).
-4. For non-`429` failures where replay is allowed, the client enqueues a replay payload in localStorage.
-5. Client flushes replay payloads via `POST /api/consent/audit` (on mount/online/visibility events) until accepted or dropped by retry policy.
+3. API responses return explicit audit metadata (`auditAccepted`, `persisted`, `reason`, `auditEventId`) plus optional signed `replayToken` for replay-eligible failures.
+4. Client replay queue stores signed replay tokens only (never raw unsigned consent event payloads).
+5. Client flushes replay tokens via `POST /api/consent/audit` (on mount/online/visibility events) until accepted or dropped by retry policy.
 6. Strict limiter semantics are enforced:
    - `POST /api/consent` `429` blocks preference changes and does not enqueue replay.
    - `POST /api/consent/link` `429` does not enqueue replay and blocks auth continuation in login/signup UX.
    - `POST /api/consent/audit` `429` drops queued replay items (no retry).
+7. Anti-fabrication checks are enforced in replay ingestion:
+   - `POST /api/consent/audit` accepts `{ replayToken }` only.
+   - Replay token signature and expiry are verified server-side.
+   - Replay token `consentId` must match the current consent cookie context.
+   - `identity_link` replay requires both authenticated user and claim/session `userId` match.
 
 Idempotency and dedupe behavior:
 
@@ -207,6 +212,7 @@ Durability boundary (current):
 
 - This is best-effort durable on the browser profile when immediate persistence fails.
 - If an event never reaches the server and the browser queue is lost (for example user never returns or clears site data), it may be dropped.
+- Optimistic consent UX remains for no-response failures, so those specific actions can be missing from audit history.
 
 ### Future (planned, not implemented)
 
@@ -352,6 +358,7 @@ Rate limiting notes:
 - `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` are required for shared limits in production.
 - `ALLOW_IN_MEMORY_RATE_LIMIT_FALLBACK=true` opt-in enables in-memory fallback in production (weaker across instances).
 - `UPSTASH_RATE_LIMIT_ANALYTICS` controls Upstash analytics (`true`/`false`). Default is `true` in production and `false` otherwise.
+- `CONSENT_AUDIT_SIGNING_SECRET` is required for signed consent replay token minting and verification.
 - `ACCOUNT_DELETION_GRACE_DAYS` controls restore window before final purge (default `14`).
 - `ACCOUNT_DELETION_PURGE_BATCH_SIZE` controls the max users purged per cron invocation (default `100`).
 - `ACCOUNT_DELETION_CRON_SECRET` secures `POST /api/internal/account-deletion/purge`.

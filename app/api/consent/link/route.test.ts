@@ -8,6 +8,7 @@ const authMock = vi.hoisted(() => vi.fn());
 const enforceRateLimitMock = vi.hoisted(() => vi.fn());
 const getRequestIpFromHeadersMock = vi.hoisted(() => vi.fn());
 const getRetryAfterSecondsMock = vi.hoisted(() => vi.fn());
+const createConsentAuditReplayTokenMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/src/lib/db", () => ({
   default: {
@@ -28,6 +29,10 @@ vi.mock("@/src/lib/auth/rate-limit", () => ({
   getRetryAfterSeconds: getRetryAfterSecondsMock,
 }));
 
+vi.mock("@/src/lib/consent/replay-token", () => ({
+  createConsentAuditReplayToken: createConsentAuditReplayTokenMock,
+}));
+
 import { POST } from "./route";
 
 describe("api/consent/link route", () => {
@@ -38,12 +43,14 @@ describe("api/consent/link route", () => {
     enforceRateLimitMock.mockReset();
     getRequestIpFromHeadersMock.mockReset();
     getRetryAfterSecondsMock.mockReset();
+    createConsentAuditReplayTokenMock.mockReset();
     authMock.mockResolvedValue({ user: { id: "user-1" } });
     createConsentEventMock.mockResolvedValue({ id: "consent-event-1" });
     findLatestConsentEventMock.mockResolvedValue(null);
     enforceRateLimitMock.mockResolvedValue(null);
     getRequestIpFromHeadersMock.mockReturnValue("203.0.113.10");
     getRetryAfterSecondsMock.mockReturnValue("60");
+    createConsentAuditReplayTokenMock.mockReturnValue("signed-replay-token");
   });
 
   it("persists identity_link when authenticated and consent cookie exists", async () => {
@@ -69,6 +76,7 @@ describe("api/consent/link route", () => {
     expect(body.auditAccepted).toBe(true);
     expect(body.persisted).toBe(true);
     expect(body.reason).toBe("linked");
+    expect(body.replayToken).toBeUndefined();
     expect(enforceRateLimitMock).toHaveBeenCalledWith("consentLink", [
       "user:user-1",
       "ip:203.0.113.10",
@@ -214,6 +222,7 @@ describe("api/consent/link route", () => {
     expect(body.linked).toBe(false);
     expect(body.auditAccepted).toBe(true);
     expect(body.reason).toBe("already_represented_by_latest_event");
+    expect(body.replayToken).toBeUndefined();
     expect(createConsentEventMock).not.toHaveBeenCalled();
   });
 
@@ -345,5 +354,12 @@ describe("api/consent/link route", () => {
     expect(body.linked).toBe(false);
     expect(body.auditAccepted).toBe(false);
     expect(body.reason).toBe("link_failed");
+    expect(body.replayToken).toBe("signed-replay-token");
+    expect(createConsentAuditReplayTokenMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        source: "identity_link",
+        userId: "user-1",
+      })
+    );
   });
 });

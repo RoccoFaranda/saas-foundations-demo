@@ -8,6 +8,7 @@ import {
 import { CONSENT_COOKIE_NAME } from "@/src/lib/consent/config";
 import { createConsentAuditEventId } from "@/src/lib/consent/audit-metadata";
 import { persistConsentAuditEventWithRetry } from "@/src/lib/consent/audit-server";
+import { createConsentAuditReplayToken } from "@/src/lib/consent/replay-token";
 import { HAS_NON_ESSENTIAL_CONSENT_SERVICES } from "@/src/lib/consent/services";
 import { consentWritePayloadSchema } from "@/src/lib/consent/schema";
 import {
@@ -136,12 +137,30 @@ export async function POST(request: Request) {
     gpcHonored: state.gpcHonored,
     categories: state.categories,
   });
+  let replayToken: string | undefined;
+  if (!auditResult.auditAccepted) {
+    try {
+      replayToken = createConsentAuditReplayToken({
+        eventId: auditResult.eventId,
+        occurredAt: auditOccurredAt,
+        consentId: state.consentId,
+        version: state.version,
+        source: state.source,
+        gpcHonored: state.gpcHonored,
+        categories: state.categories,
+        userId: undefined,
+      });
+    } catch (error) {
+      console.error("[consent] Failed to create replay token for consent event:", error);
+    }
+  }
 
   return finalizeConsentResponse(state, {
     persisted: auditResult.persisted,
     auditAccepted: auditResult.auditAccepted,
     reason: toResponseReason(auditResult.reason),
     auditEventId: auditResult.eventId,
+    replayToken,
   });
 }
 
@@ -152,6 +171,7 @@ function finalizeConsentResponse(
     auditEventId: string;
     persisted: boolean;
     reason: string;
+    replayToken?: string;
   }
 ) {
   const response = NextResponse.json({ state, ...metadata });

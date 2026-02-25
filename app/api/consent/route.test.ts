@@ -14,6 +14,7 @@ const authMock = vi.hoisted(() => vi.fn());
 const enforceRateLimitMock = vi.hoisted(() => vi.fn());
 const getRequestIpFromHeadersMock = vi.hoisted(() => vi.fn());
 const getRetryAfterSecondsMock = vi.hoisted(() => vi.fn());
+const createConsentAuditReplayTokenMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/src/lib/db", () => ({
   default: {
@@ -34,6 +35,10 @@ vi.mock("@/src/lib/auth/rate-limit", () => ({
   getRetryAfterSeconds: getRetryAfterSecondsMock,
 }));
 
+vi.mock("@/src/lib/consent/replay-token", () => ({
+  createConsentAuditReplayToken: createConsentAuditReplayTokenMock,
+}));
+
 import { GET, POST } from "./route";
 
 describe("api/consent route", () => {
@@ -52,12 +57,14 @@ describe("api/consent route", () => {
     enforceRateLimitMock.mockReset();
     getRequestIpFromHeadersMock.mockReset();
     getRetryAfterSecondsMock.mockReset();
+    createConsentAuditReplayTokenMock.mockReset();
     authMock.mockResolvedValue({ user: { id: "user-1" } });
     createConsentEventMock.mockResolvedValue({ id: "consent-event-1" });
     findLatestConsentEventMock.mockResolvedValue(null);
     enforceRateLimitMock.mockResolvedValue(null);
     getRequestIpFromHeadersMock.mockReturnValue("203.0.113.10");
     getRetryAfterSecondsMock.mockReturnValue("60");
+    createConsentAuditReplayTokenMock.mockReturnValue("signed-replay-token");
   });
 
   it("persists and sets cookie for a valid consent payload", async () => {
@@ -85,6 +92,7 @@ describe("api/consent route", () => {
     expect(body.persisted).toBe(true);
     expect(body.reason).toBe("persisted");
     expect(typeof body.auditEventId).toBe("string");
+    expect(body.replayToken).toBeUndefined();
     expect(response.headers.get("set-cookie")).toContain("sf_consent=");
     expect(createConsentEventMock).toHaveBeenCalledTimes(1);
   });
@@ -194,6 +202,7 @@ describe("api/consent route", () => {
     expect(body.auditAccepted).toBe(true);
     expect(body.persisted).toBe(false);
     expect(body.reason).toBe("already_represented_by_latest_event");
+    expect(body.replayToken).toBeUndefined();
     expect(createConsentEventMock).not.toHaveBeenCalled();
   });
 
@@ -220,7 +229,14 @@ describe("api/consent route", () => {
     expect(body.auditAccepted).toBe(false);
     expect(body.persisted).toBe(false);
     expect(body.reason).toBe("retry_later");
+    expect(body.replayToken).toBe("signed-replay-token");
     expect(response.headers.get("set-cookie")).toContain("sf_consent=");
+    expect(createConsentAuditReplayTokenMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventId: expect.any(String),
+        source: "preferences_save",
+      })
+    );
   });
 
   it("uses caller-provided audit metadata when present", async () => {

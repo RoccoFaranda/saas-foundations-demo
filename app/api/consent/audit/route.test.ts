@@ -1,7 +1,8 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CONSENT_EVENT_SOURCE_IDENTITY_LINK } from "@/src/lib/consent/config";
-import { createConsentState } from "@/src/lib/consent/state";
+import { createConsentAuditReplayToken } from "@/src/lib/consent/replay-token";
+import { createConsentState, serializeConsentStateForCookie } from "@/src/lib/consent/state";
 
 const createConsentEventMock = vi.hoisted(() => vi.fn());
 const findLatestConsentEventMock = vi.hoisted(() => vi.fn());
@@ -31,14 +32,51 @@ vi.mock("@/src/lib/auth/rate-limit", () => ({
 
 import { POST } from "./route";
 
+function createReplayState(consentId = "consent-1") {
+  return createConsentState({
+    source: "preferences_save",
+    categories: {
+      functional: true,
+      analytics: false,
+      marketing: false,
+    },
+    consentId,
+  });
+}
+
+function buildReplayToken(input: {
+  state: ReturnType<typeof createReplayState>;
+  source?: "preferences_save" | "identity_link";
+  userId?: string;
+}) {
+  const source =
+    input.source === "identity_link" ? CONSENT_EVENT_SOURCE_IDENTITY_LINK : "preferences_save";
+
+  return createConsentAuditReplayToken({
+    eventId: `audit-event-${source}-1`,
+    occurredAt: input.state.updatedAt,
+    consentId: input.state.consentId,
+    version: input.state.version,
+    source,
+    gpcHonored: input.state.gpcHonored,
+    categories: input.state.categories,
+    userId: source === CONSENT_EVENT_SOURCE_IDENTITY_LINK ? input.userId : undefined,
+  });
+}
+
 describe("api/consent/audit route", () => {
   beforeEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+    process.env.CONSENT_AUDIT_SIGNING_SECRET = "test-consent-signing-secret";
+
     createConsentEventMock.mockReset();
     findLatestConsentEventMock.mockReset();
     authMock.mockReset();
     enforceRateLimitMock.mockReset();
     getRequestIpFromHeadersMock.mockReset();
     getRetryAfterSecondsMock.mockReset();
+
     authMock.mockResolvedValue(null);
     createConsentEventMock.mockResolvedValue({ id: "consent-event-1" });
     findLatestConsentEventMock.mockResolvedValue(null);
@@ -47,30 +85,18 @@ describe("api/consent/audit route", () => {
     getRetryAfterSecondsMock.mockReturnValue("60");
   });
 
-  it("persists consent audit replay payload for non-identity sources", async () => {
-    const state = createConsentState({
-      source: "preferences_save",
-      categories: {
-        functional: true,
-        analytics: false,
-        marketing: false,
-      },
-      consentId: "consent-1",
-    });
+  it("persists consent audit replay when provided a valid signed token", async () => {
+    const state = createReplayState("consent-1");
+    const replayToken = buildReplayToken({ state });
 
     const response = await POST(
       new Request("https://example.com/api/consent/audit", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventId: "audit-event-1",
-          occurredAt: state.updatedAt,
-          consentId: state.consentId,
-          version: state.version,
-          source: state.source,
-          gpcHonored: state.gpcHonored,
-          categories: state.categories,
-        }),
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `sf_consent=${serializeConsentStateForCookie(state)}`,
+        },
+        body: JSON.stringify({ replayToken }),
       })
     );
     const body = await response.json();
@@ -82,30 +108,95 @@ describe("api/consent/audit route", () => {
     expect(createConsentEventMock).toHaveBeenCalledTimes(1);
   });
 
+  it("rejects tampered replay tokens", async () => {
+    const state = createReplayState("consent-1");
+    const replayToken = buildReplayToken({ state });
+    const tamperedReplayToken = `${replayToken.slice(0, -1)}${replayToken.endsWith("a") ? "b" : "a"}`;
+
+    const response = await POST(
+      new Request("https://example.com/api/consent/audit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `sf_consent=${serializeConsentStateForCookie(state)}`,
+        },
+        body: JSON.stringify({ replayToken: tamperedReplayToken }),
+      })
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body.auditAccepted).toBe(false);
+    expect(body.reason).toBe("invalid_replay_signature");
+    expect(createConsentEventMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects expired replay tokens", async () => {
+    const state = createReplayState("consent-1");
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-02-25T12:00:00.000Z"));
+
+    const replayToken = buildReplayToken({ state });
+
+    vi.setSystemTime(new Date("2026-03-05T12:00:01.000Z"));
+
+    const response = await POST(
+      new Request("https://example.com/api/consent/audit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `sf_consent=${serializeConsentStateForCookie(state)}`,
+        },
+        body: JSON.stringify({ replayToken }),
+      })
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(410);
+    expect(body.auditAccepted).toBe(false);
+    expect(body.reason).toBe("replay_token_expired");
+    expect(createConsentEventMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects replay when consent context does not match the current cookie", async () => {
+    const tokenState = createReplayState("consent-from-token");
+    const cookieState = createReplayState("consent-from-cookie");
+    const replayToken = buildReplayToken({ state: tokenState });
+
+    const response = await POST(
+      new Request("https://example.com/api/consent/audit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `sf_consent=${serializeConsentStateForCookie(cookieState)}`,
+        },
+        body: JSON.stringify({ replayToken }),
+      })
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body.auditAccepted).toBe(false);
+    expect(body.reason).toBe("consent_context_mismatch");
+    expect(createConsentEventMock).not.toHaveBeenCalled();
+  });
+
   it("returns 401 for identity_link replay without authenticated user", async () => {
-    const state = createConsentState({
-      source: "preferences_save",
-      categories: {
-        functional: true,
-        analytics: false,
-        marketing: false,
-      },
-      consentId: "consent-1",
+    const state = createReplayState("consent-1");
+    const replayToken = buildReplayToken({
+      state,
+      source: "identity_link",
+      userId: "user-1",
     });
 
     const response = await POST(
       new Request("https://example.com/api/consent/audit", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventId: "audit-event-identity-1",
-          occurredAt: state.updatedAt,
-          consentId: state.consentId,
-          version: state.version,
-          source: CONSENT_EVENT_SOURCE_IDENTITY_LINK,
-          gpcHonored: state.gpcHonored,
-          categories: state.categories,
-        }),
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `sf_consent=${serializeConsentStateForCookie(state)}`,
+        },
+        body: JSON.stringify({ replayToken }),
       })
     );
     const body = await response.json();
@@ -116,35 +207,51 @@ describe("api/consent/audit route", () => {
     expect(createConsentEventMock).not.toHaveBeenCalled();
   });
 
+  it("rejects identity_link replay when token user does not match session user", async () => {
+    authMock.mockResolvedValue({ user: { id: "user-2" } });
+
+    const state = createReplayState("consent-1");
+    const replayToken = buildReplayToken({
+      state,
+      source: "identity_link",
+      userId: "user-1",
+    });
+
+    const response = await POST(
+      new Request("https://example.com/api/consent/audit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `sf_consent=${serializeConsentStateForCookie(state)}`,
+        },
+        body: JSON.stringify({ replayToken }),
+      })
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body.auditAccepted).toBe(false);
+    expect(body.reason).toBe("identity_link_user_mismatch");
+    expect(createConsentEventMock).not.toHaveBeenCalled();
+  });
+
   it("returns 429 when consent replay is rate limited", async () => {
     enforceRateLimitMock.mockResolvedValue({
       error: "Too many requests. Try again in 1 minute.",
       retryAt: Date.now() + 60_000,
     });
 
-    const state = createConsentState({
-      source: "preferences_save",
-      categories: {
-        functional: true,
-        analytics: false,
-        marketing: false,
-      },
-      consentId: "consent-1",
-    });
+    const state = createReplayState("consent-1");
+    const replayToken = buildReplayToken({ state });
 
     const response = await POST(
       new Request("https://example.com/api/consent/audit", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventId: "audit-event-rate-limited",
-          occurredAt: state.updatedAt,
-          consentId: state.consentId,
-          version: state.version,
-          source: state.source,
-          gpcHonored: state.gpcHonored,
-          categories: state.categories,
-        }),
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `sf_consent=${serializeConsentStateForCookie(state)}`,
+        },
+        body: JSON.stringify({ replayToken }),
       })
     );
     const body = await response.json();
@@ -156,7 +263,6 @@ describe("api/consent/audit route", () => {
         auditAccepted: false,
         persisted: false,
         reason: "rate_limited",
-        auditEventId: "audit-event-rate-limited",
         error: "Too many requests. Try again in 1 minute.",
       })
     );
@@ -166,29 +272,17 @@ describe("api/consent/audit route", () => {
   it("returns 503 when replay persistence fails after retries", async () => {
     createConsentEventMock.mockRejectedValue(new Error("database unavailable"));
 
-    const state = createConsentState({
-      source: "preferences_save",
-      categories: {
-        functional: true,
-        analytics: false,
-        marketing: false,
-      },
-      consentId: "consent-1",
-    });
+    const state = createReplayState("consent-1");
+    const replayToken = buildReplayToken({ state });
 
     const response = await POST(
       new Request("https://example.com/api/consent/audit", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventId: "audit-event-failing-1",
-          occurredAt: state.updatedAt,
-          consentId: state.consentId,
-          version: state.version,
-          source: state.source,
-          gpcHonored: state.gpcHonored,
-          categories: state.categories,
-        }),
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `sf_consent=${serializeConsentStateForCookie(state)}`,
+        },
+        body: JSON.stringify({ replayToken }),
       })
     );
     const body = await response.json();

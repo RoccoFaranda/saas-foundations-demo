@@ -8,6 +8,7 @@ import {
 import { CONSENT_COOKIE_NAME, CONSENT_EVENT_SOURCE_IDENTITY_LINK } from "@/src/lib/consent/config";
 import { createConsentAuditEventId } from "@/src/lib/consent/audit-metadata";
 import { persistConsentAuditEventWithRetry } from "@/src/lib/consent/audit-server";
+import { createConsentAuditReplayToken } from "@/src/lib/consent/replay-token";
 import { consentLinkPayloadSchema } from "@/src/lib/consent/schema";
 import { normalizeConsentState, parseConsentStateFromCookieValue } from "@/src/lib/consent/state";
 
@@ -102,6 +103,23 @@ export async function POST(request: Request) {
     gpcHonored: state.gpcHonored,
     categories: state.categories,
   });
+  let replayToken: string | undefined;
+  if (!auditResult.auditAccepted) {
+    try {
+      replayToken = createConsentAuditReplayToken({
+        eventId: auditResult.eventId,
+        occurredAt: auditOccurredAt,
+        consentId: state.consentId,
+        version: state.version,
+        source: CONSENT_EVENT_SOURCE_IDENTITY_LINK,
+        gpcHonored: state.gpcHonored,
+        categories: state.categories,
+        userId,
+      });
+    } catch (error) {
+      console.error("[consent] Failed to create replay token for identity-link event:", error);
+    }
+  }
 
   if (auditResult.reason === "duplicate_state") {
     return NextResponse.json({
@@ -144,6 +162,7 @@ export async function POST(request: Request) {
       persisted: false,
       auditEventId: auditResult.eventId,
       reason,
+      replayToken,
     },
     { status: 503 }
   );

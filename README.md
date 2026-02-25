@@ -64,6 +64,7 @@ Create a `.env.local` file in the project root for local development:
 `NEXT_PUBLIC_APP_URL` must be an absolute URL in production/preview so emails can include valid links.
 In local dev/test, the app falls back to `http://localhost:3000` if it is not set.
 For production rate limiting, set `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`.
+For signed consent replay verification, set `CONSENT_AUDIT_SIGNING_SECRET`.
 Optional: `UPSTASH_RATE_LIMIT_ANALYTICS` (`true`/`false`) controls Upstash analytics; default is enabled in production.
 See `.env.example` for all available environment variables (when available).
 
@@ -166,13 +167,15 @@ When adding non-essential scripts/services:
 8. Current reliability model (implemented):
    - `POST /api/consent` and `POST /api/consent/link` attempt an immediate audit write.
    - Audit writes use server-side transient retry logic before returning.
-   - Consent write responses expose audit metadata: `auditAccepted`, `persisted`, `reason`, `auditEventId`.
-   - For non-`429` failures where replay is allowed, the client stores a replay payload in localStorage and retries in the background.
+   - Consent write responses expose audit metadata: `auditAccepted`, `persisted`, `reason`, `auditEventId` and optional `replayToken`.
+   - Replay is token-based: the client queues only server-issued signed replay tokens (never unsigned event payloads).
    - `POST /api/consent` `429` is strict: preference change is blocked and no replay payload is queued.
    - Replay delivery uses `POST /api/consent/audit`.
    - `POST /api/consent/audit` `429` is strict: queued replay items are dropped (not retried).
    - `POST /api/consent/link` `429` is strict: identity-link replay is not queued and auth continuation is blocked in login/signup UX.
-   - Non-`429` identity-link failures can enqueue replay (`identity_link`) for background delivery.
+   - `/api/consent/audit` accepts `{ replayToken }` only, verifies token signature/expiry, and binds replay to the current consent cookie context.
+   - `identity_link` replay additionally requires authenticated session user match with signed token claims.
+   - Optimistic UX remains for `/api/consent` no-response failures: cookie preferences still apply locally, but no unsigned replay is queued.
    - Active abuse-rate limits (hard `429`) are enforced for:
      - `POST /api/consent` (`20 / 10m`; keyed by `consentId` + IP)
      - `POST /api/consent/link` (`100 / 10m`; keyed by user + IP)
