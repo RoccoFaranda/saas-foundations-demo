@@ -6,12 +6,6 @@ import { createConsentState } from "@/src/lib/consent/state";
 import { createConsentSyncMessage } from "@/src/lib/consent/sync";
 import { ConsentProvider, useConsent } from "./consent-provider";
 
-const useSessionMock = vi.hoisted(() => vi.fn());
-
-vi.mock("next-auth/react", () => ({
-  useSession: useSessionMock,
-}));
-
 class MockBroadcastChannel {
   static instances: MockBroadcastChannel[] = [];
 
@@ -69,130 +63,11 @@ function ConsentAnalyticsProbe() {
   );
 }
 
-describe("ConsentProvider identity link", () => {
-  beforeEach(() => {
-    vi.restoreAllMocks();
-    MockBroadcastChannel.reset();
-    vi.stubGlobal("BroadcastChannel", MockBroadcastChannel as unknown as typeof BroadcastChannel);
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => ({}),
-      })
-    );
-    useSessionMock.mockReturnValue({
-      status: "authenticated",
-      data: {
-        user: { id: "user-1" },
-      },
-    });
-  });
-
-  it("posts identity link once when authenticated and consent state exists", async () => {
-    const consentState = createConsentState({
-      source: "preferences_save",
-      categories: {
-        functional: false,
-        analytics: true,
-        marketing: false,
-      },
-    });
-
-    render(
-      <ConsentProvider initialConsentState={consentState}>
-        <div>Child</div>
-      </ConsentProvider>
-    );
-
-    await waitFor(() => {
-      expect(fetch).toHaveBeenCalledTimes(1);
-    });
-    expect(fetch).toHaveBeenCalledWith("/api/consent/link", {
-      method: "POST",
-    });
-  });
-
-  it("does not post identity link when session is unauthenticated", async () => {
-    useSessionMock.mockReturnValue({
-      status: "unauthenticated",
-      data: null,
-    });
-
-    const consentState = createConsentState({
-      source: "preferences_save",
-      categories: {
-        functional: false,
-        analytics: false,
-        marketing: false,
-      },
-    });
-
-    render(
-      <ConsentProvider initialConsentState={consentState}>
-        <div>Child</div>
-      </ConsentProvider>
-    );
-
-    await waitFor(() => {
-      expect(fetch).not.toHaveBeenCalled();
-    });
-  });
-
-  it("does not post identity link when consent state is missing", async () => {
-    render(
-      <ConsentProvider initialConsentState={null}>
-        <div>Child</div>
-      </ConsentProvider>
-    );
-
-    await waitFor(() => {
-      expect(fetch).not.toHaveBeenCalled();
-    });
-  });
-
-  it("does not post duplicate identity link requests for the same signature", async () => {
-    const consentState = createConsentState({
-      source: "preferences_save",
-      categories: {
-        functional: true,
-        analytics: false,
-        marketing: false,
-      },
-    });
-
-    const { rerender } = render(
-      <ConsentProvider initialConsentState={consentState}>
-        <div>Child</div>
-      </ConsentProvider>
-    );
-
-    await waitFor(() => {
-      expect(fetch).toHaveBeenCalledTimes(1);
-    });
-
-    rerender(
-      <ConsentProvider initialConsentState={consentState}>
-        <div>Child updated</div>
-      </ConsentProvider>
-    );
-
-    await waitFor(() => {
-      expect(fetch).toHaveBeenCalledTimes(1);
-    });
-  });
-});
-
 describe("ConsentProvider cross-tab sync", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     MockBroadcastChannel.reset();
     vi.stubGlobal("BroadcastChannel", MockBroadcastChannel as unknown as typeof BroadcastChannel);
-    useSessionMock.mockReturnValue({
-      status: "unauthenticated",
-      data: null,
-    });
   });
 
   it("broadcasts a sync signal after successful consent save", async () => {

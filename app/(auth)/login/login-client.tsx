@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { login } from "@/src/lib/auth/actions";
+import { linkIdentityWithRetry } from "@/src/lib/consent/link-identity";
 import { LegalInlineLinks } from "@/src/components/legal/legal-inline-links";
 import { GENERIC_ACTION_ERROR } from "@/src/lib/ui/messages";
 
@@ -76,6 +77,7 @@ export default function LoginClient({
         if (result.success) {
           applyRetryAt(null);
           await update();
+          void linkIdentityWithRetry();
           const destination = result.redirectUrl ?? "/app/dashboard";
           router.push(destination);
           router.refresh();

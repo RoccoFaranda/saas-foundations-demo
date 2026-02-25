@@ -10,7 +10,6 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useSession } from "next-auth/react";
 import {
   CONSENT_OPEN_PREFERENCES_EVENT,
   CONSENT_SYNC_CHANNEL_NAME,
@@ -55,7 +54,6 @@ interface ConsentProviderProps {
 }
 
 export function ConsentProvider({ initialConsentState, children }: ConsentProviderProps) {
-  const { status: sessionStatus, data: session } = useSession();
   const [consentState, setConsentState] = useState<ConsentState | null>(() =>
     normalizeConsentState(initialConsentState)
   );
@@ -63,7 +61,6 @@ export function ConsentProvider({ initialConsentState, children }: ConsentProvid
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
   const [gpcDetected, setGpcDetected] = useState(false);
   const gpcSyncAttemptedRef = useRef(false);
-  const lastIdentityLinkAttemptedKeyRef = useRef<string | null>(null);
   const senderIdRef = useRef(createConsentSyncSenderId());
   const syncChannelRef = useRef<BroadcastChannel | null>(null);
   const syncFetchInFlightRef = useRef(false);
@@ -227,52 +224,6 @@ export function ConsentProvider({ initialConsentState, children }: ConsentProvid
       syncChannelRef.current = null;
     };
   }, [handleExternalSyncSignal]);
-
-  useEffect(() => {
-    const sessionUserId = session?.user?.id ?? null;
-    if (sessionStatus !== "authenticated" || !sessionUserId || !consentState) {
-      return;
-    }
-
-    const linkSignature = [
-      sessionUserId,
-      consentState.consentId,
-      consentState.version,
-      consentState.gpcHonored ? "1" : "0",
-      consentState.categories.functional ? "1" : "0",
-      consentState.categories.analytics ? "1" : "0",
-      consentState.categories.marketing ? "1" : "0",
-    ].join(":");
-
-    if (lastIdentityLinkAttemptedKeyRef.current === linkSignature) {
-      return;
-    }
-    lastIdentityLinkAttemptedKeyRef.current = linkSignature;
-
-    let canceled = false;
-    void (async () => {
-      try {
-        const response = await fetch("/api/consent/link", {
-          method: "POST",
-        });
-        if (!response.ok) {
-          throw new Error(`Identity link request failed with status ${response.status}.`);
-        }
-      } catch (error) {
-        if (canceled) {
-          return;
-        }
-        if (lastIdentityLinkAttemptedKeyRef.current === linkSignature) {
-          lastIdentityLinkAttemptedKeyRef.current = null;
-        }
-        console.warn("[consent] Failed to persist identity link:", error);
-      }
-    })();
-
-    return () => {
-      canceled = true;
-    };
-  }, [consentState, session?.user?.id, sessionStatus]);
 
   useEffect(() => {
     if (typeof navigator === "undefined") {
