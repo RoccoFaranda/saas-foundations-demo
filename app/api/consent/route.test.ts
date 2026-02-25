@@ -8,14 +8,16 @@ vi.hoisted(() => {
   process.env.NEXT_PUBLIC_CONSENT_DEMO_ANALYTICS = "false";
 });
 
-const executeRawMock = vi.hoisted(() => vi.fn());
-const queryRawMock = vi.hoisted(() => vi.fn());
+const createConsentEventMock = vi.hoisted(() => vi.fn());
+const findLatestConsentEventMock = vi.hoisted(() => vi.fn());
 const authMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/src/lib/db", () => ({
   default: {
-    $executeRaw: executeRawMock,
-    $queryRaw: queryRawMock,
+    cookieConsentEvent: {
+      create: createConsentEventMock,
+      findFirst: findLatestConsentEventMock,
+    },
   },
 }));
 
@@ -35,12 +37,12 @@ describe("api/consent route", () => {
   });
 
   beforeEach(() => {
-    executeRawMock.mockReset();
-    queryRawMock.mockReset();
+    createConsentEventMock.mockReset();
+    findLatestConsentEventMock.mockReset();
     authMock.mockReset();
     authMock.mockResolvedValue({ user: { id: "user-1" } });
-    executeRawMock.mockResolvedValue(1);
-    queryRawMock.mockResolvedValue([]);
+    createConsentEventMock.mockResolvedValue({ id: "consent-event-1" });
+    findLatestConsentEventMock.mockResolvedValue(null);
   });
 
   it("persists and sets cookie for a valid consent payload", async () => {
@@ -65,7 +67,7 @@ describe("api/consent route", () => {
     expect(body.state.categories.functional).toBe(true);
     expect(body.state.source).toBe("preferences_save");
     expect(response.headers.get("set-cookie")).toContain("sf_consent=");
-    expect(executeRawMock).toHaveBeenCalledTimes(1);
+    expect(createConsentEventMock).toHaveBeenCalledTimes(1);
   });
 
   it("forces optional categories off when GPC signal is present", async () => {
@@ -108,16 +110,14 @@ describe("api/consent route", () => {
     });
     const cookieValue = encodeURIComponent(JSON.stringify(state));
 
-    queryRawMock.mockResolvedValue([
-      {
-        userId: "user-1",
-        version: state.version,
-        gpcHonored: state.gpcHonored,
-        functional: state.categories.functional,
-        analytics: state.categories.analytics,
-        marketing: state.categories.marketing,
-      },
-    ]);
+    findLatestConsentEventMock.mockResolvedValue({
+      userId: "user-1",
+      version: state.version,
+      gpcHonored: state.gpcHonored,
+      functional: state.categories.functional,
+      analytics: state.categories.analytics,
+      marketing: state.categories.marketing,
+    });
 
     const response = await POST(
       new Request("https://example.com/api/consent", {
@@ -141,7 +141,7 @@ describe("api/consent route", () => {
     expect(response.status).toBe(200);
     expect(body.persisted).toBe(false);
     expect(body.reason).toBe("already_represented_by_latest_event");
-    expect(executeRawMock).not.toHaveBeenCalled();
+    expect(createConsentEventMock).not.toHaveBeenCalled();
   });
 
   it("returns normalized state for valid cookie in GET", async () => {

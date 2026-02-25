@@ -2,14 +2,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createConsentState, serializeConsentStateForCookie } from "@/src/lib/consent/state";
 
-const executeRawMock = vi.hoisted(() => vi.fn());
-const queryRawMock = vi.hoisted(() => vi.fn());
+const createConsentEventMock = vi.hoisted(() => vi.fn());
+const findLatestConsentEventMock = vi.hoisted(() => vi.fn());
 const authMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/src/lib/db", () => ({
   default: {
-    $executeRaw: executeRawMock,
-    $queryRaw: queryRawMock,
+    cookieConsentEvent: {
+      create: createConsentEventMock,
+      findFirst: findLatestConsentEventMock,
+    },
   },
 }));
 
@@ -21,12 +23,12 @@ import { POST } from "./route";
 
 describe("api/consent/link route", () => {
   beforeEach(() => {
-    executeRawMock.mockReset();
-    queryRawMock.mockReset();
+    createConsentEventMock.mockReset();
+    findLatestConsentEventMock.mockReset();
     authMock.mockReset();
     authMock.mockResolvedValue({ user: { id: "user-1" } });
-    executeRawMock.mockResolvedValue(1);
-    queryRawMock.mockResolvedValue([]);
+    createConsentEventMock.mockResolvedValue({ id: "consent-event-1" });
+    findLatestConsentEventMock.mockResolvedValue(null);
   });
 
   it("persists identity_link when authenticated and consent cookie exists", async () => {
@@ -50,7 +52,7 @@ describe("api/consent/link route", () => {
     expect(response.status).toBe(200);
     expect(body.linked).toBe(true);
     expect(body.reason).toBe("linked");
-    expect(executeRawMock).toHaveBeenCalledTimes(1);
+    expect(createConsentEventMock).toHaveBeenCalledTimes(1);
   });
 
   it("returns unauthenticated without persisting when user session is missing", async () => {
@@ -76,7 +78,7 @@ describe("api/consent/link route", () => {
     expect(response.status).toBe(200);
     expect(body.linked).toBe(false);
     expect(body.reason).toBe("unauthenticated");
-    expect(executeRawMock).not.toHaveBeenCalled();
+    expect(createConsentEventMock).not.toHaveBeenCalled();
   });
 
   it("returns missing_consent_state without persisting when consent cookie is absent", async () => {
@@ -90,8 +92,8 @@ describe("api/consent/link route", () => {
     expect(response.status).toBe(200);
     expect(body.linked).toBe(false);
     expect(body.reason).toBe("missing_consent_state");
-    expect(executeRawMock).not.toHaveBeenCalled();
-    expect(queryRawMock).not.toHaveBeenCalled();
+    expect(createConsentEventMock).not.toHaveBeenCalled();
+    expect(findLatestConsentEventMock).not.toHaveBeenCalled();
   });
 
   it("returns missing_consent_state when consent cookie version is stale", async () => {
@@ -120,8 +122,8 @@ describe("api/consent/link route", () => {
     expect(response.status).toBe(200);
     expect(body.linked).toBe(false);
     expect(body.reason).toBe("missing_consent_state");
-    expect(executeRawMock).not.toHaveBeenCalled();
-    expect(queryRawMock).not.toHaveBeenCalled();
+    expect(createConsentEventMock).not.toHaveBeenCalled();
+    expect(findLatestConsentEventMock).not.toHaveBeenCalled();
   });
 
   it("returns already_represented_by_latest_event when latest consent event matches current user/signature", async () => {
@@ -133,16 +135,14 @@ describe("api/consent/link route", () => {
         marketing: false,
       },
     });
-    queryRawMock.mockResolvedValue([
-      {
-        userId: "user-1",
-        version: state.version,
-        gpcHonored: state.gpcHonored,
-        functional: state.categories.functional,
-        analytics: state.categories.analytics,
-        marketing: state.categories.marketing,
-      },
-    ]);
+    findLatestConsentEventMock.mockResolvedValue({
+      userId: "user-1",
+      version: state.version,
+      gpcHonored: state.gpcHonored,
+      functional: state.categories.functional,
+      analytics: state.categories.analytics,
+      marketing: state.categories.marketing,
+    });
 
     const response = await POST(
       new Request("https://example.com/api/consent/link", {
@@ -155,20 +155,18 @@ describe("api/consent/link route", () => {
     expect(response.status).toBe(200);
     expect(body.linked).toBe(false);
     expect(body.reason).toBe("already_represented_by_latest_event");
-    expect(executeRawMock).not.toHaveBeenCalled();
+    expect(createConsentEventMock).not.toHaveBeenCalled();
   });
 
   it("inserts a new identity link when latest signature differs", async () => {
-    queryRawMock.mockResolvedValue([
-      {
-        userId: "user-1",
-        version: "2026.02.23",
-        gpcHonored: false,
-        functional: false,
-        analytics: false,
-        marketing: false,
-      },
-    ]);
+    findLatestConsentEventMock.mockResolvedValue({
+      userId: "user-1",
+      version: "2026.02.23",
+      gpcHonored: false,
+      functional: false,
+      analytics: false,
+      marketing: false,
+    });
 
     const state = createConsentState({
       source: "preferences_save",
@@ -190,7 +188,7 @@ describe("api/consent/link route", () => {
     expect(response.status).toBe(200);
     expect(body.linked).toBe(true);
     expect(body.reason).toBe("linked");
-    expect(executeRawMock).toHaveBeenCalledTimes(1);
+    expect(createConsentEventMock).toHaveBeenCalledTimes(1);
   });
 
   it("inserts a new identity link when latest event signature matches but belongs to another user", async () => {
@@ -202,16 +200,14 @@ describe("api/consent/link route", () => {
         marketing: false,
       },
     });
-    queryRawMock.mockResolvedValue([
-      {
-        userId: "user-2",
-        version: state.version,
-        gpcHonored: state.gpcHonored,
-        functional: state.categories.functional,
-        analytics: state.categories.analytics,
-        marketing: state.categories.marketing,
-      },
-    ]);
+    findLatestConsentEventMock.mockResolvedValue({
+      userId: "user-2",
+      version: state.version,
+      gpcHonored: state.gpcHonored,
+      functional: state.categories.functional,
+      analytics: state.categories.analytics,
+      marketing: state.categories.marketing,
+    });
 
     const response = await POST(
       new Request("https://example.com/api/consent/link", {
@@ -224,6 +220,6 @@ describe("api/consent/link route", () => {
     expect(response.status).toBe(200);
     expect(body.linked).toBe(true);
     expect(body.reason).toBe("linked");
-    expect(executeRawMock).toHaveBeenCalledTimes(1);
+    expect(createConsentEventMock).toHaveBeenCalledTimes(1);
   });
 });

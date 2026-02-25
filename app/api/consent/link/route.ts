@@ -6,13 +6,6 @@ import { normalizeConsentState, parseConsentStateFromCookieValue } from "@/src/l
 
 let warnedMissingConsentTable = false;
 
-function createEventId() {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return `consent-event-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
 function getCookieValueFromRequest(request: Request, key: string): string | null {
   const cookieHeader = request.headers.get("cookie");
   if (!cookieHeader) {
@@ -40,15 +33,21 @@ function isMissingConsentEventsTableError(error: unknown): boolean {
     message?: string;
     meta?: {
       code?: string;
+      modelName?: string;
+      table?: string;
     };
   };
+  const missingRelationByModelCode =
+    maybeError.code === "P2021" &&
+    (maybeError.meta?.table === "cookie_consent_events" ||
+      maybeError.meta?.modelName === "CookieConsentEvent");
   const missingRelationByCode = maybeError.code === "P2010" && maybeError.meta?.code === "42P01";
   const missingRelationByMessage =
-    maybeError.code === "P2010" &&
+    (maybeError.code === "P2010" || maybeError.code === "P2021") &&
     typeof maybeError.message === "string" &&
-    maybeError.message.includes('relation "cookie_consent_events" does not exist');
+    maybeError.message.includes("cookie_consent_events");
 
-  return missingRelationByCode || missingRelationByMessage;
+  return missingRelationByModelCode || missingRelationByCode || missingRelationByMessage;
 }
 
 interface ConsentLinkSignature {
@@ -57,10 +56,6 @@ interface ConsentLinkSignature {
   functional: boolean;
   analytics: boolean;
   marketing: boolean;
-}
-
-interface LatestConsentEventSignature extends ConsentLinkSignature {
-  userId: string | null;
 }
 
 function hasSameSignature(left: ConsentLinkSignature, right: ConsentLinkSignature): boolean {
@@ -97,14 +92,20 @@ export async function POST(request: Request) {
   };
 
   try {
-    const latestRows = await prisma.$queryRaw<LatestConsentEventSignature[]>`
-      SELECT "userId", "version", "gpcHonored", "functional", "analytics", "marketing"
-      FROM "cookie_consent_events"
-      WHERE "consentId" = ${state.consentId}
-      ORDER BY "createdAt" DESC, "id" DESC
-      LIMIT 1
-    `;
-    const latestEvent = latestRows[0] ?? null;
+    const latestEvent = await prisma.cookieConsentEvent.findFirst({
+      where: {
+        consentId: state.consentId,
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      select: {
+        userId: true,
+        version: true,
+        gpcHonored: true,
+        functional: true,
+        analytics: true,
+        marketing: true,
+      },
+    });
 
     if (latestEvent?.userId === userId && hasSameSignature(latestEvent, currentSignature)) {
       return NextResponse.json({
@@ -113,12 +114,18 @@ export async function POST(request: Request) {
       });
     }
 
-    await prisma.$executeRaw`
-      INSERT INTO "cookie_consent_events"
-        ("id", "consentId", "userId", "version", "source", "gpcHonored", "functional", "analytics", "marketing", "createdAt")
-      VALUES
-        (${createEventId()}, ${state.consentId}, ${userId}, ${state.version}, ${CONSENT_EVENT_SOURCE_IDENTITY_LINK}, ${state.gpcHonored}, ${state.categories.functional}, ${state.categories.analytics}, ${state.categories.marketing}, ${new Date()})
-    `;
+    await prisma.cookieConsentEvent.create({
+      data: {
+        consentId: state.consentId,
+        userId,
+        version: state.version,
+        source: CONSENT_EVENT_SOURCE_IDENTITY_LINK,
+        gpcHonored: state.gpcHonored,
+        functional: state.categories.functional,
+        analytics: state.categories.analytics,
+        marketing: state.categories.marketing,
+      },
+    });
 
     return NextResponse.json({
       linked: true,
