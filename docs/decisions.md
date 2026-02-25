@@ -289,3 +289,19 @@ Use this structure for new ADRs:
   - Minimizes hosting costs for a low-traffic demo.
   - Requires provider-specific environment variables for integrations.
   - Encourages rate limiting and bot protection to avoid abuse-related usage spikes.
+
+---
+
+## ADR-022: Add server-side consent audit outbox while retaining client replay
+
+- **Status:** Proposed
+- **Context:** Consent audit events are currently resilient via immediate server retries and browser replay, but persistence can still be lost if failures occur before events are durably stored server-side.
+- **Decision:** Add a server-side durable outbox/queue for consent audit events while retaining the existing client replay queue.
+  - Keep current immediate insert path and idempotent audit event IDs.
+  - On terminal retryable write failure, enqueue on the server for asynchronous drain.
+  - Process queued events via background worker/cron with retry and dead-letter semantics.
+  - Keep browser replay to handle client-to-server delivery failures before server receipt.
+- **Consequences:**
+  - Improves source-of-truth durability after server receipt during DB outages.
+  - Adds operational complexity (queue infrastructure, drain job, observability, dead-letter handling).
+  - Does not remove the need for client replay; both layers are required for stronger end-to-end reliability.

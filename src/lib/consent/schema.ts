@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CONSENT_EVENT_SOURCE_IDENTITY_LINK } from "./config";
 import { CONSENT_SOURCES } from "./types";
 
 export const consentCategoriesSchema = z.object({
@@ -15,6 +16,15 @@ export const consentOptionalCategoriesSchema = z.object({
 });
 
 export const consentSourceSchema = z.enum(CONSENT_SOURCES);
+export const consentAuditSourceSchema = z.union([
+  consentSourceSchema,
+  z.literal(CONSENT_EVENT_SOURCE_IDENTITY_LINK),
+]);
+
+export const consentAuditMetadataSchema = z.object({
+  eventId: z.string().min(1),
+  occurredAt: z.iso.datetime(),
+});
 
 export const consentStateSchema = z.object({
   consentId: z.string().min(1),
@@ -28,6 +38,23 @@ export const consentStateSchema = z.object({
 export const consentWritePayloadSchema = z.object({
   source: consentSourceSchema,
   categories: consentOptionalCategoriesSchema,
+  eventId: z.string().min(1).optional(),
+  occurredAt: z.iso.datetime().optional(),
+});
+
+export const consentLinkPayloadSchema = z.object({
+  eventId: z.string().min(1).optional(),
+  occurredAt: z.iso.datetime().optional(),
+});
+
+export const consentAuditReplayPayloadSchema = z.object({
+  eventId: z.string().min(1),
+  occurredAt: z.iso.datetime(),
+  consentId: z.string().min(1),
+  version: z.string().min(1),
+  source: consentAuditSourceSchema,
+  gpcHonored: z.boolean(),
+  categories: consentCategoriesSchema,
 });
 
 export const consentSyncMessageSchema = z.object({

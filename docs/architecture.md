@@ -179,6 +179,42 @@ Intended structure (may evolve slightly as features land):
 
 ---
 
+## Consent Audit Pipeline
+
+### Current (implemented)
+
+Consent preference and identity-link audit events currently use a two-stage reliability path:
+
+1. UI action triggers `POST /api/consent` (preference save) or `POST /api/consent/link` (authenticated identity-link).
+2. Route handlers call shared audit persistence logic that:
+   - attempts immediate insert into `cookie_consent_events`,
+   - retries transient DB failures in-request,
+   - enforces idempotency and dedupe semantics.
+3. API response returns explicit audit metadata (`auditAccepted`, `persisted`, `reason`, `auditEventId`).
+4. If audit is not accepted, or a request-level/network failure occurs, the client enqueues a replay payload in localStorage.
+5. Client flushes replay payloads via `POST /api/consent/audit` (on mount/online/visibility events) until accepted or dropped by retry policy.
+
+Idempotency and dedupe behavior:
+
+- `duplicate_event`: same event ID replayed, accepted without a second insert.
+- `duplicate_state`: latest event for the consent context already matches the same signature/user, accepted without a new row.
+
+Durability boundary (current):
+
+- This is best-effort durable on the browser profile when immediate persistence fails.
+- If an event never reaches the server and the browser queue is lost (for example user never returns or clears site data), it may be dropped.
+
+### Future (planned, not implemented)
+
+Planned hardening adds a server-side outbox/queue while retaining client replay:
+
+1. If immediate DB persistence fails after in-request retries, server enqueues the event durably.
+2. A background worker/cron drain processes queued events and writes to `cookie_consent_events` with existing idempotency semantics.
+3. Queue processing includes retry scheduling, dead-letter handling for exhausted attempts, and operational observability (queue depth, failures, drain health).
+4. Client replay remains in place to cover client-to-server delivery failures (offline/drop) that occur before the server can enqueue anything.
+
+---
+
 ## External Services
 
 ### Transactional email

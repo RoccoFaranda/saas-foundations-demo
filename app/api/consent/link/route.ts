@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import prisma from "@/src/lib/db";
 import { auth } from "@/src/lib/auth/config";
 import { CONSENT_COOKIE_NAME, CONSENT_EVENT_SOURCE_IDENTITY_LINK } from "@/src/lib/consent/config";
+import { createConsentAuditEventId } from "@/src/lib/consent/audit-metadata";
+import { persistConsentAuditEventWithRetry } from "@/src/lib/consent/audit-server";
+import { consentLinkPayloadSchema } from "@/src/lib/consent/schema";
 import { normalizeConsentState, parseConsentStateFromCookieValue } from "@/src/lib/consent/state";
-
-let warnedMissingConsentTable = false;
 
 function getCookieValueFromRequest(request: Request, key: string): string | null {
   const cookieHeader = request.headers.get("cookie");
@@ -24,51 +24,30 @@ function getCookieValueFromRequest(request: Request, key: string): string | null
   return null;
 }
 
-function isMissingConsentEventsTableError(error: unknown): boolean {
-  if (!error || typeof error !== "object") {
-    return false;
+async function parseOptionalLinkPayload(request: Request): Promise<{
+  eventId?: string;
+  occurredAt?: string;
+}> {
+  const contentType = request.headers.get("content-type") ?? "";
+  if (!contentType.toLowerCase().includes("application/json")) {
+    return {};
   }
-  const maybeError = error as {
-    code?: string;
-    message?: string;
-    meta?: {
-      code?: string;
-      modelName?: string;
-      table?: string;
-    };
-  };
-  const missingRelationByModelCode =
-    maybeError.code === "P2021" &&
-    (maybeError.meta?.table === "cookie_consent_events" ||
-      maybeError.meta?.modelName === "CookieConsentEvent");
-  const missingRelationByCode = maybeError.code === "P2010" && maybeError.meta?.code === "42P01";
-  const missingRelationByMessage =
-    (maybeError.code === "P2010" || maybeError.code === "P2021") &&
-    typeof maybeError.message === "string" &&
-    maybeError.message.includes("cookie_consent_events");
 
-  return missingRelationByModelCode || missingRelationByCode || missingRelationByMessage;
-}
-
-interface ConsentLinkSignature {
-  version: string;
-  gpcHonored: boolean;
-  functional: boolean;
-  analytics: boolean;
-  marketing: boolean;
-}
-
-function hasSameSignature(left: ConsentLinkSignature, right: ConsentLinkSignature): boolean {
-  return (
-    left.version === right.version &&
-    left.gpcHonored === right.gpcHonored &&
-    left.functional === right.functional &&
-    left.analytics === right.analytics &&
-    left.marketing === right.marketing
-  );
+  try {
+    const body = await request.json();
+    const parsed = consentLinkPayloadSchema.safeParse(body);
+    if (!parsed.success) {
+      return {};
+    }
+    return parsed.data;
+  } catch {
+    return {};
+  }
 }
 
 export async function POST(request: Request) {
+  const payload = await parseOptionalLinkPayload(request);
+
   const session = await auth();
   const userId = session?.user?.id ?? null;
   if (!userId) {
@@ -83,66 +62,61 @@ export async function POST(request: Request) {
     return NextResponse.json({ linked: false, reason: "missing_consent_state" });
   }
 
-  const currentSignature: ConsentLinkSignature = {
+  const auditEventId = payload.eventId ?? createConsentAuditEventId();
+  const auditOccurredAt = payload.occurredAt ?? state.updatedAt;
+  const auditResult = await persistConsentAuditEventWithRetry({
+    eventId: auditEventId,
+    occurredAt: auditOccurredAt,
+    consentId: state.consentId,
+    userId,
     version: state.version,
+    source: CONSENT_EVENT_SOURCE_IDENTITY_LINK,
     gpcHonored: state.gpcHonored,
-    functional: state.categories.functional,
-    analytics: state.categories.analytics,
-    marketing: state.categories.marketing,
-  };
+    categories: state.categories,
+  });
 
-  try {
-    const latestEvent = await prisma.cookieConsentEvent.findFirst({
-      where: {
-        consentId: state.consentId,
-      },
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      select: {
-        userId: true,
-        version: true,
-        gpcHonored: true,
-        functional: true,
-        analytics: true,
-        marketing: true,
-      },
+  if (auditResult.reason === "duplicate_state") {
+    return NextResponse.json({
+      linked: false,
+      auditAccepted: true,
+      persisted: false,
+      auditEventId: auditResult.eventId,
+      reason: "already_represented_by_latest_event",
     });
+  }
 
-    if (latestEvent?.userId === userId && hasSameSignature(latestEvent, currentSignature)) {
-      return NextResponse.json({
-        linked: false,
-        reason: "already_represented_by_latest_event",
-      });
-    }
-
-    await prisma.cookieConsentEvent.create({
-      data: {
-        consentId: state.consentId,
-        userId,
-        version: state.version,
-        source: CONSENT_EVENT_SOURCE_IDENTITY_LINK,
-        gpcHonored: state.gpcHonored,
-        functional: state.categories.functional,
-        analytics: state.categories.analytics,
-        marketing: state.categories.marketing,
-      },
+  if (auditResult.reason === "duplicate_event") {
+    return NextResponse.json({
+      linked: false,
+      auditAccepted: true,
+      persisted: false,
+      auditEventId: auditResult.eventId,
+      reason: "duplicate_event",
     });
+  }
 
+  if (auditResult.auditAccepted) {
     return NextResponse.json({
       linked: true,
+      auditAccepted: true,
+      persisted: true,
+      auditEventId: auditResult.eventId,
       reason: "linked",
     });
-  } catch (error) {
-    if (isMissingConsentEventsTableError(error)) {
-      if (!warnedMissingConsentTable) {
-        warnedMissingConsentTable = true;
-        console.warn(
-          "[consent] cookie_consent_events table not found; skipping identity-link persistence until migrations are applied."
-        );
-      }
-      return NextResponse.json({ linked: false, reason: "consent_events_table_missing" });
-    }
-
-    console.error("[consent] Failed to persist identity link event:", error);
-    return NextResponse.json({ linked: false, reason: "link_failed" }, { status: 500 });
   }
+
+  const reason =
+    auditResult.reason === "consent_events_table_missing"
+      ? "consent_events_table_missing"
+      : "link_failed";
+  return NextResponse.json(
+    {
+      linked: false,
+      auditAccepted: false,
+      persisted: false,
+      auditEventId: auditResult.eventId,
+      reason,
+    },
+    { status: 503 }
+  );
 }

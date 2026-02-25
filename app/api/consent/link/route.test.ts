@@ -51,6 +51,8 @@ describe("api/consent/link route", () => {
 
     expect(response.status).toBe(200);
     expect(body.linked).toBe(true);
+    expect(body.auditAccepted).toBe(true);
+    expect(body.persisted).toBe(true);
     expect(body.reason).toBe("linked");
     expect(createConsentEventMock).toHaveBeenCalledTimes(1);
   });
@@ -154,6 +156,7 @@ describe("api/consent/link route", () => {
 
     expect(response.status).toBe(200);
     expect(body.linked).toBe(false);
+    expect(body.auditAccepted).toBe(true);
     expect(body.reason).toBe("already_represented_by_latest_event");
     expect(createConsentEventMock).not.toHaveBeenCalled();
   });
@@ -187,6 +190,7 @@ describe("api/consent/link route", () => {
 
     expect(response.status).toBe(200);
     expect(body.linked).toBe(true);
+    expect(body.auditAccepted).toBe(true);
     expect(body.reason).toBe("linked");
     expect(createConsentEventMock).toHaveBeenCalledTimes(1);
   });
@@ -219,7 +223,71 @@ describe("api/consent/link route", () => {
 
     expect(response.status).toBe(200);
     expect(body.linked).toBe(true);
+    expect(body.auditAccepted).toBe(true);
     expect(body.reason).toBe("linked");
     expect(createConsentEventMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses caller-provided metadata when present", async () => {
+    const state = createConsentState({
+      source: "preferences_save",
+      categories: {
+        functional: true,
+        analytics: true,
+        marketing: false,
+      },
+    });
+    const eventId = "identity-link-event-fixed";
+    const occurredAt = "2026-02-24T10:00:00.000Z";
+
+    const response = await POST(
+      new Request("https://example.com/api/consent/link", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `sf_consent=${serializeConsentStateForCookie(state)}`,
+        },
+        body: JSON.stringify({
+          eventId,
+          occurredAt,
+        }),
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(createConsentEventMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          id: eventId,
+          createdAt: new Date(occurredAt),
+        }),
+      })
+    );
+  });
+
+  it("returns 503 when identity-link audit persistence fails after retries", async () => {
+    createConsentEventMock.mockRejectedValue(new Error("database unavailable"));
+
+    const state = createConsentState({
+      source: "preferences_save",
+      categories: {
+        functional: true,
+        analytics: false,
+        marketing: false,
+      },
+    });
+
+    const response = await POST(
+      new Request("https://example.com/api/consent/link", {
+        method: "POST",
+        headers: { Cookie: `sf_consent=${serializeConsentStateForCookie(state)}` },
+      })
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(body.linked).toBe(false);
+    expect(body.auditAccepted).toBe(false);
+    expect(body.reason).toBe("link_failed");
   });
 });

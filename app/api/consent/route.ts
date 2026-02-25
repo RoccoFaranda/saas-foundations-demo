@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import prisma from "@/src/lib/db";
 import { auth } from "@/src/lib/auth/config";
 import { CONSENT_COOKIE_NAME } from "@/src/lib/consent/config";
+import { createConsentAuditEventId } from "@/src/lib/consent/audit-metadata";
+import { persistConsentAuditEventWithRetry } from "@/src/lib/consent/audit-server";
 import { HAS_NON_ESSENTIAL_CONSENT_SERVICES } from "@/src/lib/consent/services";
 import { consentWritePayloadSchema } from "@/src/lib/consent/schema";
 import {
@@ -16,8 +17,6 @@ import {
 function hasGlobalPrivacyControlSignal(headers: Headers): boolean {
   return headers.get("sec-gpc") === "1";
 }
-
-let warnedMissingConsentTable = false;
 
 function getCookieValueFromRequest(request: Request, key: string): string | null {
   const cookieHeader = request.headers.get("cookie");
@@ -37,48 +36,18 @@ function getCookieValueFromRequest(request: Request, key: string): string | null
   return null;
 }
 
-function isMissingConsentEventsTableError(error: unknown): boolean {
-  if (!error || typeof error !== "object") {
-    return false;
+function toResponseReason(
+  reason:
+    | "persisted"
+    | "duplicate_event"
+    | "duplicate_state"
+    | "retry_later"
+    | "consent_events_table_missing"
+) {
+  if (reason === "duplicate_state") {
+    return "already_represented_by_latest_event";
   }
-  const maybeError = error as {
-    code?: string;
-    message?: string;
-    meta?: {
-      code?: string;
-      modelName?: string;
-      table?: string;
-    };
-  };
-  const missingRelationByModelCode =
-    maybeError.code === "P2021" &&
-    (maybeError.meta?.table === "cookie_consent_events" ||
-      maybeError.meta?.modelName === "CookieConsentEvent");
-  const missingRelationByCode = maybeError.code === "P2010" && maybeError.meta?.code === "42P01";
-  const missingRelationByMessage =
-    (maybeError.code === "P2010" || maybeError.code === "P2021") &&
-    typeof maybeError.message === "string" &&
-    maybeError.message.includes("cookie_consent_events");
-
-  return missingRelationByModelCode || missingRelationByCode || missingRelationByMessage;
-}
-
-interface ConsentEventSignature {
-  version: string;
-  gpcHonored: boolean;
-  functional: boolean;
-  analytics: boolean;
-  marketing: boolean;
-}
-
-function hasSameSignature(left: ConsentEventSignature, right: ConsentEventSignature): boolean {
-  return (
-    left.version === right.version &&
-    left.gpcHonored === right.gpcHonored &&
-    left.functional === right.functional &&
-    left.analytics === right.analytics &&
-    left.marketing === right.marketing
-  );
+  return reason;
 }
 
 export async function GET(request: Request) {
@@ -122,77 +91,41 @@ export async function POST(request: Request) {
     consentId: existingState?.consentId,
   });
 
-  const currentSignature: ConsentEventSignature = {
-    version: state.version,
-    gpcHonored: state.gpcHonored,
-    functional: state.categories.functional,
-    analytics: state.categories.analytics,
-    marketing: state.categories.marketing,
-  };
+  const auditEventId = parsed.data.eventId ?? createConsentAuditEventId();
+  const auditOccurredAt = parsed.data.occurredAt ?? state.updatedAt;
 
+  let sessionUserId: string | null = null;
   try {
     const session = await auth();
-    const sessionUserId = session?.user?.id ?? null;
-
-    const latestEvent = await prisma.cookieConsentEvent.findFirst({
-      where: {
-        consentId: state.consentId,
-      },
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      select: {
-        userId: true,
-        version: true,
-        gpcHonored: true,
-        functional: true,
-        analytics: true,
-        marketing: true,
-      },
-    });
-
-    if (latestEvent?.userId === sessionUserId && hasSameSignature(latestEvent, currentSignature)) {
-      return finalizeConsentResponse(state, {
-        persisted: false,
-        reason: "already_represented_by_latest_event",
-      });
-    }
-
-    await prisma.cookieConsentEvent.create({
-      data: {
-        consentId: state.consentId,
-        userId: sessionUserId,
-        version: state.version,
-        source: state.source,
-        gpcHonored: state.gpcHonored,
-        functional: state.categories.functional,
-        analytics: state.categories.analytics,
-        marketing: state.categories.marketing,
-      },
-    });
+    sessionUserId = session?.user?.id ?? null;
   } catch (error) {
-    if (isMissingConsentEventsTableError(error)) {
-      if (!warnedMissingConsentTable) {
-        warnedMissingConsentTable = true;
-        console.warn(
-          "[consent] cookie_consent_events table not found; skipping audit persistence until migrations are applied."
-        );
-      }
-      return finalizeConsentResponse(state, {
-        persisted: false,
-        reason: "consent_events_table_missing",
-      });
-    }
-    console.error("[consent] Failed to persist consent event:", error);
+    console.error("[consent] Failed to resolve auth session for consent audit write:", error);
   }
 
+  const auditResult = await persistConsentAuditEventWithRetry({
+    eventId: auditEventId,
+    occurredAt: auditOccurredAt,
+    consentId: state.consentId,
+    userId: sessionUserId,
+    version: state.version,
+    source: state.source,
+    gpcHonored: state.gpcHonored,
+    categories: state.categories,
+  });
+
   return finalizeConsentResponse(state, {
-    persisted: true,
-    reason: "persisted",
+    persisted: auditResult.persisted,
+    auditAccepted: auditResult.auditAccepted,
+    reason: toResponseReason(auditResult.reason),
+    auditEventId: auditResult.eventId,
   });
 }
 
 function finalizeConsentResponse(
   state: ReturnType<typeof createConsentState>,
   metadata?: {
+    auditAccepted: boolean;
+    auditEventId: string;
     persisted: boolean;
     reason: string;
   }

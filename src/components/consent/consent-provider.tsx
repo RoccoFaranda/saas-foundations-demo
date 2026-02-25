@@ -16,6 +16,15 @@ import {
   CONSENT_SYNC_STORAGE_KEY,
   DEFAULT_CONSENT_CATEGORIES,
 } from "@/src/lib/consent/config";
+import {
+  enqueueConsentAuditReplay,
+  flushConsentAuditReplayQueue,
+  type ConsentAuditReplayPayload,
+} from "@/src/lib/consent/audit-queue";
+import {
+  createConsentAuditEventId,
+  createConsentAuditOccurredAt,
+} from "@/src/lib/consent/audit-metadata";
 import { consentStateSchema } from "@/src/lib/consent/schema";
 import { HAS_NON_ESSENTIAL_CONSENT_SERVICES } from "@/src/lib/consent/services";
 import {
@@ -51,6 +60,22 @@ const ConsentContext = createContext<ConsentContextValue | null>(null);
 interface ConsentProviderProps {
   initialConsentState: ConsentState | null;
   children: ReactNode;
+}
+
+function createReplayPayloadFromState(
+  state: ConsentState,
+  eventId: string,
+  occurredAt: string
+): ConsentAuditReplayPayload {
+  return {
+    eventId,
+    occurredAt,
+    consentId: state.consentId,
+    version: state.version,
+    source: state.source,
+    gpcHonored: state.gpcHonored,
+    categories: state.categories,
+  };
 }
 
 export function ConsentProvider({ initialConsentState, children }: ConsentProviderProps) {
@@ -127,38 +152,92 @@ export function ConsentProvider({ initialConsentState, children }: ConsentProvid
     }
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const flushQueue = () => {
+      void flushConsentAuditReplayQueue();
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        flushQueue();
+      }
+    };
+
+    flushQueue();
+    window.addEventListener("online", flushQueue);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      window.removeEventListener("online", flushQueue);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, []);
+
   const persistConsent = useCallback(
     async (source: ConsentSource, categories: OptionalConsentCategories) => {
+      const auditEventId = createConsentAuditEventId();
+      const auditOccurredAt = createConsentAuditOccurredAt();
       setIsSaving(true);
       try {
         const response = await fetch("/api/consent", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ source, categories }),
+          body: JSON.stringify({
+            source,
+            categories,
+            eventId: auditEventId,
+            occurredAt: auditOccurredAt,
+          }),
         });
         if (!response.ok) {
           throw new Error("Failed to persist cookie preferences.");
         }
-        const payload = (await response.json()) as { state?: unknown };
+        const payload = (await response.json()) as {
+          state?: unknown;
+          auditAccepted?: boolean;
+        };
         const nextState = parseConsentPayloadState(payload.state ?? null);
-        setConsentState(nextState);
-        broadcastConsentUpdated();
-      } catch (error) {
-        console.error("[consent] Failed to save consent preferences:", error);
-        // Keep local UI state in sync even when persistence fails.
-        setConsentState((previousState) =>
+        const resolvedState =
+          nextState ??
           createConsentState({
             source,
             categories,
             gpcHonored: source === "gpc",
-            consentId: previousState?.consentId,
-          })
-        );
+            consentId: consentState?.consentId,
+          });
+        setConsentState(resolvedState);
+        broadcastConsentUpdated();
+
+        if (payload.auditAccepted === false) {
+          enqueueConsentAuditReplay({
+            kind: "consent",
+            payload: createReplayPayloadFromState(resolvedState, auditEventId, auditOccurredAt),
+          });
+          void flushConsentAuditReplayQueue();
+        }
+      } catch (error) {
+        console.error("[consent] Failed to save consent preferences:", error);
+        // Keep local UI state in sync even when persistence fails.
+        const fallbackState = createConsentState({
+          source,
+          categories,
+          gpcHonored: source === "gpc",
+          consentId: consentState?.consentId,
+        });
+        setConsentState(fallbackState);
+        enqueueConsentAuditReplay({
+          kind: "consent",
+          payload: createReplayPayloadFromState(fallbackState, auditEventId, auditOccurredAt),
+        });
+        void flushConsentAuditReplayQueue();
       } finally {
         setIsSaving(false);
       }
     },
-    [broadcastConsentUpdated, parseConsentPayloadState]
+    [broadcastConsentUpdated, consentState?.consentId, parseConsentPayloadState]
   );
 
   useEffect(() => {

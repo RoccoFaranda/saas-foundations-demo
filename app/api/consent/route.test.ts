@@ -66,6 +66,10 @@ describe("api/consent route", () => {
     expect(body.state.categories.necessary).toBe(true);
     expect(body.state.categories.functional).toBe(true);
     expect(body.state.source).toBe("preferences_save");
+    expect(body.auditAccepted).toBe(true);
+    expect(body.persisted).toBe(true);
+    expect(body.reason).toBe("persisted");
+    expect(typeof body.auditEventId).toBe("string");
     expect(response.headers.get("set-cookie")).toContain("sf_consent=");
     expect(createConsentEventMock).toHaveBeenCalledTimes(1);
   });
@@ -96,6 +100,7 @@ describe("api/consent route", () => {
     expect(body.state.categories.functional).toBe(false);
     expect(body.state.categories.analytics).toBe(false);
     expect(body.state.categories.marketing).toBe(false);
+    expect(body.auditAccepted).toBe(true);
   });
 
   it("no-ops persistence when latest event already matches current user and signature", async () => {
@@ -139,9 +144,67 @@ describe("api/consent route", () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
+    expect(body.auditAccepted).toBe(true);
     expect(body.persisted).toBe(false);
     expect(body.reason).toBe("already_represented_by_latest_event");
     expect(createConsentEventMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps cookie response successful but reports audit failure when DB insert fails", async () => {
+    createConsentEventMock.mockRejectedValue(new Error("database unavailable"));
+
+    const response = await POST(
+      new Request("https://example.com/api/consent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          source: "preferences_save",
+          categories: {
+            functional: true,
+            analytics: false,
+            marketing: false,
+          },
+        }),
+      })
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.auditAccepted).toBe(false);
+    expect(body.persisted).toBe(false);
+    expect(body.reason).toBe("retry_later");
+    expect(response.headers.get("set-cookie")).toContain("sf_consent=");
+  });
+
+  it("uses caller-provided audit metadata when present", async () => {
+    const eventId = "event-fixed-id";
+    const occurredAt = "2026-02-24T10:00:00.000Z";
+
+    await POST(
+      new Request("https://example.com/api/consent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          source: "preferences_save",
+          categories: {
+            functional: true,
+            analytics: false,
+            marketing: false,
+          },
+          eventId,
+          occurredAt,
+        }),
+      })
+    );
+
+    expect(createConsentEventMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          id: eventId,
+          createdAt: new Date(occurredAt),
+        }),
+      })
+    );
   });
 
   it("returns normalized state for valid cookie in GET", async () => {

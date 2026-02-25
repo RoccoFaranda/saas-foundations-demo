@@ -163,6 +163,15 @@ When adding non-essential scripts/services:
    - These rows are association evidence only (not account-global current preference state).
    - Link dedupe checks the latest event for a `consentId` (any source) and skips insert when the latest row already matches the same `userId` + signature.
    - Historical anonymous events are never rewritten/backfilled.
+8. Current reliability model (implemented):
+   - `POST /api/consent` and `POST /api/consent/link` attempt an immediate audit write.
+   - Audit writes use server-side transient retry logic before returning.
+   - Consent write responses expose audit metadata: `auditAccepted`, `persisted`, `reason`, `auditEventId`.
+   - When audit persistence is not accepted (or request-level failure occurs), the client stores a replay payload in localStorage and retries in the background.
+   - Replay delivery uses `POST /api/consent/audit`.
+   - Identity-link writes use client retries first, then queue replay (`identity_link`) on terminal retryable failures.
+9. Future hardening (planned, not implemented):
+   - Add a server-side durable outbox/queue so events accepted by the server can still be persisted after DB outages without depending only on browser-side replay.
 
 ## Contributing
 
