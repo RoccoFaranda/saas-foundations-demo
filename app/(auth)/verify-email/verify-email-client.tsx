@@ -338,7 +338,7 @@ export default function VerifyEmailClient({ token, email }: VerifyEmailClientPro
           <button
             type="button"
             onClick={() => void signOut({ callbackUrl: "/signup" })}
-            className="font-medium text-foreground hover:underline"
+            className="focus-ring cursor-pointer font-medium text-foreground hover:underline"
           >
             Create a new account
           </button>

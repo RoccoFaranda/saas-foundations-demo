@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CookiePreferencesTrigger } from "@/src/components/consent/cookie-preferences-trigger";
 
 type LegalInlineLinksVariant = "compact" | "footer";
 
@@ -12,6 +13,10 @@ export function LegalInlineLinks({ variant = "compact" }: LegalInlineLinksProps)
       ? "text-sm text-muted-foreground"
       : "text-xs leading-5 text-muted-foreground";
   const linkClass = variant === "footer" ? "link-subtle focus-ring" : "btn-link focus-ring text-xs";
+  const buttonClass =
+    variant === "footer"
+      ? "link-subtle cursor-pointer focus-ring"
+      : "btn-link focus-ring text-xs cursor-pointer";
   const wrapperClass =
     variant === "footer"
       ? "inline-flex items-center gap-2"
@@ -26,6 +31,8 @@ export function LegalInlineLinks({ variant = "compact" }: LegalInlineLinksProps)
       <Link href="/terms" className={linkClass}>
         Terms
       </Link>
+      <span aria-hidden="true">&bull;</span>
+      <CookiePreferencesTrigger className={buttonClass} />
     </div>
   );
 }

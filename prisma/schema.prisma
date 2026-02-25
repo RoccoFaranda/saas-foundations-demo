@@ -31,25 +31,26 @@ enum ItemTag {
 }
 
 model User {
-  id              String           @id @default(cuid())
-  email           String           @unique
-  passwordHash    String
-  emailVerified   DateTime?        @map("emailVerifiedAt")
-  name            String?
-  themePreference ThemePreference?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  sessionVersion  Int              @default(0)
-  termsAcceptedAt DateTime?
-  termsVersionAccepted String?
-  privacyAcknowledgedAt DateTime?
+  id                         String           @id @default(cuid())
+  email                      String           @unique
+  passwordHash               String
+  emailVerified              DateTime?        @map("emailVerifiedAt")
+  name                       String?
+  themePreference            ThemePreference?
+  createdAt                  DateTime         @default(now())
+  updatedAt                  DateTime         @updatedAt
+  sessionVersion             Int              @default(0)
+  termsAcceptedAt            DateTime?
+  termsVersionAccepted       String?
+  privacyAcknowledgedAt      DateTime?
   privacyVersionAcknowledged String?
-  deletionRequestedAt DateTime?
-  deletionScheduledFor DateTime?
+  deletionRequestedAt        DateTime?
+  deletionScheduledFor       DateTime?
 
   // Relations
   items                   Item[]
   activityLogs            ActivityLog[]
+  cookieConsentEvents     CookieConsentEvent[]
   emailVerificationTokens EmailVerificationToken[]
   passwordResetTokens     PasswordResetToken[]
   emailChangeTokens       EmailChangeToken[]
@@ -113,6 +114,26 @@ model ActivityLog {
   @@index([userId])
   @@index([createdAt])
   @@map("activity_logs")
+}
+
+model CookieConsentEvent {
+  id         String   @id @default(cuid())
+  consentId  String
+  userId     String?
+  version    String
+  source     String
+  gpcHonored Boolean  @default(false)
+  functional Boolean  @default(false)
+  analytics  Boolean  @default(false)
+  marketing  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([consentId, createdAt])
+  @@index([userId, createdAt])
+  @@map("cookie_consent_events")
 }
 
 model EmailVerificationToken {

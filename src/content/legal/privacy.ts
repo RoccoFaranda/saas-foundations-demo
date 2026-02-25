@@ -80,12 +80,14 @@ export const privacyDocument: LegalDocument = {
       title: "Cookies and local storage",
       paragraphs: [
         "The application uses storage technologies needed for core functionality and experience continuity, including authentication/session behavior and theme preference persistence.",
-        "Detailed non-essential cookie preference controls and consent management are handled in a dedicated cookie-consent implementation phase.",
+        "We provide a Cookie Preferences control that allows you to accept, reject, or customize optional cookie categories. You can reopen preferences at any time from the footer and account settings.",
+        "A detailed cookie declaration is available at /cookies.",
       ],
       bullets: [
         "Session and authentication state support.",
         "Theme and display preference persistence.",
         "Security and abuse prevention operations.",
+        "At the current release, no non-essential analytics or marketing cookie services are active by default.",
       ],
     },
     {
@@ -93,6 +95,7 @@ export const privacyDocument: LegalDocument = {
       title: "Do not track and cross-site signals",
       paragraphs: [
         "At this time, the service does not change behavior in response to browser Do Not Track (DNT) signals.",
+        "Global Privacy Control (GPC) signals are honored. When GPC is detected, optional cookie categories remain disabled.",
         "In jurisdictions where this disclosure is required (including California), we disclose that the demo is not used to enable third-party advertising networks to track users across unrelated third-party websites over time. Infrastructure providers may still receive technical request data as part of delivering the service.",
       ],
     },

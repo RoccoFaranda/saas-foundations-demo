@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Turnstile from "react-turnstile";
 import { signup } from "@/src/lib/auth/actions";
 import { LegalInlineLinks } from "@/src/components/legal/legal-inline-links";
@@ -18,6 +19,7 @@ export default function SignupClient({
   turnstileMisconfiguredMessage,
 }: SignupClientProps) {
   const router = useRouter();
+  const { update } = useSession();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [turnstileError, setTurnstileError] = useState<string | null>(null);
@@ -76,6 +78,7 @@ export default function SignupClient({
 
         if (result.success) {
           applyRetryAt(null);
+          await update();
           router.push("/verify-email");
         } else {
           const retryAt = result.retryAt ?? null;

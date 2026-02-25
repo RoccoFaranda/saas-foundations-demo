@@ -122,7 +122,7 @@ test.describe("Auth core flow", () => {
     await submitButton.click();
 
     // Step 3: Wait for redirect to verify-email page
-    await expect(page).toHaveURL(/\/verify-email/, { timeout: 5000 });
+    await expect(page).toHaveURL(/\/verify-email/, { timeout: 15000 });
     await expect(page.getByRole("heading", { name: /Verify your email/i })).toBeVisible();
 
     // Step 4: Verify unverified users are blocked from app routes
@@ -163,5 +163,11 @@ test.describe("Auth core flow", () => {
     // Step 10: Wait for redirect to dashboard
     await expect(loginPage).toHaveURL(/\/app\/dashboard/, { timeout: 5000 });
     await expect(loginPage.getByRole("heading", { name: /Dashboard/i })).toBeVisible();
+
+    // Step 11: Ensure cookie preferences are discoverable from settings for authenticated users
+    await loginPage.goto("/app/settings");
+    await expect(loginPage.getByRole("heading", { name: /Account Settings/i })).toBeVisible();
+    await loginPage.locator("main").getByRole("button", { name: "Cookie Preferences" }).click();
+    await expect(loginPage.getByRole("heading", { name: "Cookie Preferences" })).toBeVisible();
   });
 });

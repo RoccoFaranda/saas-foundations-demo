@@ -1,6 +1,8 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { requireVerifiedUser, signOutUser } from "@/src/lib/auth";
 import { AppThemeToggle } from "@/src/components/app-theme-toggle";
+import { CookiePreferencesTrigger } from "@/src/components/consent/cookie-preferences-trigger";
+import { CookieMark } from "@/src/components/icons/cookie-mark";
 import { ThemeAccountSync } from "@/src/components/theme-account-sync";
 import { PageContainer } from "@/src/components/layout/page-container";
 
@@ -35,6 +37,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               </button>
             </form>
             <AppThemeToggle />
+            <CookiePreferencesTrigger
+              className="btn-secondary btn-sm w-8 cursor-pointer p-0"
+              ariaLabel="Cookie Preferences"
+              title="Cookie Preferences"
+            >
+              <CookieMark className="h-4 w-4" />
+            </CookiePreferencesTrigger>
           </nav>
         </PageContainer>
       </header>

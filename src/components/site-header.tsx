@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { GitHubMark } from "./icons/github-mark";
+import { CookieMark } from "./icons/cookie-mark";
 import { ThemeToggle } from "./theme-toggle";
+import { CookiePreferencesTrigger } from "./consent/cookie-preferences-trigger";
 import { PageContainer } from "./layout/page-container";
 
 export function SiteHeader() {
@@ -10,7 +12,7 @@ export function SiteHeader() {
         <Link href="/" className="font-semibold focus-ring">
           SaaS Foundations
         </Link>
-        <nav className="flex items-center gap-6 text-sm">
+        <nav className="flex items-center gap-4 text-sm">
           <Link href="/" className="link-subtle focus-ring">
             Home
           </Link>
@@ -30,6 +32,13 @@ export function SiteHeader() {
             GitHub
           </a>
           <ThemeToggle />
+          <CookiePreferencesTrigger
+            className="btn-secondary btn-sm w-8 cursor-pointer p-0"
+            ariaLabel="Cookie Preferences"
+            title="Cookie Preferences"
+          >
+            <CookieMark className="h-4 w-4" />
+          </CookiePreferencesTrigger>
         </nav>
       </PageContainer>
     </header>

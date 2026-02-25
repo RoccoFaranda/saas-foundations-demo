@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode, type RefObject } from "react";
+import { usePathname } from "next/navigation";
 import { createPortal } from "react-dom";
 
 interface ModalProps {
@@ -13,6 +14,7 @@ interface ModalProps {
   closeOnBackdropClick?: boolean;
   isDismissible?: boolean;
   backdropTestId?: string;
+  closeOnRouteChange?: boolean;
 }
 
 const focusableSelector = [
@@ -40,11 +42,14 @@ export function Modal({
   closeOnBackdropClick = true,
   isDismissible = true,
   backdropTestId,
+  closeOnRouteChange = false,
 }: ModalProps) {
+  const pathname = usePathname();
   const backdropRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const previousActiveElementRef = useRef<HTMLElement | null>(null);
   const mouseDownOnBackdrop = useRef(false);
+  const previousPathnameRef = useRef(pathname);
 
   // Focus management + scroll lock + inert background
   useEffect(() => {
@@ -105,12 +110,25 @@ export function Modal({
     };
   }, [isOpen, initialFocusRef]);
 
+  // Optional behavior: close modal when navigating to a different route.
+  useEffect(() => {
+    if (!closeOnRouteChange || !isOpen) {
+      previousPathnameRef.current = pathname;
+      return;
+    }
+
+    if (previousPathnameRef.current !== pathname) {
+      onClose();
+    }
+    previousPathnameRef.current = pathname;
+  }, [closeOnRouteChange, isOpen, onClose, pathname]);
+
   if (!isOpen || typeof document === "undefined") return null;
 
   return createPortal(
     <div
       ref={backdropRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-4"
+      className="fixed inset-0 z-[120] flex items-center justify-center bg-overlay p-4"
       data-testid={backdropTestId}
       onMouseDown={(event) => {
         mouseDownOnBackdrop.current = event.target === event.currentTarget;

@@ -1,4 +1,5 @@
-﻿import Link from "next/link";
+import Link from "next/link";
+import { CookiePreferencesTrigger } from "@/src/components/consent/cookie-preferences-trigger";
 import { requireVerifiedUser } from "@/src/lib/auth/session";
 
 export default async function SettingsPage() {
@@ -42,7 +43,7 @@ export default async function SettingsPage() {
           <section className="surface-card px-6 py-4">
             <h2 className="text-lg font-semibold">Legal</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Review the latest legal documents that apply to this demo.
+              Review the latest legal documents and cookie choices that apply to this demo.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <Link href="/terms" className="btn-secondary btn-sm">
@@ -51,6 +52,10 @@ export default async function SettingsPage() {
               <Link href="/privacy" className="btn-secondary btn-sm">
                 Privacy Policy
               </Link>
+              <Link href="/cookies" className="btn-secondary btn-sm">
+                Cookie Declaration
+              </Link>
+              <CookiePreferencesTrigger className="btn-secondary btn-sm cursor-pointer" />
             </div>
           </section>
 

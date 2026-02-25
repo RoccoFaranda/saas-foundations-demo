@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { login } from "@/src/lib/auth/actions";
 import { LegalInlineLinks } from "@/src/components/legal/legal-inline-links";
 import { GENERIC_ACTION_ERROR } from "@/src/lib/ui/messages";
@@ -21,6 +22,7 @@ export default function LoginClient({
   accountRestored,
 }: LoginClientProps) {
   const router = useRouter();
+  const { update } = useSession();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [fieldError, setFieldError] = useState<"email" | "password" | null>(null);
@@ -73,6 +75,7 @@ export default function LoginClient({
 
         if (result.success) {
           applyRetryAt(null);
+          await update();
           const destination = result.redirectUrl ?? "/app/dashboard";
           router.push(destination);
           router.refresh();

@@ -144,6 +144,26 @@ When shipping legal-copy updates:
    - `src/content/legal/terms.ts`
 3. If acceptance evidence schema changes, add a Prisma migration and regenerate the Prisma client.
 
+## Cookie Consent Maintenance
+
+When adding non-essential scripts/services:
+
+1. Register the service in `src/lib/consent/services.ts` with full disclosure metadata:
+   - `category`, `essential`, `provider`, `party`
+   - `entries[]` including `key`, `storageType`, `duration`, and `purpose`
+2. Keep the runtime registry active-only: do not include env-disabled services in `CONSENT_SERVICES`.
+3. Gate script rendering behind consent checks (for example with `src/components/consent/consent-script.tsx`).
+4. Update the cookie disclosure copy in `src/content/legal/privacy.ts` and ensure `/cookies` reflects current runtime behavior.
+5. Update cookie declaration dates in `src/content/legal/legal-metadata.ts`:
+   - `COOKIE_DECLARATION_EFFECTIVE_DATE`
+   - `COOKIE_DECLARATION_LAST_UPDATED`
+6. Bump `CONSENT_VERSION` in `src/lib/consent/config.ts` when consent semantics materially change.
+7. `identity_link` audit events:
+   - `POST /api/consent/link` links an authenticated account to the current browser consent context.
+   - These rows are association evidence only (not account-global current preference state).
+   - Link dedupe checks the latest event for a `consentId` (any source) and skips insert when the latest row already matches the same `userId` + signature.
+   - Historical anonymous events are never rewritten/backfilled.
+
 ## Contributing
 
 1. Create a feature branch from `main`

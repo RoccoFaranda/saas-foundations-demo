@@ -39,6 +39,13 @@ test.describe("Legal pages", () => {
     await expect(
       page.locator("article a[href='mailto:legal@saasfoundations.demo']").first()
     ).toBeVisible();
+    await expect(page.locator("article a[href='/cookies']").first()).toBeVisible();
+
+    await Promise.all([
+      page.waitForURL("**/cookies"),
+      page.locator("article a[href='/cookies']").first().click(),
+    ]);
+    await expect(page.getByRole("heading", { level: 1, name: "Cookie Declaration" })).toBeVisible();
   });
 
   test("terms page renders heading, effective/updated rows, and clickwrap-oriented acceptance", async ({
@@ -74,13 +81,18 @@ test.describe("Legal pages", () => {
     const footer = page.locator("footer");
     await expect(footer.getByRole("link", { name: "Privacy" })).toBeVisible();
     await expect(footer.getByRole("link", { name: "Terms" })).toBeVisible();
+    await expect(footer.getByRole("button", { name: "Cookie Preferences" })).toBeVisible();
 
-    await footer.getByRole("link", { name: "Privacy" }).click();
-    await expect(page).toHaveURL("/privacy");
+    await Promise.all([
+      page.waitForURL("**/privacy"),
+      footer.getByRole("link", { name: "Privacy" }).click(),
+    ]);
 
     await page.goto("/");
-    await footer.getByRole("link", { name: "Terms" }).click();
-    await expect(page).toHaveURL("/terms");
+    await Promise.all([
+      page.waitForURL("**/terms"),
+      footer.getByRole("link", { name: "Terms" }).click(),
+    ]);
   });
 
   test("auth entry routes expose legal links and navigate correctly", async ({ page }) => {
@@ -92,16 +104,19 @@ test.describe("Legal pages", () => {
       const main = page.locator("main");
       const privacyLink = main.getByRole("link", { name: "Privacy", exact: true });
       const termsLink = main.getByRole("link", { name: "Terms", exact: true });
+      const cookiePreferencesButton = main.getByRole("button", { name: "Cookie Preferences" });
 
       await expect(privacyLink).toBeVisible();
       await expect(termsLink).toBeVisible();
+      await expect(cookiePreferencesButton).toBeVisible();
 
-      await privacyLink.click();
-      await expect(page).toHaveURL("/privacy");
+      await Promise.all([page.waitForURL("**/privacy"), privacyLink.click()]);
 
       await page.goto(route);
-      await main.getByRole("link", { name: "Terms", exact: true }).click();
-      await expect(page).toHaveURL("/terms");
+      await Promise.all([
+        page.waitForURL("**/terms"),
+        main.getByRole("link", { name: "Terms", exact: true }).click(),
+      ]);
     }
   });
 });

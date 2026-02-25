@@ -7,9 +7,9 @@ interface LegalDocumentPageProps {
 }
 
 const LEGAL_LINK_TOKEN_PATTERN =
-  /(https?:\/\/[^\s]+|\/contact|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/g;
+  /(https?:\/\/[^\s]+|\/contact|\/cookies|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/g;
 const LEGAL_LINK_DETECT_PATTERN =
-  /(https?:\/\/[^\s]+|\/contact|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/;
+  /(https?:\/\/[^\s]+|\/contact|\/cookies|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/;
 const TRAILING_PUNCTUATION_PATTERN = /[),.;:!?]+$/;
 
 function splitTrailingPunctuation(value: string) {
@@ -31,10 +31,10 @@ function renderLegalParagraph(paragraph: string) {
 
   const tokens = paragraph.split(LEGAL_LINK_TOKEN_PATTERN);
   return tokens.map((token, index) => {
-    if (token === "/contact") {
+    if (token === "/contact" || token === "/cookies") {
       return (
-        <Link key={`contact-link-${index}`} href="/contact" className="link-subtle focus-ring">
-          /contact
+        <Link key={`route-link-${index}`} href={token} className="link-subtle focus-ring">
+          {token}
         </Link>
       );
     }

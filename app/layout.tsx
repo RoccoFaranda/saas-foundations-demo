@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getConsentCookieState } from "@/src/lib/consent/cookies";
 import { getThemeCookie } from "@/src/lib/theme/cookies";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
@@ -25,6 +26,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const consentState = await getConsentCookieState();
   const themeCookie = await getThemeCookie();
   const themeSyncScript = `
 (() => {
@@ -55,7 +57,9 @@ export default async function RootLayout({
         />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <Providers defaultTheme={themeCookie ?? "system"}>{children}</Providers>
+        <Providers defaultTheme={themeCookie ?? "system"} initialConsentState={consentState}>
+          {children}
+        </Providers>
       </body>
     </html>
   );

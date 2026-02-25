@@ -1,0 +1,91 @@
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
+import type { ConsentCategories } from "@/src/lib/consent/types";
+import { ConsentPreferencesModal } from "./consent-preferences-modal";
+
+const BASE_CATEGORIES: ConsentCategories = {
+  necessary: true,
+  functional: false,
+  analytics: false,
+  marketing: false,
+};
+
+describe("ConsentPreferencesModal", () => {
+  it("does not overwrite in-progress toggles while modal is open", async () => {
+    const user = userEvent.setup();
+
+    const { rerender } = render(
+      <ConsentPreferencesModal
+        isOpen
+        isSaving={false}
+        gpcLocked={false}
+        initialCategories={{ ...BASE_CATEGORIES }}
+        onClose={vi.fn()}
+        onSave={vi.fn()}
+      />
+    );
+
+    const analyticsCheckbox = screen.getByLabelText("Analytics cookies");
+    expect(analyticsCheckbox).not.toBeChecked();
+
+    await user.click(analyticsCheckbox);
+    expect(analyticsCheckbox).toBeChecked();
+
+    rerender(
+      <ConsentPreferencesModal
+        isOpen
+        isSaving={false}
+        gpcLocked={false}
+        initialCategories={{ ...BASE_CATEGORIES }}
+        onClose={vi.fn()}
+        onSave={vi.fn()}
+      />
+    );
+
+    expect(screen.getByLabelText("Analytics cookies")).toBeChecked();
+  });
+
+  it("refreshes toggles from latest props when reopened", async () => {
+    const user = userEvent.setup();
+
+    const { rerender } = render(
+      <ConsentPreferencesModal
+        isOpen
+        isSaving={false}
+        gpcLocked={false}
+        initialCategories={{ ...BASE_CATEGORIES }}
+        onClose={vi.fn()}
+        onSave={vi.fn()}
+      />
+    );
+
+    const analyticsCheckbox = screen.getByLabelText("Analytics cookies");
+    await user.click(analyticsCheckbox);
+    expect(analyticsCheckbox).toBeChecked();
+
+    rerender(
+      <ConsentPreferencesModal
+        isOpen={false}
+        isSaving={false}
+        gpcLocked={false}
+        initialCategories={{ ...BASE_CATEGORIES }}
+        onClose={vi.fn()}
+        onSave={vi.fn()}
+      />
+    );
+
+    rerender(
+      <ConsentPreferencesModal
+        isOpen
+        isSaving={false}
+        gpcLocked={false}
+        initialCategories={{ ...BASE_CATEGORIES }}
+        onClose={vi.fn()}
+        onSave={vi.fn()}
+      />
+    );
+
+    expect(screen.getByLabelText("Analytics cookies")).not.toBeChecked();
+  });
+});
