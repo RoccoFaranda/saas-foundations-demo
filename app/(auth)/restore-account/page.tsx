@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { restoreAccount } from "@/src/lib/auth/actions";
+import { LegalInlineLinks } from "@/src/components/legal/legal-inline-links";
 
 type RestoreAccountPageProps = {
   searchParams?:
@@ -40,6 +41,9 @@ export default async function RestoreAccountPage({ searchParams }: RestoreAccoun
           <Link href="/login" className="btn-primary btn-md inline-flex">
             Back to login
           </Link>
+          <div className="mt-6">
+            <LegalInlineLinks variant="compact" />
+          </div>
         </div>
       </main>
     );
@@ -76,6 +80,9 @@ export default async function RestoreAccountPage({ searchParams }: RestoreAccoun
         <Link href="/login" className="btn-primary btn-md inline-flex">
           Back to login
         </Link>
+        <div className="mt-6">
+          <LegalInlineLinks variant="compact" />
+        </div>
       </div>
     </main>
   );

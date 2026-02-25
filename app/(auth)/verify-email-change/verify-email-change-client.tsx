@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { verifyEmailChange } from "@/src/lib/auth/actions";
+import { LegalInlineLinks } from "@/src/components/legal/legal-inline-links";
 import { GENERIC_ACTION_ERROR } from "@/src/lib/ui/messages";
 
 type VerifyEmailChangeClientProps = {
@@ -92,6 +93,7 @@ export default function VerifyEmailChangeClient({ token }: VerifyEmailChangeClie
             <h1 className="text-2xl font-bold text-foreground">Verifying email change...</h1>
             <p>Please wait a moment</p>
           </div>
+          <LegalInlineLinks variant="compact" />
         </div>
       </main>
     );
@@ -153,6 +155,9 @@ export default function VerifyEmailChangeClient({ token }: VerifyEmailChangeClie
               </Link>
             </div>
           )}
+          <div className="mt-6">
+            <LegalInlineLinks variant="compact" />
+          </div>
         </div>
       </main>
     );
@@ -202,6 +207,9 @@ export default function VerifyEmailChangeClient({ token }: VerifyEmailChangeClie
               </Link>
             </div>
           )}
+          <div className="mt-6">
+            <LegalInlineLinks variant="compact" />
+          </div>
         </div>
       </main>
     );
