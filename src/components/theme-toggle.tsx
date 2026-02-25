@@ -2,6 +2,10 @@
 
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import {
+  type ThemeCookieValue,
+  serializeThemeCookieForDocument,
+} from "@/src/lib/theme/cookie-contract";
 
 const themes = [
   { value: "light", label: "Light" },
@@ -9,7 +13,7 @@ const themes = [
   { value: "system", label: "System" },
 ] as const;
 
-type ThemeValue = (typeof themes)[number]["value"];
+type ThemeValue = ThemeCookieValue;
 
 export function ThemeToggle({ onThemeChange }: { onThemeChange?: (theme: ThemeValue) => void }) {
   const { theme, setTheme } = useTheme();
@@ -58,16 +62,8 @@ export function ThemeToggle({ onThemeChange }: { onThemeChange?: (theme: ThemeVa
 
 function syncThemeCookie(theme: ThemeValue) {
   if (typeof document === "undefined") return;
-  const isSecure = window.location.protocol === "https:";
-  const maxAge = 60 * 60 * 24 * 365; // 1 year
-  const cookieParts = [
-    `theme=${encodeURIComponent(theme)}`,
-    "path=/",
-    "samesite=lax",
-    `max-age=${maxAge}`,
-  ];
-  if (isSecure) {
-    cookieParts.push("secure");
-  }
-  document.cookie = cookieParts.join("; ");
+  document.cookie = serializeThemeCookieForDocument({
+    theme,
+    secure: window.location.protocol === "https:",
+  });
 }

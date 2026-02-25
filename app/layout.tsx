@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getConsentCookieState } from "@/src/lib/consent/cookies";
+import { THEME_COOKIE_NAME, THEME_COOKIE_VALUES } from "@/src/lib/theme/cookie-contract";
 import { getThemeCookie } from "@/src/lib/theme/cookies";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
@@ -28,13 +29,14 @@ export default async function RootLayout({
 }>) {
   const consentState = await getConsentCookieState();
   const themeCookie = await getThemeCookie();
+  const serializedThemeValues = JSON.stringify([...THEME_COOKIE_VALUES]);
   const themeSyncScript = `
 (() => {
   try {
-    const match = document.cookie.match(/(?:^|; )theme=([^;]+)/);
+    const match = document.cookie.match(/(?:^|; )${THEME_COOKIE_NAME}=([^;]+)/);
     if (!match) return;
     const theme = decodeURIComponent(match[1]);
-    if (!["light", "dark", "system"].includes(theme)) return;
+    if (!${serializedThemeValues}.includes(theme)) return;
     localStorage.setItem("theme", theme);
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     const resolved = theme === "system" ? (prefersDark ? "dark" : "light") : theme;
