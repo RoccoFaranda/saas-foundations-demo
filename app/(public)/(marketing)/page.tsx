@@ -268,7 +268,9 @@ export default function MarketingHomePage() {
         </PageContainer>
       </section>
 
-      <StickyDashboardStory />
+      <div className="hidden xl:block">
+        <StickyDashboardStory />
+      </div>
 
       <section
         id="features"
