@@ -37,7 +37,7 @@ test.describe("Legal pages", () => {
         .first()
     ).toBeVisible();
     await expect(
-      page.locator("article a[href='mailto:legal@saasfoundations.demo']").first()
+      page.locator("article a[href='mailto:roccofaranda@gmail.com']").first()
     ).toBeVisible();
     await expect(page.locator("article a[href='/cookies']").first()).toBeVisible();
 

@@ -130,7 +130,7 @@ export const termsDocument: LegalDocument = {
       id: "contact",
       title: "Contact",
       paragraphs: [
-        "For questions about these terms, contact us using the legal email below or the contact page.",
+        "For questions about these terms, contact us using the email below or the contact page.",
         `Email: ${LEGAL_CONTACT_EMAIL}`,
         "Contact page: /contact",
       ],

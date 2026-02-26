@@ -1,68 +1,98 @@
-import Link from "next/link";
+import { ExternalLinkMark } from "@/src/components/icons/external-link-mark";
+import { GitHubMark } from "@/src/components/icons/github-mark";
+import { MailMark } from "@/src/components/icons/mail-mark";
 import { PageContainer } from "@/src/components/layout/page-container";
 import {
-  LEGAL_CONTACT_ADDRESS,
-  LEGAL_CONTACT_EMAIL,
-  LEGAL_CONTROLLER_NAME,
-  LEGAL_DPO_CONTACT,
-} from "@/src/content/legal/legal-metadata";
+  GITHUB_PROFILE_URL,
+  PUBLIC_CONTACT_EMAIL,
+  UPWORK_PROFILE_URL,
+} from "@/src/content/profile/public-metadata";
 
 export default function ContactPage() {
   return (
     <div className="py-16 sm:py-20">
-      <PageContainer size="narrow" className="space-y-6">
-        <section className="rounded-2xl border border-border bg-surface p-6 sm:p-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-            Contact
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Get in touch</h1>
-          <p className="mt-3 text-sm leading-6 text-muted-foreground sm:text-base">
-            For product questions, implementation discussions, and legal/privacy requests, use the
-            contact details below.
-          </p>
-        </section>
-
-        <section className="rounded-2xl border border-border bg-surface p-6 sm:p-8">
-          <h2 className="text-xl font-semibold tracking-tight">Legal and privacy contact</h2>
-          <dl className="mt-4 grid gap-3 text-sm sm:text-base">
-            <div>
-              <dt className="font-medium text-foreground">Controller</dt>
-              <dd className="text-muted-foreground">{LEGAL_CONTROLLER_NAME}</dd>
+      <PageContainer>
+        <div className="grid gap-6 lg:grid-cols-12 lg:items-stretch">
+          <section className="h-full rounded-2xl border border-border bg-surface p-6 sm:p-8 lg:col-span-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              Contact
+            </p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Work with me</h1>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground sm:text-base">
+              I&apos;m a UK-based full-stack developer building modern SaaS web applications.
+            </p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground sm:text-base">
+              First-Class BSc (Computer Science) with several years of commercial software
+              experience.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+              Email: <span className="font-mono text-foreground">{PUBLIC_CONTACT_EMAIL}</span>
+            </p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <a
+                href={`mailto:${PUBLIC_CONTACT_EMAIL}`}
+                className="btn-primary btn-sm inline-flex items-center gap-1.5"
+              >
+                <MailMark className="h-3.5 w-3.5" />
+                Email me
+              </a>
+              <a
+                href={UPWORK_PROFILE_URL}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="btn-secondary btn-sm inline-flex items-center gap-1.5"
+              >
+                <ExternalLinkMark className="h-3.5 w-3.5" />
+                Hire me on Upwork
+              </a>
+              <a
+                href={GITHUB_PROFILE_URL}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="btn-secondary btn-sm inline-flex items-center gap-1.5"
+              >
+                <GitHubMark className="h-3.5 w-3.5" />
+                GitHub Profile
+              </a>
             </div>
-            <div>
-              <dt className="font-medium text-foreground">Email</dt>
-              <dd>
-                <a href={`mailto:${LEGAL_CONTACT_EMAIL}`} className="link-subtle focus-ring">
-                  {LEGAL_CONTACT_EMAIL}
-                </a>
-              </dd>
-            </div>
-            {LEGAL_CONTACT_ADDRESS ? (
-              <div>
-                <dt className="font-medium text-foreground">Postal address</dt>
-                <dd className="text-muted-foreground">{LEGAL_CONTACT_ADDRESS}</dd>
-              </div>
-            ) : null}
-            {LEGAL_DPO_CONTACT ? (
-              <div>
-                <dt className="font-medium text-foreground">DPO / representative</dt>
-                <dd className="text-muted-foreground">{LEGAL_DPO_CONTACT}</dd>
-              </div>
-            ) : null}
-          </dl>
-        </section>
+          </section>
 
-        <section className="rounded-2xl border border-border bg-surface p-6 sm:p-8">
-          <h2 className="text-xl font-semibold tracking-tight">Related legal documents</h2>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Link href="/privacy" className="btn-secondary btn-sm">
-              Privacy Policy
-            </Link>
-            <Link href="/terms" className="btn-secondary btn-sm">
-              Terms and Conditions
-            </Link>
-          </div>
-        </section>
+          <section className="h-full rounded-2xl border border-border bg-surface p-6 sm:p-8 lg:col-span-4">
+            <h2 className="text-xl font-semibold tracking-tight">Availability</h2>
+            <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-muted-foreground sm:text-base">
+              <li>UK timezone</li>
+              <li>Typical response time: 1-2 business days</li>
+              <li>Open to freelance and contract work</li>
+              <li>Flexible scope: one-off features or ongoing support</li>
+            </ul>
+          </section>
+
+          <section className="rounded-2xl border border-border bg-surface p-6 sm:p-8 lg:col-span-12">
+            <div className="grid gap-8 lg:grid-cols-2">
+              <div>
+                <h2 className="text-xl font-semibold tracking-tight">What I can help with</h2>
+                <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-muted-foreground sm:text-base">
+                  <li>End-to-end SaaS builds (Next.js, TypeScript, Postgres/Prisma)</li>
+                  <li>Auth, account lifecycle, dashboards, and app UX</li>
+                  <li>Refactors, feature delivery, and production hardening</li>
+                  <li>Test coverage and release confidence (unit + E2E)</li>
+                </ul>
+              </div>
+
+              <div>
+                <h2 className="text-xl font-semibold tracking-tight">
+                  When you reach out, include
+                </h2>
+                <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-muted-foreground sm:text-base">
+                  <li>Project scope and goals</li>
+                  <li>Timeline and target launch window</li>
+                  <li>Budget range (if available)</li>
+                  <li>Stack or platform constraints</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+        </div>
       </PageContainer>
     </div>
   );

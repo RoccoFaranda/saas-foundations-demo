@@ -191,7 +191,7 @@ export const privacyDocument: LegalDocument = {
       id: "contact",
       title: "Contact",
       paragraphs: [
-        "For privacy-related questions or requests, contact us using the legal email below or the contact page.",
+        "For privacy-related questions or requests, contact us using the email below or the contact page.",
         `Email: ${LEGAL_CONTACT_EMAIL}`,
         "Contact page: /contact",
       ],

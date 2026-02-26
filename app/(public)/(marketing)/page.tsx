@@ -3,6 +3,7 @@ import { GitHubMark } from "@/src/components/icons/github-mark";
 import { HeroProofStrip } from "@/src/components/marketing/hero-proof-strip";
 import { StickyDashboardStory } from "@/src/components/marketing/sticky-dashboard-story";
 import { PageContainer } from "@/src/components/layout/page-container";
+import { GITHUB_REPO_URL } from "@/src/content/profile/public-metadata";
 
 type ProofPillar = {
   key: string;
@@ -132,7 +133,7 @@ const reviewPaths: ReviewPath[] = [
     description: "Trace implemented scope, simulated boundaries, and structural decisions.",
     primaryLabel: "View Technical Scope",
     primaryHref: "/technical",
-    repoHref: "https://github.com/RoccoFaranda/saas-foundations-demo",
+    repoHref: GITHUB_REPO_URL,
   },
 ];
 
@@ -200,7 +201,7 @@ export default function MarketingHomePage() {
             <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs font-medium text-muted-foreground lg:justify-start lg:text-sm">
               <p>No signup required for demo access.</p>
               <a
-                href="https://github.com/RoccoFaranda/saas-foundations-demo"
+                href={GITHUB_REPO_URL}
                 target="_blank"
                 rel="noreferrer noopener"
                 className="focus-ring inline-flex items-center gap-1 text-link transition-colors hover:underline"

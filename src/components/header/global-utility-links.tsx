@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { GitHubMark } from "@/src/components/icons/github-mark";
-
-const REPO_HREF = "https://github.com/RoccoFaranda/saas-foundations-demo";
+import { GITHUB_REPO_URL } from "@/src/content/profile/public-metadata";
 
 type UtilityLinkVariant = "inline" | "panel";
 
@@ -27,7 +26,7 @@ export function HeaderGitHubLink({ variant = "inline" }: UtilityLinkProps) {
   const iconClass = variant === "panel" ? "h-4 w-4" : "h-3.5 w-3.5";
 
   return (
-    <a href={REPO_HREF} target="_blank" rel="noreferrer noopener" className={className}>
+    <a href={GITHUB_REPO_URL} target="_blank" rel="noreferrer noopener" className={className}>
       <GitHubMark className={iconClass} />
       GitHub
     </a>

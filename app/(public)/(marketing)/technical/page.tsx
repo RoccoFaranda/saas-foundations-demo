@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { GitHubMark } from "@/src/components/icons/github-mark";
 import { PageContainer } from "@/src/components/layout/page-container";
+import { GITHUB_REPO_URL } from "@/src/content/profile/public-metadata";
 
 export default function TechnicalPage() {
   return (
@@ -15,7 +16,7 @@ export default function TechnicalPage() {
         <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
           <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Technical</h1>
           <a
-            href="https://github.com/RoccoFaranda/saas-foundations-demo"
+            href={GITHUB_REPO_URL}
             target="_blank"
             rel="noreferrer noopener"
             className="btn-outline btn-sm inline-flex items-center gap-1"
