@@ -93,4 +93,30 @@ describe("ConsentPreferencesModal", () => {
 
     expect(screen.getByLabelText("Analytics cookies")).not.toBeChecked();
   });
+
+  it("includes Necessary cookie details summary in keyboard tab order", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ConsentPreferencesModal
+        isOpen
+        isSaving={false}
+        isActionsDisabled={false}
+        gpcLocked={false}
+        initialCategories={{ ...BASE_CATEGORIES }}
+        onClose={vi.fn()}
+        onSave={vi.fn()}
+      />
+    );
+
+    const saveButton = screen.getByRole("button", { name: "Save preferences" });
+    expect(saveButton).toHaveFocus();
+
+    await user.tab();
+
+    const necessarySummaryText = screen.getByText("View Necessary cookie details");
+    const necessarySummary = necessarySummaryText.closest("summary");
+    expect(necessarySummary).not.toBeNull();
+    expect(necessarySummary as HTMLElement).toHaveFocus();
+  });
 });

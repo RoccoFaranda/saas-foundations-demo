@@ -46,7 +46,7 @@ function CategoryDisclosure({ summary, children }: CategoryDisclosureProps) {
         setIsOpen(event.currentTarget.open);
       }}
     >
-      <summary className="cursor-pointer list-none text-sm font-medium text-foreground">
+      <summary className="focus-ring cursor-pointer list-none rounded-sm text-sm font-medium text-foreground">
         <span className="flex items-center justify-between gap-2">
           <span>{summary}</span>
           <span aria-hidden="true" className="text-xs text-muted-foreground">
@@ -334,7 +334,11 @@ function CategoryRows({ rows }: { rows: ConsentTableRow[] }) {
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div
+      tabIndex={0}
+      aria-label="Cookie details table"
+      className="focus-ring overflow-x-auto rounded-md"
+    >
       <table className="min-w-[660px] w-full border-collapse text-left text-xs">
         <caption className="sr-only">Category cookie details</caption>
         <thead>

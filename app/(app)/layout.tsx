@@ -15,7 +15,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       {/* Authenticated app header */}
       <header className="sticky top-0 z-50 border-b border-border bg-surface/92 backdrop-blur">
         <PageContainer className="flex h-14 items-center justify-between gap-4">
-          <Link href="/" className="font-semibold">
+          <Link href="/" className="font-semibold focus-ring">
             SaaS Foundations
           </Link>
           <nav className="flex items-center gap-4 text-sm">

@@ -352,7 +352,7 @@ function EditItemForm({
                         checked={item.done}
                         onChange={() => toggleChecklistItem(item.id)}
                         disabled={isFormLocked}
-                        className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-border-strong"
+                        className="focus-ring mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-border-strong"
                         data-testid={`checklist-checkbox-${item.id}`}
                       />
                       <span
@@ -365,7 +365,7 @@ function EditItemForm({
                         onClick={() => removeChecklistItem(item.id)}
                         aria-label={`Remove checklist item: ${item.text}`}
                         disabled={isFormLocked}
-                        className="shrink-0 text-xs text-muted-foreground/80 hover:text-foreground disabled:cursor-not-allowed disabled:text-muted-foreground/50"
+                        className="focus-ring shrink-0 text-xs text-muted-foreground/80 hover:text-foreground disabled:cursor-not-allowed disabled:text-muted-foreground/50"
                         data-testid={`checklist-remove-${item.id}`}
                       >
                         x

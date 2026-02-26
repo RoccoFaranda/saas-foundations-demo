@@ -116,7 +116,7 @@ export default function ForgotClient() {
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
           Remembered?{" "}
-          <Link href="/login" className="font-medium text-foreground hover:underline">
+          <Link href="/login" className="focus-ring font-medium text-foreground hover:underline">
             Sign in
           </Link>
         </p>

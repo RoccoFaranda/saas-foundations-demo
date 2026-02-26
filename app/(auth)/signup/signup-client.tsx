@@ -170,11 +170,17 @@ export default function SignupClient({
             />
             <label htmlFor="termsAccepted" className="text-sm leading-5 text-muted-foreground">
               By creating an account, I confirm I have read and agree to the{" "}
-              <Link href="/terms" className="font-medium text-foreground hover:underline">
+              <Link
+                href="/terms"
+                className="focus-ring font-medium text-foreground hover:underline"
+              >
                 Terms and Conditions
               </Link>{" "}
               and acknowledge the{" "}
-              <Link href="/privacy" className="font-medium text-foreground hover:underline">
+              <Link
+                href="/privacy"
+                className="focus-ring font-medium text-foreground hover:underline"
+              >
                 Privacy Policy
               </Link>
               .
@@ -222,7 +228,7 @@ export default function SignupClient({
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
           Already have an account?{" "}
-          <Link href="/login" className="font-medium text-foreground hover:underline">
+          <Link href="/login" className="focus-ring font-medium text-foreground hover:underline">
             Sign in
           </Link>
         </p>

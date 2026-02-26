@@ -340,7 +340,7 @@ export default function VerifyEmailClient({ token, email }: VerifyEmailClientPro
 
         {!hasEmail && (
           <p className="mt-4 text-center text-sm text-muted-foreground">
-            <Link href="/login" className="font-medium text-foreground hover:underline">
+            <Link href="/login" className="focus-ring font-medium text-foreground hover:underline">
               Sign in
             </Link>
           </p>

@@ -37,7 +37,9 @@ export function ActivityFeed({
         </div>
       ) : (
         <ul
-          className="max-h-64 divide-y divide-border/60 overflow-y-auto"
+          tabIndex={0}
+          aria-label="Recent activity list"
+          className="focus-ring max-h-64 divide-y divide-border/60 overflow-y-auto rounded-md"
           data-testid="activity-list"
         >
           {activities.map((activity) => (

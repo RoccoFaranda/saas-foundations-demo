@@ -203,7 +203,7 @@ export default function LoginClient({
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
           Don&apos;t have an account?{" "}
-          <Link href="/signup" className="font-medium text-foreground hover:underline">
+          <Link href="/signup" className="focus-ring font-medium text-foreground hover:underline">
             Sign up
           </Link>
         </p>

@@ -20,6 +20,7 @@ interface ModalProps {
 const focusableSelector = [
   "a[href]",
   "button:not([disabled])",
+  "summary",
   "textarea:not([disabled])",
   "input:not([disabled])",
   "select:not([disabled])",
