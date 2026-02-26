@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
+import { isDevMailboxAccessAllowed } from "@/src/lib/auth/email";
 import DevMailboxClient from "./dev-mailbox-client";
 
 export default async function DevMailboxPage() {
-  if (process.env.NODE_ENV !== "development") {
+  if (!isDevMailboxAccessAllowed()) {
     notFound();
   }
 

@@ -65,6 +65,9 @@ Create a `.env.local` file in the project root for local development:
 In local dev/test, the app falls back to `http://localhost:3000` if it is not set.
 For production rate limiting, set `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`.
 For signed consent replay verification, set `CONSENT_AUDIT_SIGNING_SECRET`.
+`EMAIL_PROVIDER` supports `resend`, `dev-mailbox`, and `resend+dev-mailbox`; if blank, the app auto-selects by environment.
+In `NODE_ENV=production`, providers including `dev-mailbox` require `ALLOW_DEV_MAILBOX_IN_PROD=true`.
+`pnpm test:e2e` sets Playwright-scoped mailbox env overrides and writes to `.dev-mailbox.e2e.json` for deterministic build+start runs.
 Optional: `UPSTASH_RATE_LIMIT_ANALYTICS` (`true`/`false`) controls Upstash analytics; default is enabled in production.
 See `.env.example` for all available environment variables (when available).
 

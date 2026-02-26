@@ -53,7 +53,7 @@ The app implements a complete email/password authentication lifecycle:
 3. Password is hashed with Argon2id
 4. User record is created in database
 5. Email verification token is generated (HMAC-SHA-256 hashed, 1-hour expiry)
-6. Verification email is sent via email adapter (dev mailbox in development, Resend in production)
+6. Verification email is sent via email adapter (auto defaults: test -> test adapter, development -> dev-mailbox, production -> Resend; explicit provider overrides supported)
 7. User is automatically signed in and redirected to `/verify-email` page
 8. User must verify email before accessing authenticated routes
 
@@ -237,9 +237,12 @@ Used for:
 
 Demo-safe behavior:
 
-- Local/dev can use a console or dev mailbox adapter.
-- Production uses a transactional provider with domain authentication (Resend).
-- Optional override: set `EMAIL_PROVIDER=resend` to force Resend outside production for debugging.
+- Auto defaults by runtime environment:
+  - `NODE_ENV=test` -> in-memory test adapter
+  - `NODE_ENV=development` -> dev mailbox adapter
+  - `NODE_ENV=production` -> Resend
+- Explicit override via `EMAIL_PROVIDER`: `resend`, `dev-mailbox`, or `resend+dev-mailbox`.
+- In production, any provider including `dev-mailbox` requires `ALLOW_DEV_MAILBOX_IN_PROD=true`.
 - Never log tokens or full email links.
 
 ### Rate limiting (Redis)

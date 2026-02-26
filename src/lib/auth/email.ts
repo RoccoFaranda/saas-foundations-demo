@@ -86,6 +86,14 @@ export const testEmailHelpers = {
   reset: () => mailbox.reset(),
 };
 
+function parseBooleanEnv(value: string | undefined): boolean {
+  if (!value) {
+    return false;
+  }
+
+  return ["1", "true", "yes", "on"].includes(value.trim().toLowerCase());
+}
+
 /**
  * Resend production adapter
  * Never logs tokens or PII
@@ -124,28 +132,109 @@ function createResendAdapter(): EmailAdapter {
 }
 
 /**
- * Check if Resend should be used
+ * Check which email provider should be used.
  */
-type EmailProvider = "resend" | "dev" | "test";
+type EmailProvider = "resend" | "dev-mailbox" | "resend+dev-mailbox" | "test";
 
-function resolveEmailProvider(): EmailProvider {
-  const provider = process.env.EMAIL_PROVIDER?.toLowerCase();
-  if (provider) {
-    if (provider !== "resend") {
-      throw new Error(`Unsupported EMAIL_PROVIDER value: ${provider}`);
-    }
-    return "resend";
+function isDevMailboxProvider(provider: EmailProvider): boolean {
+  return provider === "dev-mailbox" || provider === "resend+dev-mailbox";
+}
+
+function isDevMailboxAllowedInProduction(): boolean {
+  return parseBooleanEnv(process.env.ALLOW_DEV_MAILBOX_IN_PROD);
+}
+
+function parseConfiguredEmailProvider(provider: string): EmailProvider {
+  if (provider === "resend" || provider === "dev-mailbox" || provider === "resend+dev-mailbox") {
+    return provider;
   }
 
+  throw new Error(`Unsupported EMAIL_PROVIDER value: ${provider}`);
+}
+
+function resolveEmailProvider(): EmailProvider {
+  // Tests are always isolated to the in-memory adapter.
   if (process.env.NODE_ENV === "test") {
     return "test";
   }
 
+  const configuredProvider = process.env.EMAIL_PROVIDER?.trim().toLowerCase();
+  if (configuredProvider) {
+    return parseConfiguredEmailProvider(configuredProvider);
+  }
+
   if (process.env.NODE_ENV === "development") {
-    return "dev";
+    return "dev-mailbox";
   }
 
   return "resend";
+}
+
+function assertProductionDevMailboxGate(provider: EmailProvider): void {
+  if (process.env.NODE_ENV !== "production") {
+    return;
+  }
+
+  if (!isDevMailboxProvider(provider)) {
+    return;
+  }
+
+  if (!isDevMailboxAllowedInProduction()) {
+    throw new Error(
+      "EMAIL_PROVIDER includes dev-mailbox in production; set ALLOW_DEV_MAILBOX_IN_PROD=true to allow this override."
+    );
+  }
+}
+
+function createResendAndMailboxTeeAdapter(
+  resendAdapter: EmailAdapter,
+  mailboxAdapter: EmailAdapter
+): EmailAdapter {
+  return {
+    async send(message: EmailMessage) {
+      let resendError: unknown = null;
+
+      try {
+        await resendAdapter.send(message);
+      } catch (error) {
+        resendError = error;
+      }
+
+      try {
+        await mailboxAdapter.send(message);
+      } catch (error) {
+        // Keep logging safe: no token/link content, only subject and generic error string.
+        console.error("[EMAIL ERROR] Failed to append message to dev mailbox:", {
+          subject: message.subject,
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+
+      if (resendError) {
+        throw resendError;
+      }
+    },
+  };
+}
+
+export function isDevMailboxAccessAllowed(): boolean {
+  let provider: EmailProvider;
+
+  try {
+    provider = resolveEmailProvider();
+  } catch {
+    return false;
+  }
+
+  if (!isDevMailboxProvider(provider)) {
+    return false;
+  }
+
+  if (process.env.NODE_ENV === "production" && !isDevMailboxAllowedInProduction()) {
+    return false;
+  }
+
+  return true;
 }
 
 /**
@@ -153,13 +242,18 @@ function resolveEmailProvider(): EmailProvider {
  */
 export function getEmailAdapter(): EmailAdapter {
   const provider = resolveEmailProvider();
+  assertProductionDevMailboxGate(provider);
 
   if (provider === "test") {
     return testEmailAdapter;
   }
 
-  if (provider === "dev") {
+  if (provider === "dev-mailbox") {
     return devMailboxEmailAdapter;
+  }
+
+  if (provider === "resend+dev-mailbox") {
+    return createResendAndMailboxTeeAdapter(createResendAdapter(), devMailboxEmailAdapter);
   }
 
   return createResendAdapter();

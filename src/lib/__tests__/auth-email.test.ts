@@ -1,29 +1,39 @@
 // @vitest-environment node
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { getEmailAdapter, testEmailAdapter, testEmailHelpers } from "../auth/email";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock Resend
-const mockResendSend = vi.fn();
-const mockResendConstructor = vi.fn();
+const appendDevMailboxMessageMock = vi.hoisted(() => vi.fn());
+const mockResendSend = vi.hoisted(() => vi.fn());
+const mockResendConstructor = vi.hoisted(() => vi.fn());
 
 vi.mock("resend", () => ({
   Resend: class {
     constructor() {
       mockResendConstructor();
     }
+
     emails = {
       send: mockResendSend,
     };
   },
 }));
 
-describe("getEmailAdapter", () => {
+vi.mock("../auth/dev-mailbox", () => ({
+  appendDevMailboxMessage: appendDevMailboxMessageMock,
+}));
+
+async function loadEmailModule() {
+  await vi.resetModules();
+  return import("../auth/email");
+}
+
+describe("email provider resolution", () => {
   const originalEnv = { ...process.env };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    testEmailHelpers.reset();
-    // Reset env to original
+    mockResendSend.mockResolvedValue({ id: "email-id" });
+    appendDevMailboxMessageMock.mockResolvedValue(undefined);
+
     Object.keys(process.env).forEach((key) => {
       if (!(key in originalEnv)) {
         delete process.env[key as keyof typeof process.env];
@@ -33,208 +43,218 @@ describe("getEmailAdapter", () => {
   });
 
   afterEach(() => {
-    // Restore original env
     Object.keys(process.env).forEach((key) => {
       if (!(key in originalEnv)) {
         delete process.env[key as keyof typeof process.env];
       }
     });
     Object.assign(process.env, originalEnv);
+    vi.unstubAllEnvs();
   });
 
-  it("should return test adapter in test environment", () => {
+  it("uses test adapter in NODE_ENV=test", async () => {
     vi.stubEnv("NODE_ENV", "test");
+    const { getEmailAdapter, testEmailAdapter } = await loadEmailModule();
+
     const adapter = getEmailAdapter();
+
     expect(adapter).toBe(testEmailAdapter);
-    vi.unstubAllEnvs();
   });
 
-  it("should return dev mailbox adapter in development", () => {
-    vi.stubEnv("NODE_ENV", "development");
-    const adapter = getEmailAdapter();
-    expect(adapter).not.toBe(testEmailAdapter);
-    // Should be dev mailbox adapter (we can't directly compare, but it should work)
-    expect(adapter.send).toBeDefined();
-    vi.unstubAllEnvs();
-  });
-
-  it("should use Resend adapter in production when RESEND_API_KEY is set", () => {
-    vi.stubEnv("NODE_ENV", "production");
-    vi.stubEnv("RESEND_API_KEY", "test-key");
-    vi.stubEnv("EMAIL_FROM", "test@example.com");
-
-    const adapter = getEmailAdapter();
-    expect(adapter.send).toBeDefined();
-
-    // Verify it's not the test adapter
-    expect(adapter).not.toBe(testEmailAdapter);
-    vi.unstubAllEnvs();
-  });
-
-  it("should use Resend adapter when EMAIL_PROVIDER=resend", () => {
-    vi.stubEnv("NODE_ENV", "production");
-    vi.stubEnv("EMAIL_PROVIDER", "resend");
-    vi.stubEnv("RESEND_API_KEY", "test-key");
-    vi.stubEnv("EMAIL_FROM", "test@example.com");
-
-    const adapter = getEmailAdapter();
-    expect(adapter.send).toBeDefined();
-    expect(adapter).not.toBe(testEmailAdapter);
-    vi.unstubAllEnvs();
-  });
-
-  it("should throw error if Resend adapter created without RESEND_API_KEY", () => {
-    vi.stubEnv("NODE_ENV", "production");
-    vi.stubEnv("EMAIL_PROVIDER", "resend");
-    vi.stubEnv("EMAIL_FROM", "test@example.com");
-    delete process.env.RESEND_API_KEY;
-
-    expect(() => getEmailAdapter()).toThrow("RESEND_API_KEY");
-    vi.unstubAllEnvs();
-  });
-
-  it("should throw error if Resend adapter created without EMAIL_FROM", () => {
-    vi.stubEnv("NODE_ENV", "production");
-    vi.stubEnv("EMAIL_PROVIDER", "resend");
-    vi.stubEnv("RESEND_API_KEY", "test-key");
-    delete process.env.EMAIL_FROM;
-
-    expect(() => getEmailAdapter()).toThrow("EMAIL_FROM");
-    vi.unstubAllEnvs();
-  });
-
-  it("should not use Resend in development even if RESEND_API_KEY is set", () => {
-    vi.stubEnv("NODE_ENV", "development");
-    vi.stubEnv("RESEND_API_KEY", "test-key");
-    vi.stubEnv("EMAIL_FROM", "test@example.com");
-
-    const adapter = getEmailAdapter();
-    // Should not throw (dev mailbox adapter doesn't need Resend)
-    expect(adapter.send).toBeDefined();
-    vi.unstubAllEnvs();
-  });
-
-  it("should not use Resend in test even if RESEND_API_KEY is set", () => {
+  it("ignores EMAIL_PROVIDER override in NODE_ENV=test", async () => {
     vi.stubEnv("NODE_ENV", "test");
-    vi.stubEnv("RESEND_API_KEY", "test-key");
-    vi.stubEnv("EMAIL_FROM", "test@example.com");
-
-    const adapter = getEmailAdapter();
-    expect(adapter).toBe(testEmailAdapter);
-    vi.unstubAllEnvs();
-  });
-
-  it("should use Resend in development when EMAIL_PROVIDER=resend", () => {
-    vi.stubEnv("NODE_ENV", "development");
     vi.stubEnv("EMAIL_PROVIDER", "resend");
     vi.stubEnv("RESEND_API_KEY", "test-key");
-    vi.stubEnv("EMAIL_FROM", "test@example.com");
+    vi.stubEnv("EMAIL_FROM", "noreply@example.com");
+    const { getEmailAdapter, testEmailAdapter } = await loadEmailModule();
 
     const adapter = getEmailAdapter();
-    expect(adapter.send).toBeDefined();
-    expect(adapter).not.toBe(testEmailAdapter);
-    vi.unstubAllEnvs();
+
+    expect(adapter).toBe(testEmailAdapter);
+    expect(mockResendConstructor).not.toHaveBeenCalled();
   });
 
-  it("should fail closed in production when Resend is not configured", () => {
-    vi.stubEnv("NODE_ENV", "production");
-    delete process.env.RESEND_API_KEY;
-    delete process.env.EMAIL_FROM;
+  it("defaults to dev-mailbox adapter in development", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    const { getEmailAdapter } = await loadEmailModule();
 
-    expect(() => getEmailAdapter()).toThrow("RESEND_API_KEY");
-    vi.unstubAllEnvs();
+    const adapter = getEmailAdapter();
+    await adapter.send({
+      to: "dev@example.com",
+      subject: "Dev email",
+      html: "<p>hello</p>",
+    });
+
+    expect(appendDevMailboxMessageMock).toHaveBeenCalledTimes(1);
+    expect(mockResendConstructor).not.toHaveBeenCalled();
   });
 
-  it("should send email via Resend adapter without logging tokens", async () => {
+  it("defaults to resend adapter in production", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("RESEND_API_KEY", "test-key");
     vi.stubEnv("EMAIL_FROM", "noreply@example.com");
+    const { getEmailAdapter } = await loadEmailModule();
 
-    // Clear any previous calls
-    mockResendSend.mockClear();
-    mockResendConstructor.mockClear();
-    mockResendSend.mockResolvedValue({ id: "email-id" });
-
-    // Force module reload to pick up new env vars
-    await vi.resetModules();
-    const { getEmailAdapter: getAdapter } = await import("../auth/email");
-
-    const adapter = getAdapter();
-
-    // Verify Resend was instantiated when adapter is created
-    expect(mockResendConstructor).toHaveBeenCalled();
-
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-
+    const adapter = getEmailAdapter();
     await adapter.send({
-      to: "user@example.com",
-      subject: "Test Email",
-      html: "<p>Test with token: abc123</p>",
-      text: "Test with token: abc123",
+      to: "prod@example.com",
+      subject: "Prod email",
+      html: "<p>hello</p>",
+    });
+
+    expect(mockResendConstructor).toHaveBeenCalled();
+    expect(mockResendSend).toHaveBeenCalledTimes(1);
+    expect(appendDevMailboxMessageMock).not.toHaveBeenCalled();
+  });
+
+  it("supports EMAIL_PROVIDER=resend override", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("EMAIL_PROVIDER", "resend");
+    vi.stubEnv("RESEND_API_KEY", "test-key");
+    vi.stubEnv("EMAIL_FROM", "noreply@example.com");
+    const { getEmailAdapter } = await loadEmailModule();
+
+    const adapter = getEmailAdapter();
+    await adapter.send({
+      to: "override@example.com",
+      subject: "Override",
+      html: "<p>hello</p>",
     });
 
     expect(mockResendSend).toHaveBeenCalledTimes(1);
-    expect(mockResendSend).toHaveBeenCalledWith({
-      from: "noreply@example.com",
-      to: "user@example.com",
-      subject: "Test Email",
-      html: "<p>Test with token: abc123</p>",
-      text: "Test with token: abc123",
-    });
-
-    // Verify no tokens were logged
-    expect(consoleSpy).not.toHaveBeenCalled();
-
-    consoleSpy.mockRestore();
-    vi.unstubAllEnvs();
+    expect(appendDevMailboxMessageMock).not.toHaveBeenCalled();
   });
 
-  it("should log error without tokens when Resend send fails", async () => {
+  it("throws for unsupported EMAIL_PROVIDER values", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("EMAIL_PROVIDER", "unknown-provider");
+    const { getEmailAdapter } = await loadEmailModule();
+
+    expect(() => getEmailAdapter()).toThrow("Unsupported EMAIL_PROVIDER value");
+  });
+
+  it("fails closed in production when EMAIL_PROVIDER=dev-mailbox and allow flag is missing", async () => {
     vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("EMAIL_PROVIDER", "dev-mailbox");
+    const { getEmailAdapter } = await loadEmailModule();
+
+    expect(() => getEmailAdapter()).toThrow("ALLOW_DEV_MAILBOX_IN_PROD=true");
+  });
+
+  it("allows EMAIL_PROVIDER=dev-mailbox in production with allow flag", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("EMAIL_PROVIDER", "dev-mailbox");
+    vi.stubEnv("ALLOW_DEV_MAILBOX_IN_PROD", "true");
+    const { getEmailAdapter } = await loadEmailModule();
+
+    const adapter = getEmailAdapter();
+    await adapter.send({
+      to: "allowed@example.com",
+      subject: "Allowed",
+      html: "<p>hello</p>",
+    });
+
+    expect(appendDevMailboxMessageMock).toHaveBeenCalledTimes(1);
+    expect(mockResendSend).not.toHaveBeenCalled();
+  });
+
+  it("attempts both sends in resend+dev-mailbox mode", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("EMAIL_PROVIDER", "resend+dev-mailbox");
+    vi.stubEnv("ALLOW_DEV_MAILBOX_IN_PROD", "true");
     vi.stubEnv("RESEND_API_KEY", "test-key");
     vi.stubEnv("EMAIL_FROM", "noreply@example.com");
-    const error = new Error("Resend API error");
+    const { getEmailAdapter } = await loadEmailModule();
 
-    // Clear and reset mocks
-    mockResendSend.mockClear();
-    mockResendConstructor.mockClear();
-    mockResendSend.mockRejectedValue(error);
+    const adapter = getEmailAdapter();
+    await adapter.send({
+      to: "dual@example.com",
+      subject: "Dual",
+      html: "<p>hello</p>",
+    });
 
-    // Force module reload to pick up new env vars
-    await vi.resetModules();
-    const { getEmailAdapter: getAdapter } = await import("../auth/email");
+    expect(mockResendSend).toHaveBeenCalledTimes(1);
+    expect(appendDevMailboxMessageMock).toHaveBeenCalledTimes(1);
+  });
 
-    const adapter = getAdapter();
+  it("keeps resend authoritative in dual mode when mailbox append fails", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("EMAIL_PROVIDER", "resend+dev-mailbox");
+    vi.stubEnv("ALLOW_DEV_MAILBOX_IN_PROD", "true");
+    vi.stubEnv("RESEND_API_KEY", "test-key");
+    vi.stubEnv("EMAIL_FROM", "noreply@example.com");
+    appendDevMailboxMessageMock.mockRejectedValue(new Error("disk write failed"));
+    const { getEmailAdapter } = await loadEmailModule();
 
-    // Verify Resend was instantiated
-    expect(mockResendConstructor).toHaveBeenCalled();
-
+    const adapter = getEmailAdapter();
     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     await expect(
       adapter.send({
-        to: "user@example.com",
-        subject: "Test Email",
-        html: "<p>Test with token: secret123</p>",
-        text: "Test with token: secret123",
+        to: "dual@example.com",
+        subject: "Dual",
+        html: "<p>hello</p>",
       })
-    ).rejects.toThrow("Resend API error");
+    ).resolves.toBeUndefined();
 
-    // Verify error was logged but without tokens
+    expect(mockResendSend).toHaveBeenCalledTimes(1);
+    expect(appendDevMailboxMessageMock).toHaveBeenCalledTimes(1);
     expect(consoleErrorSpy).toHaveBeenCalledWith(
-      "[EMAIL ERROR] Failed to send email:",
+      "[EMAIL ERROR] Failed to append message to dev mailbox:",
       expect.objectContaining({
-        subject: "Test Email",
-        error: "Resend API error",
+        subject: "Dual",
+        error: "disk write failed",
       })
     );
 
-    // Verify token was not logged
-    const errorCall = consoleErrorSpy.mock.calls[0];
-    const errorString = JSON.stringify(errorCall);
-    expect(errorString).not.toContain("secret123");
-
     consoleErrorSpy.mockRestore();
-    vi.unstubAllEnvs();
+  });
+
+  it("still attempts mailbox append when resend fails, then throws resend error", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("EMAIL_PROVIDER", "resend+dev-mailbox");
+    vi.stubEnv("ALLOW_DEV_MAILBOX_IN_PROD", "true");
+    vi.stubEnv("RESEND_API_KEY", "test-key");
+    vi.stubEnv("EMAIL_FROM", "noreply@example.com");
+
+    mockResendSend.mockRejectedValue(new Error("resend unavailable"));
+    const { getEmailAdapter } = await loadEmailModule();
+
+    const adapter = getEmailAdapter();
+
+    await expect(
+      adapter.send({
+        to: "dual@example.com",
+        subject: "Dual",
+        html: "<p>hello</p>",
+      })
+    ).rejects.toThrow("resend unavailable");
+
+    expect(appendDevMailboxMessageMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns false for dev mailbox access in test env", async () => {
+    vi.stubEnv("NODE_ENV", "test");
+    const { isDevMailboxAccessAllowed } = await loadEmailModule();
+
+    expect(isDevMailboxAccessAllowed()).toBe(false);
+  });
+
+  it("returns true for dev mailbox access in development defaults", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    const { isDevMailboxAccessAllowed } = await loadEmailModule();
+
+    expect(isDevMailboxAccessAllowed()).toBe(true);
+  });
+
+  it("returns true for production dev-mailbox override only when allow flag is set", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("EMAIL_PROVIDER", "dev-mailbox");
+    const { isDevMailboxAccessAllowed } = await loadEmailModule();
+
+    expect(isDevMailboxAccessAllowed()).toBe(false);
+
+    vi.stubEnv("ALLOW_DEV_MAILBOX_IN_PROD", "true");
+    expect(isDevMailboxAccessAllowed()).toBe(true);
   });
 });

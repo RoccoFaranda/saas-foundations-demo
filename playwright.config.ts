@@ -11,9 +11,11 @@ if (fs.existsSync(testEnvPath)) {
 const defaultE2eDistDir = process.platform === "win32" ? ".next-e2e-win" : ".next-e2e-linux";
 const e2eOutputDir = process.env.PW_OUTPUT_DIR ?? "test-results-e2e";
 const configuredWorkers = process.env.PW_WORKERS ? Number(process.env.PW_WORKERS) : undefined;
+const e2eMailboxPath = process.env.DEV_MAILBOX_PATH ?? ".dev-mailbox.e2e.json";
 
 export default defineConfig({
   testDir: "./e2e",
+  globalSetup: "./e2e/global-setup.ts",
   outputDir: e2eOutputDir,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
@@ -31,16 +33,19 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "pnpm dev",
+    command: "pnpm build && pnpm start",
     url: "http://localhost:3001",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
+    reuseExistingServer: false,
+    timeout: 300 * 1000,
     env: {
       ...process.env,
       PORT: "3001",
       NEXT_DIST_DIR: process.env.NEXT_DIST_DIR ?? defaultE2eDistDir,
       TURNSTILE_ALLOW_BYPASS: process.env.TURNSTILE_ALLOW_BYPASS ?? "true",
       NEXT_PUBLIC_CONSENT_DEMO_ANALYTICS: process.env.NEXT_PUBLIC_CONSENT_DEMO_ANALYTICS ?? "false",
+      EMAIL_PROVIDER: process.env.EMAIL_PROVIDER ?? "dev-mailbox",
+      ALLOW_DEV_MAILBOX_IN_PROD: process.env.ALLOW_DEV_MAILBOX_IN_PROD ?? "true",
+      DEV_MAILBOX_PATH: e2eMailboxPath,
     },
   },
 });

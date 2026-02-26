@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDevMailboxMessages } from "@/src/lib/auth/dev-mailbox";
+import { isDevMailboxAccessAllowed } from "@/src/lib/auth/email";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,7 @@ function noStoreHeaders(): HeadersInit {
 }
 
 export async function GET() {
-  if (process.env.NODE_ENV !== "development") {
+  if (!isDevMailboxAccessAllowed()) {
     return NextResponse.json({ error: "Not found" }, { status: 404, headers: noStoreHeaders() });
   }
 

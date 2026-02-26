@@ -246,9 +246,17 @@ Use this structure for new ADRs:
 - **Status:** Accepted
 - **Context:** We need a production-grade transactional email provider and safe dev/test behavior.
 - **Decision:** Use **Resend** for production email delivery, and implement **dev/test adapters** that never log raw tokens or full links.
+  - Auto defaults:
+    - `NODE_ENV=test` -> in-memory test adapter
+    - `NODE_ENV=development` -> dev mailbox adapter
+    - `NODE_ENV=production` -> Resend
+  - Explicit `EMAIL_PROVIDER` override supports `resend`, `dev-mailbox`, and `resend+dev-mailbox`.
+  - In production, any override including dev mailbox requires `ALLOW_DEV_MAILBOX_IN_PROD=true` (fail closed if missing).
 - **Consequences:**
   - Requires Resend API keys in production-like environments.
   - Enables safe local testing without real email delivery.
+  - Supports controlled dual-mode debugging (`resend+dev-mailbox`) while keeping Resend authoritative for delivery success.
+  - Keeps dev mailbox HTTP surfaces hidden unless provider + production gate allow it.
 
 ---
 

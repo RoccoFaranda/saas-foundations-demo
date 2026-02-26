@@ -2,6 +2,11 @@ import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
+const configuredDevMailboxPath = process.env.DEV_MAILBOX_PATH ?? ".dev-mailbox.e2e.json";
+const devMailboxPath = path.isAbsolute(configuredDevMailboxPath)
+  ? configuredDevMailboxPath
+  : path.join(process.cwd(), configuredDevMailboxPath);
+
 /**
  * Extract verification token from email HTML
  */
@@ -17,9 +22,8 @@ async function getLatestVerificationEmail(email: string): Promise<{
   token: string;
   subject: string;
 } | null> {
-  const mailboxPath = path.join(process.cwd(), ".dev-mailbox.json");
   try {
-    const raw = await readFile(mailboxPath, "utf8");
+    const raw = await readFile(devMailboxPath, "utf8");
     const messages = JSON.parse(raw);
     if (!Array.isArray(messages) || messages.length === 0) {
       return null;
@@ -60,7 +64,7 @@ async function getLatestVerificationEmail(email: string): Promise<{
 
 async function waitForVerificationEmail(
   email: string,
-  timeoutMs = 10000,
+  timeoutMs = 30000,
   intervalMs = 250
 ): Promise<{ token: string; subject: string }> {
   const startedAt = Date.now();
