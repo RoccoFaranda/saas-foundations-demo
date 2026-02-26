@@ -5,7 +5,11 @@ import { ThemeToggle } from "./theme-toggle";
 import { updateThemePreferenceAction } from "@/src/lib/theme/actions";
 import type { ThemePreference } from "@/src/generated/prisma/enums";
 
-export function AppThemeToggle() {
+interface AppThemeToggleProps {
+  testId?: string;
+}
+
+export function AppThemeToggle({ testId }: AppThemeToggleProps) {
   const [, startTransition] = useTransition();
 
   const handleThemeChange = (theme: ThemePreference) => {
@@ -14,5 +18,5 @@ export function AppThemeToggle() {
     });
   };
 
-  return <ThemeToggle onThemeChange={handleThemeChange} />;
+  return <ThemeToggle onThemeChange={handleThemeChange} testId={testId} />;
 }

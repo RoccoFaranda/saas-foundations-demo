@@ -1,10 +1,12 @@
 import { test, expect } from "@playwright/test";
 
+const PUBLIC_THEME_TOGGLE_TEST_ID = "theme-toggle-desktop";
+
 test.describe("Theme toggle", () => {
   test("switches to dark theme and adds dark class to html", async ({ page }) => {
     await page.goto("/");
 
-    const themeToggle = page.getByTestId("theme-toggle");
+    const themeToggle = page.getByTestId(PUBLIC_THEME_TOGGLE_TEST_ID);
     await expect(themeToggle).toBeVisible();
 
     // Select dark theme
@@ -17,7 +19,7 @@ test.describe("Theme toggle", () => {
   test("switches to light theme and removes dark class from html", async ({ page }) => {
     await page.goto("/");
 
-    const themeToggle = page.getByTestId("theme-toggle");
+    const themeToggle = page.getByTestId(PUBLIC_THEME_TOGGLE_TEST_ID);
 
     // First set to dark
     await themeToggle.selectOption("dark");
@@ -33,7 +35,7 @@ test.describe("Theme toggle", () => {
   test("persists theme selection across page reload", async ({ page }) => {
     await page.goto("/");
 
-    const themeToggle = page.getByTestId("theme-toggle");
+    const themeToggle = page.getByTestId(PUBLIC_THEME_TOGGLE_TEST_ID);
 
     // Select dark theme
     await themeToggle.selectOption("dark");
@@ -46,7 +48,7 @@ test.describe("Theme toggle", () => {
     await expect(page.locator("html")).toHaveClass(/dark/);
 
     // Assert the select still shows dark as selected
-    await expect(page.getByTestId("theme-toggle")).toHaveValue("dark");
+    await expect(page.getByTestId(PUBLIC_THEME_TOGGLE_TEST_ID)).toHaveValue("dark");
   });
 
   test("system theme respects OS dark mode preference", async ({ page }) => {
@@ -55,7 +57,7 @@ test.describe("Theme toggle", () => {
 
     await page.goto("/");
 
-    const themeToggle = page.getByTestId("theme-toggle");
+    const themeToggle = page.getByTestId(PUBLIC_THEME_TOGGLE_TEST_ID);
 
     // Select system theme
     await themeToggle.selectOption("system");
@@ -70,7 +72,7 @@ test.describe("Theme toggle", () => {
 
     await page.goto("/");
 
-    const themeToggle = page.getByTestId("theme-toggle");
+    const themeToggle = page.getByTestId(PUBLIC_THEME_TOGGLE_TEST_ID);
 
     // Select system theme
     await themeToggle.selectOption("system");
@@ -84,7 +86,7 @@ test.describe("Theme toggle", () => {
   }) => {
     await page.goto("/");
 
-    const themeToggle = page.getByTestId("theme-toggle");
+    const themeToggle = page.getByTestId(PUBLIC_THEME_TOGGLE_TEST_ID);
     await expect(themeToggle).toBeVisible();
     await expect(page.locator("main")).toBeVisible();
 
@@ -110,7 +112,7 @@ test.describe("Theme toggle", () => {
   }) => {
     await page.goto("/demo");
 
-    const themeToggle = page.getByTestId("theme-toggle");
+    const themeToggle = page.getByTestId(PUBLIC_THEME_TOGGLE_TEST_ID);
     await expect(themeToggle).toBeVisible();
     await expect(page.locator("main")).toBeVisible();
     await expect(page.getByTestId("items-table")).toBeVisible();

@@ -15,7 +15,12 @@ const themes = [
 
 type ThemeValue = ThemeCookieValue;
 
-export function ThemeToggle({ onThemeChange }: { onThemeChange?: (theme: ThemeValue) => void }) {
+interface ThemeToggleProps {
+  onThemeChange?: (theme: ThemeValue) => void;
+  testId?: string;
+}
+
+export function ThemeToggle({ onThemeChange, testId }: ThemeToggleProps) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -31,7 +36,7 @@ export function ThemeToggle({ onThemeChange }: { onThemeChange?: (theme: ThemeVa
         className="form-field form-field-sm w-auto"
         disabled
         aria-label="Theme selector"
-        data-testid="theme-toggle"
+        data-testid={testId}
       >
         <option>Theme</option>
       </select>
@@ -49,7 +54,7 @@ export function ThemeToggle({ onThemeChange }: { onThemeChange?: (theme: ThemeVa
       }}
       className="form-field form-field-sm w-auto"
       aria-label="Theme selector"
-      data-testid="theme-toggle"
+      data-testid={testId}
     >
       {themes.map((t) => (
         <option key={t.value} value={t.value}>
