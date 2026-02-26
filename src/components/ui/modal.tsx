@@ -153,7 +153,7 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={ariaLabelledBy}
         tabIndex={-1}
-        className="outline-none"
+        className="min-w-0 max-w-[calc(100vw-2rem)] outline-none"
         onKeyDown={(event) => {
           if (event.key === "Escape" && closeOnEscape && isDismissible) {
             event.preventDefault();
