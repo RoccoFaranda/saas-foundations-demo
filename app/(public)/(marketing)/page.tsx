@@ -142,9 +142,16 @@ export default function MarketingHomePage() {
     <div className="overflow-x-clip">
       <section className="relative overflow-hidden border-b border-border pb-18 pt-18 sm:pb-22 sm:pt-24">
         <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-          <div className="absolute inset-0 bg-surface" />
+          <div className="absolute inset-0 bg-surface-elevated" />
           <div
-            className="absolute inset-0"
+            className="absolute inset-0 dark:hidden"
+            style={{
+              backgroundImage:
+                "radial-gradient(110% 78% at 50% 0%, color-mix(in srgb, var(--info) 12%, transparent) 0%, color-mix(in srgb, var(--primary) 8%, transparent) 30%, transparent 72%)",
+            }}
+          />
+          <div
+            className="absolute inset-0 hidden dark:block"
             style={{
               backgroundImage:
                 "radial-gradient(110% 78% at 50% 0%, color-mix(in srgb, var(--info) 20%, transparent) 0%, color-mix(in srgb, var(--primary) 14%, transparent) 30%, transparent 72%)",
@@ -159,7 +166,14 @@ export default function MarketingHomePage() {
             }}
           />
           <div
-            className="absolute left-1/2 top-0 h-56 w-2xl -translate-x-1/2 rounded-full blur-3xl"
+            className="absolute left-1/2 top-0 h-56 w-2xl -translate-x-1/2 rounded-full blur-3xl dark:hidden"
+            style={{
+              background:
+                "radial-gradient(circle, color-mix(in srgb, var(--info) 8%, transparent) 0%, transparent 70%)",
+            }}
+          />
+          <div
+            className="absolute left-1/2 top-0 hidden h-56 w-2xl -translate-x-1/2 rounded-full blur-3xl dark:block"
             style={{
               background:
                 "radial-gradient(circle, color-mix(in srgb, var(--info) 16%, transparent) 0%, transparent 70%)",
@@ -168,7 +182,8 @@ export default function MarketingHomePage() {
           <div
             className="absolute inset-x-0 bottom-0 h-32"
             style={{
-              backgroundImage: "linear-gradient(to bottom, transparent 0%, var(--surface) 100%)",
+              backgroundImage:
+                "linear-gradient(to bottom, transparent 0%, var(--surface-elevated) 100%)",
             }}
           />
         </div>
@@ -268,9 +283,9 @@ export default function MarketingHomePage() {
         </PageContainer>
       </section>
 
-      <div className="hidden xl:block">
+      <section className="hidden border-y border-border bg-surface xl:block">
         <StickyDashboardStory />
-      </div>
+      </section>
 
       <section
         id="features"
@@ -319,7 +334,7 @@ export default function MarketingHomePage() {
 
       <section className="py-16 sm:py-20">
         <PageContainer>
-          <div className="rounded-2xl border border-border bg-muted/35 p-6 sm:p-8 lg:p-10">
+          <div className="rounded-2xl border border-border bg-surface p-6 sm:p-8 lg:p-10">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
               Review Paths
             </p>
@@ -335,7 +350,7 @@ export default function MarketingHomePage() {
               {reviewPaths.map((path) => (
                 <article
                   key={path.id}
-                  className="flex h-full flex-col rounded-xl border border-border bg-surface p-5"
+                  className="flex h-full flex-col rounded-xl border border-border bg-surface-elevated p-5"
                 >
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                     {path.label}

@@ -8,7 +8,7 @@ export default function TechnicalPage() {
     <div className="py-16 sm:py-20">
       <PageContainer
         size="narrow"
-        className="rounded-2xl border border-border bg-muted/40 p-8 sm:p-10"
+        className="rounded-2xl border border-border bg-surface p-8 sm:p-10"
       >
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
           Coming Next
@@ -34,10 +34,7 @@ export default function TechnicalPage() {
           <Link href="/" className="btn-primary btn-md">
             Back to Landing
           </Link>
-          <Link
-            href="/demo"
-            className="focus-ring rounded-md border border-border px-4 py-2 text-sm font-medium transition-colors hover:border-border-strong"
-          >
+          <Link href="/demo" className="btn-secondary btn-md">
             Open Demo App
           </Link>
         </div>

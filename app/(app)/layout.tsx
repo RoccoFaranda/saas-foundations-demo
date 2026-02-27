@@ -61,14 +61,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                   {user.email}
                 </p>
                 <HeaderMenuSection className="mt-2">
-                  <Link href="/app/settings" className="btn-panel">
+                  <Link href="/app/settings" className="btn-outline btn-sm w-full justify-start">
                     Account settings
                   </Link>
                 </HeaderMenuSection>
                 <form action={signOutUser} className="mt-2">
                   <button
                     type="submit"
-                    className="btn-panel w-full text-danger hover:bg-danger-soft/70 hover:text-danger"
+                    className="btn-outline btn-sm w-full justify-start border-danger-border/70 text-danger hover:border-danger-border hover:bg-danger-soft/70 hover:text-danger"
                   >
                     Sign out
                   </button>
@@ -99,13 +99,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 </p>
 
                 <HeaderMenuSection className="mt-2">
-                  <Link href="/app/dashboard" className="btn-panel">
+                  <Link href="/app/dashboard" className="btn-primary btn-sm w-full justify-start">
                     Dashboard
                   </Link>
-                  <Link href="/" className="btn-panel">
+                  <Link href="/" className="btn-outline btn-sm w-full justify-start">
                     Website
                   </Link>
-                  <Link href="/app/settings" className="btn-panel">
+                  <Link href="/app/settings" className="btn-outline btn-sm w-full justify-start">
                     Settings
                   </Link>
                 </HeaderMenuSection>
@@ -113,8 +113,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 <HeaderMenuDivider />
 
                 <HeaderMenuSection>
-                  <HeaderContactLink variant="panel" />
-                  <HeaderGitHubLink variant="panel" />
+                  <HeaderContactLink variant="menu" />
+                  <HeaderGitHubLink variant="menu" />
                 </HeaderMenuSection>
 
                 <HeaderMenuDivider />
@@ -133,7 +133,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 <form action={signOutUser} className="mt-2">
                   <button
                     type="submit"
-                    className="btn-panel w-full text-danger hover:bg-danger-soft/70 hover:text-danger"
+                    className="btn-outline btn-sm w-full justify-start border-danger-border/70 text-danger hover:border-danger-border hover:bg-danger-soft/70 hover:text-danger"
                   >
                     Sign out
                   </button>

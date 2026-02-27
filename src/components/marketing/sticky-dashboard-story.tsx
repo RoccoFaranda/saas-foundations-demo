@@ -343,7 +343,7 @@ export function StickyDashboardStory() {
                     transform: `scale(${previewScale})`,
                   }}
                 >
-                  <div className="w-252">
+                  <div className="w-252 bg-background">
                     <DashboardStoryShell
                       title="Dashboard"
                       subtitle="Welcome back! Here's an overview of your projects."

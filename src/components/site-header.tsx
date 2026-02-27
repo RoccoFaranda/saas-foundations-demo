@@ -35,7 +35,7 @@ export function SiteHeader() {
           >
             <CookieMark className="h-4 w-4" />
           </CookiePreferencesTrigger>
-          <Link href="/login" className="btn-secondary btn-sm">
+          <Link href="/login" className="btn-primary btn-sm">
             Open App
           </Link>
         </nav>
@@ -51,7 +51,7 @@ export function SiteHeader() {
             summaryClassName="btn-secondary btn-sm inline-flex w-8 items-center justify-center p-0 list-none [&::-webkit-details-marker]:hidden"
           >
             <HeaderMenuSection>
-              <Link href="/login" className="btn-panel">
+              <Link href="/login" className="btn-primary btn-sm w-full justify-start">
                 Open App
               </Link>
             </HeaderMenuSection>
@@ -59,13 +59,13 @@ export function SiteHeader() {
             <HeaderMenuDivider />
 
             <HeaderMenuSection>
-              <Link href="/" className="btn-panel">
+              <Link href="/" className="btn-outline btn-sm w-full justify-start">
                 Home
               </Link>
-              <Link href="/demo" className="btn-panel">
+              <Link href="/demo" className="btn-outline btn-sm w-full justify-start">
                 Demo
               </Link>
-              <Link href="/technical" className="btn-panel">
+              <Link href="/technical" className="btn-outline btn-sm w-full justify-start">
                 Technical
               </Link>
             </HeaderMenuSection>
@@ -73,8 +73,8 @@ export function SiteHeader() {
             <HeaderMenuDivider />
 
             <HeaderMenuSection>
-              <HeaderContactLink variant="panel" />
-              <HeaderGitHubLink variant="panel" />
+              <HeaderContactLink variant="menu" />
+              <HeaderGitHubLink variant="menu" />
             </HeaderMenuSection>
 
             <HeaderMenuDivider />
