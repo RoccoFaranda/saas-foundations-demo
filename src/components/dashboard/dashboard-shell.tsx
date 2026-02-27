@@ -107,7 +107,7 @@ export function DashboardShell({
   return (
     <PageContainer className={containerClassName} data-testid={testId}>
       {/* Page Header */}
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <h1 className="text-2xl font-bold">{title}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
@@ -118,7 +118,7 @@ export function DashboardShell({
       {/* KPI Cards */}
       <div
         className={joinClasses(
-          "mb-8 grid gap-4 transition-all sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5",
+          "mb-8 grid grid-cols-3 gap-4 transition-all lg:grid-cols-5",
           kpiSectionClassName
         )}
       >
@@ -148,7 +148,7 @@ export function DashboardShell({
       {/* Main Content Grid */}
       <div className={joinClasses("grid gap-6 lg:grid-cols-3", operationalPanelsClassName)}>
         {/* Primary Panel - Table */}
-        <div className="lg:col-span-2">
+        <div className="min-w-0 lg:col-span-2">
           <div className={joinClasses("surface-card transition-all", tableSurfaceClassName)}>
             {/* Header with filters */}
             <div className="border-b border-border px-4 py-3">
@@ -168,7 +168,7 @@ export function DashboardShell({
         </div>
 
         {/* Side Panel - Activity & Quick Actions */}
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <ActivityFeed activities={activities} />
 
           {/* Quick Actions Panel */}

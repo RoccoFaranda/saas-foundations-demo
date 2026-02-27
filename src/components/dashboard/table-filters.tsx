@@ -51,7 +51,7 @@ export function TableFilters({
 
   return (
     <div
-      className={`flex w-full flex-wrap items-center sm:flex-nowrap ${compact ? "gap-1.5" : "gap-2"}`}
+      className={`flex w-full flex-wrap items-center xl:flex-nowrap ${compact ? "gap-1.5" : "gap-2"}`}
     >
       {/* Search Input */}
       <div
