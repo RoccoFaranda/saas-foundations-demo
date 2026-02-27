@@ -50,7 +50,7 @@ function PageTable() {
 
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-[980px] w-full border-collapse text-left text-sm">
+      <table className="min-w-245 w-full border-collapse text-left text-sm">
         <caption className="sr-only">
           Cookie declaration table listing categories, services, identifiers, providers, storage,
           duration, and purpose.
@@ -105,7 +105,7 @@ function ModalTable() {
             {CATEGORY_LABELS[group.category]}
           </h3>
           <div className="mt-2 overflow-x-auto">
-            <table className="min-w-[660px] w-full border-collapse text-left text-xs">
+            <table className="min-w-165 w-full border-collapse text-left text-xs">
               <caption className="sr-only">
                 {CATEGORY_LABELS[group.category]} cookie technologies
               </caption>

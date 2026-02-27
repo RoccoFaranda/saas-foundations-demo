@@ -339,7 +339,7 @@ function CategoryRows({ rows }: { rows: ConsentTableRow[] }) {
       aria-label="Cookie details table"
       className="focus-ring overflow-x-auto rounded-md"
     >
-      <table className="min-w-[660px] w-full border-collapse text-left text-xs">
+      <table className="min-w-165 w-full border-collapse text-left text-xs">
         <caption className="sr-only">Category cookie details</caption>
         <thead>
           <tr className="border-b border-border text-muted-foreground">

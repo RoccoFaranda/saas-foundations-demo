@@ -22,7 +22,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <ThemeAccountSync />
       {/* Authenticated app header */}
       <header className="sticky top-0 z-50 border-b border-border bg-surface/92 backdrop-blur">
-        <PageContainer className="flex h-[var(--site-header-h)] items-center justify-between gap-3">
+        <PageContainer className="flex h-(--site-header-h) items-center justify-between gap-3">
           <Link href="/" className="font-semibold focus-ring">
             SaaS Foundations
           </Link>

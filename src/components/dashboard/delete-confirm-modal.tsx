@@ -44,8 +44,10 @@ export function DeleteConfirmModal({
         <div className="surface-card-body">
           <p className="text-sm text-muted-foreground">
             Are you sure you want to delete{" "}
-            <span className="break-words font-medium text-foreground">&quot;{itemName}&quot;</span>?
-            This action cannot be undone.
+            <span className="wrap-break-word font-medium text-foreground">
+              &quot;{itemName}&quot;
+            </span>
+            ? This action cannot be undone.
           </p>
 
           <div className="mt-6 flex justify-end gap-2">
