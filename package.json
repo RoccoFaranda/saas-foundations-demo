@@ -20,6 +20,7 @@
     "lint": "eslint . --cache --cache-location .eslintcache",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
+    "typegen": "node scripts/typegen-all.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
