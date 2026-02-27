@@ -27,6 +27,7 @@
     "test:e2e": "playwright test --project=chromium",
     "test:e2e:snapshots": "node scripts/e2e/run-snapshots.mjs",
     "test:e2e:theme": "playwright test e2e/theme.spec.ts --project=chromium",
+    "seo:indexnow:submit": "tsx scripts/seo/submit-indexnow.ts",
     "theme:check": "node scripts/theme/check-theme-implementation.mjs",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",

@@ -1,12 +1,27 @@
 import type { Metadata } from "next";
 import { privacyDocument } from "@/src/content/legal/privacy";
 import { LegalDocumentPage } from "@/src/components/legal/legal-document-page";
+import { JsonLd } from "@/src/components/seo/json-ld";
+import { buildWebPageJsonLd } from "@/src/lib/seo/json-ld";
+import { buildPublicPageMetadata } from "@/src/lib/seo/metadata";
 
-export const metadata: Metadata = {
-  title: "Privacy Policy | SaaS Foundations Demo",
+export const metadata: Metadata = buildPublicPageMetadata({
+  title: "Privacy Policy",
   description: "How SaaS Foundations Demo collects, uses, stores, and protects personal data.",
-};
+  path: "/privacy",
+});
+
+const webPageJsonLd = buildWebPageJsonLd({
+  title: "Privacy Policy",
+  description: "How SaaS Foundations Demo collects, uses, stores, and protects personal data.",
+  path: "/privacy",
+});
 
 export default function PrivacyPage() {
-  return <LegalDocumentPage document={privacyDocument} />;
+  return (
+    <>
+      <JsonLd data={webPageJsonLd} />
+      <LegalDocumentPage document={privacyDocument} />
+    </>
+  );
 }

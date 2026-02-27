@@ -31,26 +31,27 @@ For detailed database setup instructions, see [Architecture Documentation](./doc
 
 ## Available Scripts
 
-| Script                    | Description                                                         |
-| ------------------------- | ------------------------------------------------------------------- |
-| `pnpm dev`                | Start development server                                            |
-| `pnpm build`              | Build for production                                                |
-| `pnpm start`              | Start production server                                             |
-| `pnpm lint`               | Run ESLint                                                          |
-| `pnpm format`             | Format code with Prettier                                           |
-| `pnpm format:check`       | Check code formatting                                               |
-| `pnpm typecheck`          | Run TypeScript type checking                                        |
-| `pnpm test`               | Run unit tests (one-shot)                                           |
-| `pnpm test:watch`         | Run unit tests in watch mode                                        |
-| `pnpm test:e2e`           | Run all Playwright E2E tests (chromium)                             |
-| `pnpm test:e2e:snapshots` | Update + verify visual snapshots with `--scope` and `--target` args |
-| `pnpm test:e2e:theme`     | Run only theme-focused Playwright tests                             |
-| `pnpm theme:check`        | Validate theme tokens, contrast, and semantic style rules           |
-| `pnpm db:generate`        | Generate Prisma client                                              |
-| `pnpm db:migrate`         | Run Prisma development migrations                                   |
-| `pnpm db:reset`           | Reset database via Prisma                                           |
-| `pnpm db:seed`            | Seed database data                                                  |
-| `pnpm db:studio`          | Open Prisma Studio                                                  |
+| Script                     | Description                                                         |
+| -------------------------- | ------------------------------------------------------------------- |
+| `pnpm dev`                 | Start development server                                            |
+| `pnpm build`               | Build for production                                                |
+| `pnpm start`               | Start production server                                             |
+| `pnpm lint`                | Run ESLint                                                          |
+| `pnpm format`              | Format code with Prettier                                           |
+| `pnpm format:check`        | Check code formatting                                               |
+| `pnpm typecheck`           | Run TypeScript type checking                                        |
+| `pnpm test`                | Run unit tests (one-shot)                                           |
+| `pnpm test:watch`          | Run unit tests in watch mode                                        |
+| `pnpm test:e2e`            | Run all Playwright E2E tests (chromium)                             |
+| `pnpm test:e2e:snapshots`  | Update + verify visual snapshots with `--scope` and `--target` args |
+| `pnpm test:e2e:theme`      | Run only theme-focused Playwright tests                             |
+| `pnpm seo:indexnow:submit` | Submit sitemap-equivalent public URLs to IndexNow                   |
+| `pnpm theme:check`         | Validate theme tokens, contrast, and semantic style rules           |
+| `pnpm db:generate`         | Generate Prisma client                                              |
+| `pnpm db:migrate`          | Run Prisma development migrations                                   |
+| `pnpm db:reset`            | Reset database via Prisma                                           |
+| `pnpm db:seed`             | Seed database data                                                  |
+| `pnpm db:studio`           | Open Prisma Studio                                                  |
 
 ## Environment Variables
 
@@ -63,6 +64,9 @@ Create a `.env.local` file in the project root for local development:
 
 `NEXT_PUBLIC_APP_URL` must be an absolute URL in production/preview so emails can include valid links.
 In local dev/test, the app falls back to `http://localhost:3000` if it is not set.
+Optional: set `GOOGLE_SITE_VERIFICATION` and `BING_SITE_VERIFICATION` to emit ownership verification tags.
+Optional: set `INDEXNOW_KEY` to enable IndexNow URL submission and key verification route.
+Optional: set `INDEXNOW_KEY_LOCATION` only if your key file is not served from `/indexnow-key`.
 For production rate limiting, set `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`.
 For signed consent replay verification, set `CONSENT_AUDIT_SIGNING_SECRET`.
 `EMAIL_PROVIDER` supports `resend`, `dev-mailbox`, and `resend+dev-mailbox`; if blank, the app auto-selects by environment.
@@ -70,6 +74,24 @@ In `NODE_ENV=production`, providers including `dev-mailbox` require `ALLOW_DEV_M
 `pnpm test:e2e` sets Playwright-scoped mailbox env overrides and writes to `.dev-mailbox.e2e.json` for deterministic build+start runs.
 Optional: `UPSTASH_RATE_LIMIT_ANALYTICS` (`true`/`false`) controls Upstash analytics; default is enabled in production.
 See `.env.example` for all available environment variables (when available).
+
+## SEO Metadata
+
+- Dynamic metadata is configured via App Router metadata exports.
+- `GET /robots.txt` is served by `app/robots.ts`.
+- `GET /sitemap.xml` is served by `app/sitemap.ts`.
+- JSON-LD structured data is emitted from public layouts/pages.
+- Social preview images are generated by `app/opengraph-image.tsx` and `app/twitter-image.tsx`.
+
+## IndexNow
+
+1. Set `NEXT_PUBLIC_APP_URL` and `INDEXNOW_KEY` in production.
+2. Confirm `GET /indexnow-key` returns the same key value.
+3. After the site is live, submit URLs:
+   - Default public URLs from the route registry:
+     - `pnpm seo:indexnow:submit`
+   - Specific URLs:
+     - `pnpm seo:indexnow:submit https://your-domain.com/ https://your-domain.com/demo`
 
 ## Snapshot Updates
 

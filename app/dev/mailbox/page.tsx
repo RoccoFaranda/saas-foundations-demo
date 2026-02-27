@@ -1,6 +1,14 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { isDevMailboxAccessAllowed } from "@/src/lib/auth/email";
+import { NO_INDEX_ROBOTS } from "@/src/lib/seo/metadata";
 import DevMailboxClient from "./dev-mailbox-client";
+
+export const metadata: Metadata = {
+  title: "Dev Mailbox",
+  description: "Local-only development inbox for verification and reset link testing.",
+  robots: NO_INDEX_ROBOTS,
+};
 
 export default async function DevMailboxPage() {
   if (!isDevMailboxAccessAllowed()) {

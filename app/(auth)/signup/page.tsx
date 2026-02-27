@@ -1,7 +1,13 @@
 import { getCurrentUser } from "@/src/lib/auth";
 import { getTurnstilePolicy } from "@/src/lib/auth/turnstile";
+import { buildPrivatePageMetadata } from "@/src/lib/seo/metadata";
 import { redirect } from "next/navigation";
 import SignupClient from "./signup-client";
+
+export const metadata = buildPrivatePageMetadata({
+  title: "Sign Up",
+  description: "Create a new account.",
+});
 
 export default async function SignupPage() {
   const user = await getCurrentUser();

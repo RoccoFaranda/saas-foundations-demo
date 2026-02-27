@@ -1,12 +1,18 @@
 import ResetClient from "./reset-client";
 import { getPasswordResetToken } from "@/src/lib/auth/tokens";
 import { enforceRateLimit, getRequestIp, toHashedTokenIdentifier } from "@/src/lib/auth/rate-limit";
+import { buildPrivatePageMetadata } from "@/src/lib/seo/metadata";
 
 type Props = {
   searchParams?:
     | Promise<Record<string, string | string[] | undefined>>
     | Record<string, string | string[] | undefined>;
 };
+
+export const metadata = buildPrivatePageMetadata({
+  title: "Reset Password",
+  description: "Set a new password for your account.",
+});
 
 export default async function Page({ searchParams }: Props) {
   const resolvedSearchParams = await Promise.resolve(searchParams);

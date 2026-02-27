@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getConsentCookieState } from "@/src/lib/consent/cookies";
+import { SITE_DESCRIPTION, SITE_NAME, getSiteUrl } from "@/src/lib/seo/metadata";
 import { THEME_COOKIE_NAME, THEME_COOKIE_VALUES } from "@/src/lib/theme/cookie-contract";
 import { getThemeCookie } from "@/src/lib/theme/cookies";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -17,9 +18,50 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const googleSiteVerification = process.env.GOOGLE_SITE_VERIFICATION?.trim();
+const bingSiteVerification = process.env.BING_SITE_VERIFICATION?.trim();
+
 export const metadata: Metadata = {
-  title: "SaaS Foundations Demo",
-  description: "A demo application showcasing SaaS foundations",
+  metadataBase: getSiteUrl(),
+  manifest: "/manifest.webmanifest",
+  title: {
+    default: SITE_NAME,
+    template: `%s | ${SITE_NAME}`,
+  },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    url: "/",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+  },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", type: "image/x-icon" },
+      { url: "/icon.png", type: "image/png", sizes: "512x512" },
+    ],
+    shortcut: ["/favicon.ico"],
+    apple: [{ url: "/apple-icon.png", type: "image/png", sizes: "180x180" }],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+  verification: {
+    google: googleSiteVerification || undefined,
+    other: bingSiteVerification
+      ? {
+          "msvalidate.01": bingSiteVerification,
+        }
+      : undefined,
+  },
 };
 
 export default async function RootLayout({

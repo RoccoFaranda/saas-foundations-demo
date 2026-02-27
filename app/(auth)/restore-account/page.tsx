@@ -3,12 +3,18 @@ import { redirect } from "next/navigation";
 import { restoreAccount } from "@/src/lib/auth/actions";
 import { AuthWordmark } from "@/src/components/auth/auth-wordmark";
 import { LegalInlineLinks } from "@/src/components/legal/legal-inline-links";
+import { buildPrivatePageMetadata } from "@/src/lib/seo/metadata";
 
 type RestoreAccountPageProps = {
   searchParams?:
     | Promise<Record<string, string | string[] | undefined>>
     | Record<string, string | string[] | undefined>;
 };
+
+export const metadata = buildPrivatePageMetadata({
+  title: "Restore Account",
+  description: "Confirm account restoration using a secure restore link.",
+});
 
 export default async function RestoreAccountPage({ searchParams }: RestoreAccountPageProps) {
   const resolvedSearchParams = await Promise.resolve(searchParams);

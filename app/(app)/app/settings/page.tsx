@@ -1,6 +1,12 @@
 import Link from "next/link";
 import { CookiePreferencesTrigger } from "@/src/components/consent/cookie-preferences-trigger";
 import { requireVerifiedUser } from "@/src/lib/auth/session";
+import { buildPrivatePageMetadata } from "@/src/lib/seo/metadata";
+
+export const metadata = buildPrivatePageMetadata({
+  title: "Account Settings",
+  description: "Manage account security settings, legal documents, and cookie preferences.",
+});
 
 export default async function SettingsPage() {
   await requireVerifiedUser();

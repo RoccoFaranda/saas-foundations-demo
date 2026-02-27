@@ -6,6 +6,7 @@ import { mapDbItemsToUi, mapDbActivityLogsToUi } from "@/src/lib/dashboard/mappe
 import { parseDashboardSearchParams, DASHBOARD_PAGE_SIZE } from "@/src/lib/dashboard/queries";
 import { ItemStatus, ItemTag } from "@/src/generated/prisma/enums";
 import { DashboardShell, StatusDistributionChart, TrendChart } from "@/src/components/dashboard";
+import { buildPrivatePageMetadata } from "@/src/lib/seo/metadata";
 import type { SortField, SortDirection } from "@/src/components/dashboard/model";
 import { sortDashboardItems } from "@/src/lib/dashboard/query-core";
 import { buildDashboardMetrics } from "@/src/lib/dashboard/view-model";
@@ -21,6 +22,11 @@ import {
 interface PageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
+
+export const metadata = buildPrivatePageMetadata({
+  title: "Dashboard",
+  description: "Authenticated project dashboard with metrics, filters, and recent activity.",
+});
 
 export default async function DashboardPage({ searchParams }: PageProps) {
   // Get authenticated user

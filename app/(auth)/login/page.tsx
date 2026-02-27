@@ -1,4 +1,5 @@
 import { getCurrentUser } from "@/src/lib/auth";
+import { buildPrivatePageMetadata } from "@/src/lib/seo/metadata";
 import { redirect } from "next/navigation";
 import LoginClient from "./login-client";
 
@@ -7,6 +8,11 @@ type LoginPageProps = {
     | Promise<Record<string, string | string[] | undefined>>
     | Record<string, string | string[] | undefined>;
 };
+
+export const metadata = buildPrivatePageMetadata({
+  title: "Login",
+  description: "Sign in to access your account dashboard.",
+});
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const user = await getCurrentUser();

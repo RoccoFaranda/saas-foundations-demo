@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { requireVerifiedUser, signOutUser } from "@/src/lib/auth";
 import { AppThemeToggle } from "@/src/components/app-theme-toggle";
@@ -13,6 +14,11 @@ import {
 } from "@/src/components/header/header-menu";
 import { ThemeAccountSync } from "@/src/components/theme-account-sync";
 import { PageContainer } from "@/src/components/layout/page-container";
+import { NO_INDEX_ROBOTS } from "@/src/lib/seo/metadata";
+
+export const metadata: Metadata = {
+  robots: NO_INDEX_ROBOTS,
+};
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireVerifiedUser();

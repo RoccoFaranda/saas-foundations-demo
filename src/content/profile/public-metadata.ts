@@ -1,3 +1,4 @@
+export const PUBLIC_PERSON_NAME = "Rocco Faranda";
 export const PUBLIC_CONTACT_EMAIL = "roccofaranda@gmail.com";
 
 export const GITHUB_PROFILE_URL = "https://github.com/RoccoFaranda";
