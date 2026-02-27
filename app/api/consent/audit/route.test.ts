@@ -64,6 +64,21 @@ function buildReplayToken(input: {
   });
 }
 
+function tamperReplayTokenSignature(replayToken: string): string {
+  const [payloadSegment, signatureSegment] = replayToken.split(".");
+  if (!payloadSegment || !signatureSegment) {
+    return replayToken;
+  }
+
+  const signatureBytes = Buffer.from(signatureSegment, "base64url");
+  if (signatureBytes.length === 0) {
+    return replayToken;
+  }
+
+  signatureBytes[0] ^= 0x01;
+  return `${payloadSegment}.${signatureBytes.toString("base64url")}`;
+}
+
 describe("api/consent/audit route", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -111,7 +126,7 @@ describe("api/consent/audit route", () => {
   it("rejects tampered replay tokens", async () => {
     const state = createReplayState("consent-1");
     const replayToken = buildReplayToken({ state });
-    const tamperedReplayToken = `${replayToken.slice(0, -1)}${replayToken.endsWith("a") ? "b" : "a"}`;
+    const tamperedReplayToken = tamperReplayTokenSignature(replayToken);
 
     const response = await POST(
       new Request("https://example.com/api/consent/audit", {
