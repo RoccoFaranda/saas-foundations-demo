@@ -46,6 +46,9 @@ export default defineConfig({
       EMAIL_PROVIDER: process.env.EMAIL_PROVIDER ?? "dev-mailbox",
       ALLOW_DEV_MAILBOX_IN_PROD: process.env.ALLOW_DEV_MAILBOX_IN_PROD ?? "true",
       DEV_MAILBOX_PATH: e2eMailboxPath,
+      SUPPORT_EMAIL: process.env.SUPPORT_EMAIL ?? "support@example.com",
+      ENABLE_ERROR_TEST_ROUTE: process.env.ENABLE_ERROR_TEST_ROUTE ?? "true",
+      ALLOW_ERROR_TEST_ROUTE_IN_PROD: process.env.ALLOW_ERROR_TEST_ROUTE_IN_PROD ?? "true",
     },
   },
 });

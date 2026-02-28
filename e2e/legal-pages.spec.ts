@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+const LEGAL_CONTACT_EMAIL = process.env.LEGAL_CONTACT_EMAIL?.trim() || "roccofaranda@gmail.com";
+
 test.describe("Legal pages", () => {
   test("privacy page renders heading, effective/updated rows, and compliance sections", async ({
     page,
@@ -37,7 +39,7 @@ test.describe("Legal pages", () => {
         .first()
     ).toBeVisible();
     await expect(
-      page.locator("article a[href='mailto:roccofaranda@gmail.com']").first()
+      page.locator(`article a[href='mailto:${LEGAL_CONTACT_EMAIL}']`).first()
     ).toBeVisible();
     await expect(page.locator("article a[href='/cookies']").first()).toBeVisible();
 
