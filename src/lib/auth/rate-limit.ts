@@ -20,13 +20,14 @@ export interface RateLimitResult {
   retryAt?: number;
 }
 
-type RateLimitIdentifierType = "ip" | "email" | "user" | "token" | "unknown";
+type RateLimitIdentifierType = "ip" | "email" | "user" | "token" | "ua" | "unknown";
 
 function getIdentifierType(identifier: string): RateLimitIdentifierType {
   if (identifier.startsWith("ip:")) return "ip";
   if (identifier.startsWith("email:")) return "email";
   if (identifier.startsWith("user:")) return "user";
   if (identifier.startsWith("token:")) return "token";
+  if (identifier.startsWith("ua:")) return "ua";
   return "unknown";
 }
 
@@ -58,6 +59,17 @@ export async function getRequestIp(): Promise<string | null> {
   }
 }
 
+export async function getRequestUserAgent(): Promise<string | null> {
+  try {
+    const requestHeaders = await getHeaders();
+    const userAgent = requestHeaders.get("user-agent");
+    const normalized = userAgent?.trim();
+    return normalized || null;
+  } catch {
+    return null;
+  }
+}
+
 export function toEmailIdentifier(value: unknown): string {
   if (typeof value !== "string") {
     return "";
@@ -76,6 +88,19 @@ export function toHashedTokenIdentifier(value: unknown): string {
   }
   const hashedToken = createHash("sha256").update(normalized).digest("hex");
   return `token:${hashedToken}`;
+}
+
+export function toUserAgentIdentifier(value: unknown): string {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  const normalized = value.trim();
+  if (!normalized) {
+    return "";
+  }
+
+  return `ua:${createHash("sha256").update(normalized).digest("hex")}`;
 }
 
 export function getRetryAfterSeconds(retryAt: number | undefined): string | null {

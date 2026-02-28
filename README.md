@@ -67,6 +67,7 @@ In local dev/test, the app falls back to `http://localhost:3000` if it is not se
 Optional: set `GOOGLE_SITE_VERIFICATION` and `BING_SITE_VERIFICATION` to emit ownership verification tags.
 Optional: set `INDEXNOW_KEY` to enable IndexNow URL submission and key verification route.
 Optional: set `INDEXNOW_KEY_LOCATION` only if your key file is not served from `/indexnow-key`.
+Set `READINESS_SECRET` in production to protect `GET /api/ready` (`Authorization: Bearer <READINESS_SECRET>`).
 For production rate limiting, set `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`.
 For signed consent replay verification, set `CONSENT_AUDIT_SIGNING_SECRET`.
 `EMAIL_PROVIDER` supports `resend`, `dev-mailbox`, and `resend+dev-mailbox`; if blank, the app auto-selects by environment.
@@ -118,14 +119,23 @@ pnpm test:e2e:snapshots -- --scope demo --target win
 pnpm test:e2e:snapshots -- --scope all --target both
 ```
 
-## Health Endpoint
+## Health Endpoints
 
-The app exposes a runtime health endpoint at `GET /api/health`.
+The app exposes split health endpoints:
 
-- `200` when all checks pass (`status: "ok"`)
-- `503` when any check fails (`status: "degraded"`)
+- `GET /api/health` (public liveness): lightweight process check, no DB probe.
+- `GET /api/ready` (protected readiness): dependency checks including database probe.
 
-Response shape:
+`/api/health` response shape:
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2026-02-18T00:00:00.000Z"
+}
+```
+
+`/api/ready` response shape:
 
 ```json
 {
@@ -137,6 +147,22 @@ Response shape:
   }
 }
 ```
+
+Readiness auth behavior:
+
+- In production, `READINESS_SECRET` is required.
+- In production, invalid/missing bearer token returns `401`.
+- In non-production, missing secret is allowed for local convenience.
+
+## Vercel Firewall (Recommended)
+
+Configure a minimal edge rule for public liveness traffic:
+
+1. In Vercel: `Project -> Firewall -> Add rule`.
+2. Match: method `GET` and path `/api/health`.
+3. Key: source IP.
+4. Threshold: `30 requests/minute/IP`.
+5. Action: rate-limit (`429`).
 
 ## Project Structure
 

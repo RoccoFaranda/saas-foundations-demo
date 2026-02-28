@@ -29,7 +29,13 @@ import { getAppUrl } from "./urls";
 import { getCurrentUser, requireVerifiedUser } from "./session";
 import { getAccountDeletionGraceDays, getAccountDeletionScheduledFor } from "./account-deletion";
 import type { AuthRateLimitAction } from "../ratelimit";
-import { enforceRateLimit, getRequestIp, toHashedTokenIdentifier } from "./rate-limit";
+import {
+  enforceRateLimit,
+  getRequestIp,
+  getRequestUserAgent,
+  toHashedTokenIdentifier,
+  toUserAgentIdentifier,
+} from "./rate-limit";
 import { getTurnstilePolicy, verifyTurnstileToken } from "./turnstile";
 import { GENERIC_ACTION_ERROR } from "../ui/messages";
 import { PRIVACY_VERSION, TERMS_VERSION } from "../../content/legal/legal-metadata";
@@ -290,6 +296,7 @@ export async function login(formData: FormData): Promise<AuthActionResult> {
   const rawEmail = formData.get("email");
   const emailIdentifier = typeof rawEmail === "string" ? rawEmail.trim().toLowerCase() : "";
   const requestIp = await getRequestIp();
+  const userAgentIdentifier = toUserAgentIdentifier(await getRequestUserAgent());
   const loginRateLimit = await enforceAuthRateLimit("login", [
     requestIp ? `ip:${requestIp}` : "",
     emailIdentifier ? `email:${emailIdentifier}` : "",
@@ -300,6 +307,9 @@ export async function login(formData: FormData): Promise<AuthActionResult> {
 
   const loginSlowRateLimit = await enforceAuthRateLimit("loginSlow", [
     requestIp ? `ip:${requestIp}` : "",
+    emailIdentifier ? `email:${emailIdentifier}` : "",
+    userAgentIdentifier,
+    "route:loginSlow",
   ]);
   if (loginSlowRateLimit) {
     return loginSlowRateLimit;

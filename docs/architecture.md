@@ -256,6 +256,8 @@ Demo-safe behavior:
   - change-password, change-email request, verify-email, verify-email-change, reset-password
   - account deletion request + restore token flow
   - authenticated CSV export (`/app/dashboard/export`)
+  - authenticated dashboard write actions (`create`, `update`, `archive`, `unarchive`, `delete`, `sample import`)
+  - public liveness endpoint (`GET /api/health`)
   - consent audit endpoints:
     - `POST /api/consent` (`20 / 10m`; keyed by `consentId` + IP)
     - `POST /api/consent/link` (`100 / 10m`; keyed by user + IP)
@@ -293,8 +295,11 @@ Baseline security posture for this public demo:
   - verification/reset/email-change tokens are short-lived and single-use
   - tokens are stored as HMAC-SHA-256 hashes with a server-side secret
 - **Rate limiting**
-  - applied to signup/login/reset/resend verification, settings security actions, email verification flows, consent audit endpoints, and CSV export
+  - applied to signup/login/reset/resend verification, settings security actions, email verification flows, consent audit endpoints, CSV export, dashboard writes, and public liveness
   - consider per-IP + per-user + global caps
+- **Health checks**
+  - `GET /api/health` is public and lightweight (no DB probe)
+  - `GET /api/ready` is protected by bearer secret and includes dependency checks
 - **Account enumeration**
   - password reset requests return a generic success response
 - **Webhooks**
@@ -361,6 +366,7 @@ Rate limiting notes:
 - `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` are required for shared limits in production.
 - `ALLOW_IN_MEMORY_RATE_LIMIT_FALLBACK=true` opt-in enables in-memory fallback in production (weaker across instances).
 - `UPSTASH_RATE_LIMIT_ANALYTICS` controls Upstash analytics (`true`/`false`). Default is `true` in production and `false` otherwise.
+- `READINESS_SECRET` protects `GET /api/ready` via `Authorization: Bearer <READINESS_SECRET>` in production.
 - `CONSENT_AUDIT_SIGNING_SECRET` is required for signed consent replay token minting and verification.
 - `ACCOUNT_DELETION_GRACE_DAYS` controls restore window before final purge (default `14`).
 - `ACCOUNT_DELETION_PURGE_BATCH_SIZE` controls the max users purged per cron invocation (default `100`).
@@ -422,4 +428,4 @@ Target deployment shape (MVP):
 - bot protection: Cloudflare Turnstile (free tier)
 - secrets: environment variables only (never committed)
 - provide `.env.example` listing required environment variables
-- provide `/api/health` for a basic health check (and to expose flags like billing enabled)
+- provide `/api/health` (public liveness) and `/api/ready` (protected readiness) for health checks

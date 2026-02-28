@@ -1,51 +1,68 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { NextRequest } from "next/server";
 
-const getHealthReportMock = vi.hoisted(() => vi.fn());
+const enforceRateLimitMock = vi.hoisted(() => vi.fn());
+const getRequestIpFromHeadersMock = vi.hoisted(() => vi.fn());
+const getRetryAfterSecondsMock = vi.hoisted(() => vi.fn());
+const toUserAgentIdentifierMock = vi.hoisted(() => vi.fn());
 
-vi.mock("@/src/lib/health", () => ({
-  getHealthReport: getHealthReportMock,
+vi.mock("@/src/lib/auth/rate-limit", () => ({
+  enforceRateLimit: enforceRateLimitMock,
+  getRequestIpFromHeaders: getRequestIpFromHeadersMock,
+  getRetryAfterSeconds: getRetryAfterSecondsMock,
+  toUserAgentIdentifier: toUserAgentIdentifierMock,
 }));
 
 import { GET } from "./route";
 
 describe("GET /api/health", () => {
   beforeEach(() => {
-    getHealthReportMock.mockReset();
+    enforceRateLimitMock.mockReset();
+    getRequestIpFromHeadersMock.mockReset();
+    getRetryAfterSecondsMock.mockReset();
+    toUserAgentIdentifierMock.mockReset();
+
+    enforceRateLimitMock.mockResolvedValue(null);
+    getRequestIpFromHeadersMock.mockReturnValue("203.0.113.10");
+    getRetryAfterSecondsMock.mockReturnValue("60");
+    toUserAgentIdentifierMock.mockReturnValue("ua:hash");
   });
 
-  it("returns 200 when health is ok", async () => {
-    const report = {
-      status: "ok",
-      timestamp: "2026-02-18T00:00:00.000Z",
-      checks: {
-        database: { status: "ok", latencyMs: 2 },
-        appUrl: { status: "ok" },
-      },
-    };
-    getHealthReportMock.mockResolvedValue(report);
+  it("returns 200 with no-store headers and liveness payload", async () => {
+    const request = new NextRequest("https://example.com/api/health");
 
-    const response = await GET();
+    const response = await GET(request);
     const json = await response.json();
 
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toContain("no-store");
-    expect(json).toEqual(report);
+    expect(json.status).toBe("ok");
+    expect(typeof json.timestamp).toBe("string");
+    expect(enforceRateLimitMock).toHaveBeenCalledWith("healthLive", [
+      "ip:203.0.113.10",
+      "ua:hash",
+      "route:healthLive",
+    ]);
   });
 
-  it("returns 503 when health is degraded", async () => {
-    const report = {
-      status: "degraded",
-      timestamp: "2026-02-18T00:00:00.000Z",
-      checks: {
-        database: { status: "error", message: "Database check failed." },
-        appUrl: { status: "ok" },
-      },
-    };
-    getHealthReportMock.mockResolvedValue(report);
+  it("returns 429 with Retry-After when rate limited", async () => {
+    enforceRateLimitMock.mockResolvedValue({
+      error: "Too many requests. Try again in 1 minute.",
+      retryAt: Date.now() + 60_000,
+    });
 
-    const response = await GET();
+    const request = new NextRequest("https://example.com/api/health");
+    const response = await GET(request);
+    const json = await response.json();
 
-    expect(response.status).toBe(503);
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("60");
+    expect(response.headers.get("cache-control")).toContain("no-store");
+    expect(json).toEqual(
+      expect.objectContaining({
+        error: "Too many requests. Try again in 1 minute.",
+      })
+    );
   });
 });

@@ -17,6 +17,8 @@ export type AuthRateLimitAction =
   | "verifyEmail"
   | "verifyEmailChange"
   | "dashboardExport"
+  | "dashboardWrite"
+  | "healthLive"
   | "consentWrite"
   | "consentLink"
   | "consentAuditReplay";
@@ -62,6 +64,8 @@ const AUTH_RATE_LIMITS: Record<
   verifyEmail: { limit: 10, window: "10 m", windowMs: 10 * 60 * 1000 },
   verifyEmailChange: { limit: 10, window: "10 m", windowMs: 10 * 60 * 1000 },
   dashboardExport: { limit: 12, window: "10 m", windowMs: 10 * 60 * 1000 },
+  dashboardWrite: { limit: 120, window: "10 m", windowMs: 10 * 60 * 1000 },
+  healthLive: { limit: 120, window: "1 m", windowMs: 60 * 1000 },
   consentWrite: { limit: 20, window: "10 m", windowMs: 10 * 60 * 1000 },
   consentLink: { limit: 100, window: "10 m", windowMs: 10 * 60 * 1000 },
   consentAuditReplay: { limit: 150, window: "10 m", windowMs: 10 * 60 * 1000 },

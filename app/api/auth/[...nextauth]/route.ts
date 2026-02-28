@@ -5,6 +5,7 @@ import {
   getRequestIpFromHeaders,
   getRetryAfterSeconds,
   toEmailIdentifier,
+  toUserAgentIdentifier,
 } from "@/src/lib/auth/rate-limit";
 
 function isCredentialsCallbackRequest(request: Request): boolean {
@@ -30,6 +31,7 @@ export async function POST(request: Parameters<typeof handlers.POST>[0]) {
 
   const requestIp = getRequestIpFromHeaders(request.headers);
   const emailIdentifier = await getCredentialsEmailIdentifier(request);
+  const userAgentIdentifier = toUserAgentIdentifier(request.headers.get("user-agent"));
   const loginRateLimit = await enforceRateLimit("login", [
     requestIp ? `ip:${requestIp}` : "",
     emailIdentifier,
@@ -47,6 +49,9 @@ export async function POST(request: Parameters<typeof handlers.POST>[0]) {
 
   const loginSlowRateLimit = await enforceRateLimit("loginSlow", [
     requestIp ? `ip:${requestIp}` : "",
+    emailIdentifier,
+    userAgentIdentifier,
+    "route:loginSlow",
   ]);
   if (loginSlowRateLimit) {
     const retryAfter = getRetryAfterSeconds(loginSlowRateLimit.retryAt);

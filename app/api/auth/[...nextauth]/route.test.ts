@@ -8,6 +8,7 @@ const enforceRateLimitMock = vi.hoisted(() => vi.fn());
 const getRequestIpFromHeadersMock = vi.hoisted(() => vi.fn());
 const getRetryAfterSecondsMock = vi.hoisted(() => vi.fn());
 const toEmailIdentifierMock = vi.hoisted(() => vi.fn());
+const toUserAgentIdentifierMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/src/lib/auth/config", () => ({
   handlers: {
@@ -21,6 +22,7 @@ vi.mock("@/src/lib/auth/rate-limit", () => ({
   getRequestIpFromHeaders: getRequestIpFromHeadersMock,
   getRetryAfterSeconds: getRetryAfterSecondsMock,
   toEmailIdentifier: toEmailIdentifierMock,
+  toUserAgentIdentifier: toUserAgentIdentifierMock,
 }));
 
 import { POST } from "./route";
@@ -33,6 +35,7 @@ describe("POST /api/auth/[...nextauth]", () => {
     getRequestIpFromHeadersMock.mockReset();
     getRetryAfterSecondsMock.mockReset();
     toEmailIdentifierMock.mockReset();
+    toUserAgentIdentifierMock.mockReset();
 
     handlersPostMock.mockResolvedValue(new Response("ok"));
     getRequestIpFromHeadersMock.mockReturnValue("203.0.113.10");
@@ -43,6 +46,13 @@ describe("POST /api/auth/[...nextauth]", () => {
       }
       const normalized = value.trim().toLowerCase();
       return normalized ? `email:${normalized}` : "";
+    });
+    toUserAgentIdentifierMock.mockImplementation((value: unknown) => {
+      if (typeof value !== "string") {
+        return "";
+      }
+      const normalized = value.trim();
+      return normalized ? "ua:hash" : "";
     });
     enforceRateLimitMock.mockResolvedValue(null);
   });
@@ -65,6 +75,7 @@ describe("POST /api/auth/[...nextauth]", () => {
       headers: {
         "content-type": "application/x-www-form-urlencoded",
         "x-forwarded-for": "203.0.113.10",
+        "user-agent": "Mozilla/5.0",
       },
       body: "email=User%40Example.com&password=secret",
     });
@@ -76,7 +87,12 @@ describe("POST /api/auth/[...nextauth]", () => {
       "ip:203.0.113.10",
       "email:user@example.com",
     ]);
-    expect(enforceRateLimitMock).toHaveBeenNthCalledWith(2, "loginSlow", ["ip:203.0.113.10"]);
+    expect(enforceRateLimitMock).toHaveBeenNthCalledWith(2, "loginSlow", [
+      "ip:203.0.113.10",
+      "email:user@example.com",
+      "ua:hash",
+      "route:loginSlow",
+    ]);
     expect(handlersPostMock).toHaveBeenCalledWith(request);
   });
 
@@ -90,6 +106,7 @@ describe("POST /api/auth/[...nextauth]", () => {
       headers: {
         "content-type": "application/x-www-form-urlencoded",
         "x-forwarded-for": "203.0.113.10",
+        "user-agent": "Mozilla/5.0",
       },
       body: "email=user%40example.com&password=secret",
     });
@@ -117,6 +134,7 @@ describe("POST /api/auth/[...nextauth]", () => {
       headers: {
         "content-type": "application/x-www-form-urlencoded",
         "x-forwarded-for": "203.0.113.10",
+        "user-agent": "Mozilla/5.0",
       },
       body: "email=user%40example.com&password=secret",
     });
@@ -135,7 +153,39 @@ describe("POST /api/auth/[...nextauth]", () => {
       "ip:203.0.113.10",
       "email:user@example.com",
     ]);
-    expect(enforceRateLimitMock).toHaveBeenNthCalledWith(2, "loginSlow", ["ip:203.0.113.10"]);
+    expect(enforceRateLimitMock).toHaveBeenNthCalledWith(2, "loginSlow", [
+      "ip:203.0.113.10",
+      "email:user@example.com",
+      "ua:hash",
+      "route:loginSlow",
+    ]);
     expect(handlersPostMock).not.toHaveBeenCalled();
+  });
+
+  it("uses non-empty fallback identifiers for loginSlow when ip is missing", async () => {
+    getRequestIpFromHeadersMock.mockReturnValue(null);
+    const request = new NextRequest("https://example.com/api/auth/callback/credentials", {
+      method: "POST",
+      headers: {
+        "content-type": "application/x-www-form-urlencoded",
+        "user-agent": "Mozilla/5.0",
+      },
+      body: "email=user%40example.com&password=secret",
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    expect(enforceRateLimitMock).toHaveBeenNthCalledWith(1, "login", [
+      "",
+      "email:user@example.com",
+    ]);
+    expect(enforceRateLimitMock).toHaveBeenNthCalledWith(2, "loginSlow", [
+      "",
+      "email:user@example.com",
+      "ua:hash",
+      "route:loginSlow",
+    ]);
+    expect(handlersPostMock).toHaveBeenCalledWith(request);
   });
 });

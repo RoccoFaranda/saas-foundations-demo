@@ -14,6 +14,7 @@ interface EditItemModalProps {
   title?: string;
   saveLabel?: string;
   isPending?: boolean;
+  isDisabled?: boolean;
 }
 
 const statusOptions: ItemStatus[] = ["active", "pending", "completed"];
@@ -34,6 +35,7 @@ export function EditItemModal({
   title = "Edit Project",
   saveLabel = "Save Changes",
   isPending = false,
+  isDisabled = false,
 }: EditItemModalProps) {
   const nameInputRef = useRef<HTMLInputElement>(null);
 
@@ -57,6 +59,7 @@ export function EditItemModal({
         title={title}
         saveLabel={saveLabel}
         isPending={isPending}
+        isDisabled={isDisabled}
         nameInputRef={nameInputRef}
       />
     </Modal>
@@ -70,6 +73,7 @@ interface EditItemFormProps {
   title: string;
   saveLabel: string;
   isPending: boolean;
+  isDisabled: boolean;
   nameInputRef: RefObject<HTMLInputElement | null>;
 }
 
@@ -80,6 +84,7 @@ function EditItemForm({
   title,
   saveLabel,
   isPending,
+  isDisabled,
   nameInputRef,
 }: EditItemFormProps) {
   // State initialized from props on mount (no effect needed)
@@ -91,7 +96,7 @@ function EditItemForm({
   const [newChecklistText, setNewChecklistText] = useState("");
   const [showCompletionConfirm, setShowCompletionConfirm] = useState(false);
   const [pendingSave, setPendingSave] = useState<DashboardItem | null>(null);
-  const isFormLocked = showCompletionConfirm || isPending;
+  const isFormLocked = showCompletionConfirm || isPending || isDisabled;
   const [dismissedSuggestCompleteKey, setDismissedSuggestCompleteKey] = useState<string | null>(
     null
   );
@@ -414,7 +419,7 @@ function EditItemForm({
                 <button
                   type="button"
                   onClick={handleKeepStatus}
-                  disabled={isPending}
+                  disabled={isPending || isDisabled}
                   className="btn-secondary btn-sm"
                   data-testid="edit-complete-keep-btn"
                 >
@@ -423,7 +428,7 @@ function EditItemForm({
                 <button
                   type="button"
                   onClick={handleMarkProjectCompleted}
-                  disabled={isPending}
+                  disabled={isPending || isDisabled}
                   className="btn-primary btn-sm"
                   data-testid="edit-complete-mark-btn"
                 >
@@ -441,7 +446,7 @@ function EditItemForm({
                 <button
                   type="button"
                   onClick={handleMarkStatusActive}
-                  disabled={isPending}
+                  disabled={isPending || isDisabled}
                   className="btn-primary btn-md w-full text-center sm:w-64"
                   data-testid="edit-confirm-active-btn"
                 >
@@ -450,7 +455,7 @@ function EditItemForm({
                 <button
                   type="button"
                   onClick={handleMarkAllComplete}
-                  disabled={isPending}
+                  disabled={isPending || isDisabled}
                   className="btn-primary btn-md w-full text-center sm:w-64"
                   data-testid="edit-confirm-mark-all-btn"
                 >
@@ -461,7 +466,7 @@ function EditItemForm({
                 <button
                   type="button"
                   onClick={handleBackToEdit}
-                  disabled={isPending}
+                  disabled={isPending || isDisabled}
                   className="btn-secondary btn-xs rounded-full"
                   data-testid="edit-confirm-back-btn"
                 >
@@ -474,7 +479,7 @@ function EditItemForm({
               <button
                 type="button"
                 onClick={onCancel}
-                disabled={isPending}
+                disabled={isPending || isDisabled}
                 className="btn-secondary btn-md"
                 data-testid="edit-cancel-btn"
               >
@@ -482,7 +487,7 @@ function EditItemForm({
               </button>
               <button
                 type="submit"
-                disabled={isPending}
+                disabled={isPending || isDisabled}
                 className="btn-primary btn-md"
                 data-testid="edit-save-btn"
               >

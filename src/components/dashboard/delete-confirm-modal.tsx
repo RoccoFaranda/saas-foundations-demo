@@ -6,6 +6,7 @@ interface DeleteConfirmModalProps {
   itemName: string;
   isOpen: boolean;
   isPending?: boolean;
+  isDisabled?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -18,6 +19,7 @@ export function DeleteConfirmModal({
   itemName,
   isOpen,
   isPending = false,
+  isDisabled = false,
   onConfirm,
   onCancel,
 }: DeleteConfirmModalProps) {
@@ -54,7 +56,7 @@ export function DeleteConfirmModal({
             <button
               type="button"
               onClick={onCancel}
-              disabled={isPending}
+              disabled={isPending || isDisabled}
               className="btn-secondary btn-md"
               data-testid="delete-cancel-btn"
             >
@@ -63,7 +65,7 @@ export function DeleteConfirmModal({
             <button
               type="button"
               onClick={onConfirm}
-              disabled={isPending}
+              disabled={isPending || isDisabled}
               className="btn-danger btn-md"
               data-testid="delete-confirm-btn"
             >

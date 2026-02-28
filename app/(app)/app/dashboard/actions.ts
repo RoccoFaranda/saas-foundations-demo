@@ -17,13 +17,29 @@ import { createItemSchema, updateItemSchema } from "@/src/lib/validation/item";
 import { ItemStatus, ItemTag } from "@/src/generated/prisma/enums";
 import type { ChecklistItem as UIChecklistItem } from "@/src/components/dashboard/model";
 import { getSampleDashboardItems } from "@/src/lib/dashboard/sample-items";
+import { enforceRateLimit } from "@/src/lib/auth/rate-limit";
 
 /**
  * Action result type for dashboard mutations
  */
 export type DashboardActionResult =
   | { success: true; itemId?: string }
-  | { success: false; error: string };
+  | { success: false; error: string; retryAt?: number };
+
+async function enforceDashboardWriteRateLimit(
+  userId: string
+): Promise<DashboardActionResult | null> {
+  const blocked = await enforceRateLimit("dashboardWrite", [`user:${userId}`]);
+  if (!blocked) {
+    return null;
+  }
+
+  return {
+    success: false,
+    error: blocked.error,
+    retryAt: blocked.retryAt,
+  };
+}
 
 /**
  * Convert UI checklist format to DB format (add position)
@@ -49,6 +65,10 @@ export async function createItemAction(input: {
   checklist?: UIChecklistItem[];
 }): Promise<DashboardActionResult> {
   const user = await requireVerifiedUser();
+  const dashboardWriteRateLimit = await enforceDashboardWriteRateLimit(user.id);
+  if (dashboardWriteRateLimit) {
+    return dashboardWriteRateLimit;
+  }
 
   // Validate input
   const parsed = createItemSchema.safeParse({
@@ -100,6 +120,10 @@ export async function updateItemAction(
   }
 ): Promise<DashboardActionResult> {
   const user = await requireVerifiedUser();
+  const dashboardWriteRateLimit = await enforceDashboardWriteRateLimit(user.id);
+  if (dashboardWriteRateLimit) {
+    return dashboardWriteRateLimit;
+  }
 
   // Validate input
   const parsed = updateItemSchema.safeParse({
@@ -154,6 +178,10 @@ export async function updateItemAction(
  */
 export async function archiveItemAction(itemId: string): Promise<DashboardActionResult> {
   const user = await requireVerifiedUser();
+  const dashboardWriteRateLimit = await enforceDashboardWriteRateLimit(user.id);
+  if (dashboardWriteRateLimit) {
+    return dashboardWriteRateLimit;
+  }
 
   try {
     const item = await archiveItem(user.id, itemId);
@@ -185,6 +213,10 @@ export async function archiveItemAction(itemId: string): Promise<DashboardAction
  */
 export async function unarchiveItemAction(itemId: string): Promise<DashboardActionResult> {
   const user = await requireVerifiedUser();
+  const dashboardWriteRateLimit = await enforceDashboardWriteRateLimit(user.id);
+  if (dashboardWriteRateLimit) {
+    return dashboardWriteRateLimit;
+  }
 
   try {
     const item = await unarchiveItem(user.id, itemId);
@@ -216,6 +248,10 @@ export async function unarchiveItemAction(itemId: string): Promise<DashboardActi
  */
 export async function deleteItemAction(itemId: string): Promise<DashboardActionResult> {
   const user = await requireVerifiedUser();
+  const dashboardWriteRateLimit = await enforceDashboardWriteRateLimit(user.id);
+  if (dashboardWriteRateLimit) {
+    return dashboardWriteRateLimit;
+  }
 
   try {
     const existingItem = await getItem(user.id, itemId);
@@ -262,6 +298,10 @@ export async function deleteItemAction(itemId: string): Promise<DashboardActionR
  */
 export async function importSampleDataAction(): Promise<DashboardActionResult> {
   const user = await requireVerifiedUser();
+  const dashboardWriteRateLimit = await enforceDashboardWriteRateLimit(user.id);
+  if (dashboardWriteRateLimit) {
+    return dashboardWriteRateLimit;
+  }
   const sampleItems = getSampleDashboardItems();
 
   try {

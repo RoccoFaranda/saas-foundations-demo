@@ -10,6 +10,7 @@ interface ItemsTableProps {
   onDelete?: (item: DashboardItem) => void;
   onArchive?: (item: DashboardItem) => void;
   onUnarchive?: (item: DashboardItem) => void;
+  actionsDisabled?: boolean;
   highlightArchiveActions?: boolean;
 }
 
@@ -42,6 +43,7 @@ export function ItemsTable({
   onDelete,
   onArchive,
   onUnarchive,
+  actionsDisabled = false,
   highlightArchiveActions = false,
 }: ItemsTableProps) {
   const hasActions = onEdit || onDelete || onArchive || onUnarchive;
@@ -176,6 +178,7 @@ export function ItemsTable({
                         <button
                           type="button"
                           onClick={() => onEdit(item)}
+                          disabled={actionsDisabled}
                           className="row-action"
                           data-testid={`edit-btn-${item.id}`}
                         >
@@ -186,6 +189,7 @@ export function ItemsTable({
                         <button
                           type="button"
                           onClick={() => onArchive(item)}
+                          disabled={actionsDisabled}
                           className={`row-action ${
                             highlightArchiveActions ? "row-action-warning" : ""
                           }`}
@@ -198,6 +202,7 @@ export function ItemsTable({
                         <button
                           type="button"
                           onClick={() => onUnarchive(item)}
+                          disabled={actionsDisabled}
                           className="row-action"
                           data-testid={`unarchive-btn-${item.id}`}
                         >
@@ -208,6 +213,7 @@ export function ItemsTable({
                         <button
                           type="button"
                           onClick={() => onDelete(item)}
+                          disabled={actionsDisabled}
                           className="row-action row-action-danger"
                           data-testid={`delete-btn-${item.id}`}
                         >

@@ -3,6 +3,9 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { randomUUID } from "node:crypto";
 
 const authMock = vi.hoisted(() => vi.fn());
+const requestHeadersMock = vi.hoisted(() =>
+  vi.fn(() => new Headers({ "x-forwarded-for": "203.0.113.10", "user-agent": "Vitest/1.0" }))
+);
 
 vi.mock("server-only", () => ({}));
 vi.mock("next-auth", () => ({
@@ -15,7 +18,7 @@ vi.mock("next-auth", () => ({
   })),
 }));
 vi.mock("next/headers", () => ({
-  headers: () => new Headers({ "x-forwarded-for": "203.0.113.10" }),
+  headers: requestHeadersMock,
 }));
 
 import { forgotPassword, login } from "../auth/actions";
@@ -48,6 +51,9 @@ const blockLimiter: RateLimiter = {
 describe("auth rate limiting", () => {
   beforeEach(() => {
     testEmailHelpers.reset();
+    requestHeadersMock.mockReturnValue(
+      new Headers({ "x-forwarded-for": "203.0.113.10", "user-agent": "Vitest/1.0" })
+    );
   });
 
   afterEach(() => {
@@ -130,6 +136,38 @@ describe("auth rate limiting", () => {
       expect(result.error).toContain("Too many");
       expect(result.retryAt).toBeTypeOf("number");
     }
+  });
+
+  it("keeps loginSlow enforced when ip header is unavailable", async () => {
+    requestHeadersMock.mockReturnValue(new Headers({ "user-agent": "Mozilla/5.0" }));
+
+    const calls: Array<{ action: string; identifier: string }> = [];
+    const trackingFactory = (action: string): RateLimiter => ({
+      async limit(identifier) {
+        calls.push({ action, identifier });
+        return allowLimiter.limit(identifier);
+      },
+    });
+    setRateLimiterFactoryForTests((action) => trackingFactory(action));
+
+    const form = new FormData();
+    form.set("email", `login-rate-no-ip-${randomUUID()}@example.com`);
+    form.set("password", "password123");
+    const result = await login(form);
+
+    expect(result.success).toBe(true);
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        { action: "loginSlow", identifier: "route:loginSlow" },
+        {
+          action: "loginSlow",
+          identifier: expect.stringMatching(/^email:login-rate-no-ip-/),
+        },
+      ])
+    );
+    expect(
+      calls.some((call) => call.action === "loginSlow" && call.identifier.startsWith("ua:"))
+    ).toBe(true);
   });
 
   it("blocks forgotPassword when rate limited", async () => {

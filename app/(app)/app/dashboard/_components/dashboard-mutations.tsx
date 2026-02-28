@@ -31,13 +31,26 @@ export function DashboardMutations({ items, emptyMessage, hasItems }: DashboardM
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isCreateModalOpen, setCreateModalOpen } = useCreateProjectModal();
+  const {
+    isCreateModalOpen,
+    setCreateModalOpen,
+    isWriteRateLimited,
+    writeRateLimitLabel,
+    setWriteRateLimitRetryAt,
+  } = useCreateProjectModal();
   const { pushToast } = useToast();
   const [isPending, setIsPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const runMutation = useCallback(
     async (operation: () => Promise<DashboardActionResult>) => {
+      if (isWriteRateLimited) {
+        pushToast({
+          title: "Write actions rate limited",
+          description: writeRateLimitLabel ?? "Too many requests. Please try again shortly.",
+        });
+        return false;
+      }
+
       setIsPending(true);
       try {
         const result = await operation();
@@ -45,16 +58,32 @@ export function DashboardMutations({ items, emptyMessage, hasItems }: DashboardM
           router.refresh();
           return true;
         }
-        setError(result.error);
+
+        if (typeof result.retryAt === "number") {
+          setWriteRateLimitRetryAt(result.retryAt);
+          pushToast({
+            title: "Write actions rate limited",
+            description: result.error,
+          });
+          return false;
+        }
+
+        pushToast({
+          title: "Action failed",
+          description: result.error,
+        });
         return false;
       } catch {
-        setError("Something went wrong. Please try again.");
+        pushToast({
+          title: "Action failed",
+          description: "Something went wrong. Please try again.",
+        });
         return false;
       } finally {
         setIsPending(false);
       }
     },
-    [router]
+    [isWriteRateLimited, pushToast, router, setWriteRateLimitRetryAt, writeRateLimitLabel]
   );
 
   const viewArchived = useCallback(() => {
@@ -125,36 +154,37 @@ export function DashboardMutations({ items, emptyMessage, hasItems }: DashboardM
     [runMutation, pushToast, viewArchived]
   );
 
-  const handleClearError = useCallback(() => {
-    setError(null);
-  }, []);
-
   return (
     <DashboardContent
       items={items}
       emptyMessage={emptyMessage}
       hasItems={hasItems}
       isPending={isPending}
+      isMutationsDisabled={isWriteRateLimited}
+      rateLimitLabel={writeRateLimitLabel}
       isCreateModalOpen={isCreateModalOpen}
       onCreateModalOpenChange={setCreateModalOpen}
-      error={error}
       canImportSampleData={!hasItems}
       handlers={handlers}
-      onClearError={handleClearError}
     />
   );
 }
 
 export function DashboardCreateProjectButton({ hasItems }: { hasItems: boolean }) {
-  const { setCreateModalOpen } = useCreateProjectModal();
+  const { setCreateModalOpen, isWriteRateLimited, writeRateLimitLabel } = useCreateProjectModal();
 
   if (!hasItems) {
     return null;
   }
 
   return (
-    <button type="button" onClick={() => setCreateModalOpen(true)} className="btn-primary btn-sm">
-      + Create Project
+    <button
+      type="button"
+      onClick={() => setCreateModalOpen(true)}
+      disabled={isWriteRateLimited}
+      className="btn-primary btn-sm"
+    >
+      {isWriteRateLimited && writeRateLimitLabel ? writeRateLimitLabel : "+ Create Project"}
     </button>
   );
 }

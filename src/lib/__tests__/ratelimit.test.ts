@@ -53,6 +53,8 @@ describe("getAuthRateLimiter in production", () => {
       "verifyEmail",
       "verifyEmailChange",
       "dashboardExport",
+      "dashboardWrite",
+      "healthLive",
       "consentWrite",
       "consentLink",
       "consentAuditReplay",

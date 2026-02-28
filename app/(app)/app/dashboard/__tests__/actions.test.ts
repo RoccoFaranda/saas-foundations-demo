@@ -8,6 +8,7 @@ import { ItemStatus } from "@/src/generated/prisma/enums";
 
 // Mock server-only
 vi.mock("server-only", () => ({}));
+const enforceRateLimitMock = vi.hoisted(() => vi.fn());
 
 // Mock next/cache
 vi.mock("next/cache", () => ({
@@ -26,6 +27,10 @@ vi.mock("@/src/lib/auth", () => ({
   }),
 }));
 
+vi.mock("@/src/lib/auth/rate-limit", () => ({
+  enforceRateLimit: enforceRateLimitMock,
+}));
+
 // Import actions after mocks are set up
 const {
   createItemAction,
@@ -38,6 +43,9 @@ const {
 
 describe("Dashboard actions", () => {
   beforeEach(async () => {
+    enforceRateLimitMock.mockReset();
+    enforceRateLimitMock.mockResolvedValue(null);
+
     // Clean up test data before each test
     await prisma.activityLog.deleteMany({
       where: { userId: TEST_USER_ID },
@@ -99,6 +107,27 @@ describe("Dashboard actions", () => {
       expect(logs[0].action).toBe("item.created");
       expect(logs[0].entityType).toBe("item");
       expect(logs[0].metadata).toEqual({ itemName: "Test Project" });
+    });
+
+    it("should return retry metadata when dashboard writes are rate limited", async () => {
+      const retryAt = Date.now() + 60_000;
+      enforceRateLimitMock.mockResolvedValueOnce({
+        error: "Too many requests. Try again in 1 minute.",
+        retryAt,
+      });
+
+      const result = await createItemAction({
+        name: "Limited Project",
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("Too many requests");
+        expect(result.retryAt).toBe(retryAt);
+      }
+
+      const items = await listItems(TEST_USER_ID);
+      expect(items).toHaveLength(0);
     });
 
     it("should create item with checklist", async () => {
