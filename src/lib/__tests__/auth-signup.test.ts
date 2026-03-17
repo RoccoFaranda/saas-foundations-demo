@@ -130,6 +130,9 @@ describe("signup", () => {
     const emails = testEmailHelpers.findByTo(email);
     expect(emails).toHaveLength(1);
     expect(emails[0].subject).toContain("Verify your email");
+    expect(emails[0].preheader).toContain("Confirm your email");
+    expect(emails[0].html).toContain("If the button does not work");
+    expect(emails[0].text).toContain("/verify-email?token=");
 
     const createdUser = await prisma.user.findUnique({
       where: { email },

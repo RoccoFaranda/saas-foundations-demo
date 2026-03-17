@@ -39,6 +39,12 @@ import {
 import { getTurnstilePolicy, verifyTurnstileToken } from "./turnstile";
 import { GENERIC_ACTION_ERROR } from "../ui/messages";
 import { PRIVACY_VERSION, TERMS_VERSION } from "../../content/legal/legal-metadata";
+import {
+  buildAccountDeletionScheduledTemplate,
+  buildResetPasswordTemplate,
+  buildVerifyEmailTemplate,
+  buildVerifyNewEmailTemplate,
+} from "./email-templates";
 
 /**
  * Action result type for auth actions
@@ -52,6 +58,13 @@ export type AuthActionResult =
   | { success: false; error: string; field?: "email" | "password"; retryAt?: number };
 
 const DEFAULT_LOGIN_REDIRECT = "/app/dashboard";
+
+function buildAuthEmailTags(messageType: string): Array<{ name: string; value: string }> {
+  return [
+    { name: "domain", value: "auth" },
+    { name: "message_type", value: messageType },
+  ];
+}
 
 async function enforceAuthRateLimit(
   action: AuthRateLimitAction,
@@ -117,20 +130,6 @@ function toPathWithSearch(url: string): string {
   const baseUrl = getAppUrl();
   const parsed = new URL(url, baseUrl);
   return `${parsed.pathname}${parsed.search}${parsed.hash}`;
-}
-
-/**
- * Generate verification email HTML
- * Note: Does NOT include raw token in logs
- */
-function generateVerificationEmailHtml(verifyUrl: string): string {
-  return `
-    <h1>Verify your email</h1>
-    <p>Click the link below to verify your email address:</p>
-    <p><a href="${verifyUrl}">Verify Email</a></p>
-    <p>This link will expire in 1 hour.</p>
-    <p>If you didn't create an account, you can ignore this email.</p>
-  `;
 }
 
 /**
@@ -256,12 +255,15 @@ export async function signup(formData: FormData): Promise<AuthActionResult> {
   const verifyUrl = `${appUrl}/verify-email?token=${token}`;
 
   // Send verification email
+  const verifyEmailTemplate = buildVerifyEmailTemplate(verifyUrl);
   const emailAdapter = getEmailAdapter();
   await emailAdapter.send({
     to: email,
-    subject: "Verify your email - SaaS Foundations Demo",
-    html: generateVerificationEmailHtml(verifyUrl),
-    text: `Verify your email by visiting: ${verifyUrl}`,
+    subject: verifyEmailTemplate.subject,
+    preheader: verifyEmailTemplate.preheader,
+    html: verifyEmailTemplate.html,
+    text: verifyEmailTemplate.text,
+    tags: buildAuthEmailTags("verify_email_signup"),
   });
   logAuthEvent("signup_verification_email_sent", { userId: user.id });
 
@@ -400,19 +402,6 @@ export async function verifyEmail(token: string): Promise<AuthActionResult> {
 }
 
 /**
- * Generate password reset email HTML
- */
-function generateResetEmailHtml(resetUrl: string): string {
-  return `
-    <h1>Reset your password</h1>
-    <p>Click the link below to reset your password:</p>
-    <p><a href="${resetUrl}">Reset your password</a></p>
-    <p>This link will expire in 1 hour.</p>
-    <p>If you didn't request a password reset, you can ignore this email.</p>
-  `;
-}
-
-/**
  * Forgot password action
  * Always returns success to avoid account enumeration.
  * If the user exists, creates a password reset token and sends an email.
@@ -454,12 +443,15 @@ export async function forgotPassword(formData: FormData): Promise<AuthActionResu
         return { success: true };
       }
       const resetUrl = `${appUrl}/reset-password?token=${token}`;
+      const resetTemplate = buildResetPasswordTemplate(resetUrl);
       const emailAdapter = getEmailAdapter();
       await emailAdapter.send({
         to: user.email,
-        subject: "Reset your password - SaaS Foundations Demo",
-        html: generateResetEmailHtml(resetUrl),
-        text: `Reset your password by visiting: ${resetUrl}`,
+        subject: resetTemplate.subject,
+        preheader: resetTemplate.preheader,
+        html: resetTemplate.html,
+        text: resetTemplate.text,
+        tags: buildAuthEmailTags("reset_password"),
       });
       logAuthEvent("forgot_password_email_sent", { userId: user.id });
     } catch (err) {
@@ -578,12 +570,15 @@ export async function resendVerificationEmail(): Promise<AuthActionResult> {
     }
     const verifyUrl = `${appUrl}/verify-email?token=${token}`;
 
+    const verifyEmailTemplate = buildVerifyEmailTemplate(verifyUrl);
     const emailAdapter = getEmailAdapter();
     await emailAdapter.send({
       to: user.email,
-      subject: "Verify your email - SaaS Foundations Demo",
-      html: generateVerificationEmailHtml(verifyUrl),
-      text: `Verify your email by visiting: ${verifyUrl}`,
+      subject: verifyEmailTemplate.subject,
+      preheader: verifyEmailTemplate.preheader,
+      html: verifyEmailTemplate.html,
+      text: verifyEmailTemplate.text,
+      tags: buildAuthEmailTags("verify_email_resend"),
     });
 
     logAuthEvent("resend_verification_sent", { userId: user.id });
@@ -593,39 +588,6 @@ export async function resendVerificationEmail(): Promise<AuthActionResult> {
   }
 
   return { success: true };
-}
-
-/**
- * Generate email change verification email HTML
- */
-function generateEmailChangeHtml(verifyUrl: string, newEmail: string): string {
-  return `
-    <h1>Verify your new email address</h1>
-    <p>You requested to change your email address to: <strong>${newEmail}</strong></p>
-    <p>Click the link below to verify and complete the change:</p>
-    <p><a href="${verifyUrl}">Verify new email</a></p>
-    <p>This link will expire in 1 hour.</p>
-    <p>If you didn't request this change, you can ignore this email.</p>
-  `;
-}
-
-function formatDeletionSchedule(scheduledFor: Date): string {
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "UTC",
-  }).format(scheduledFor);
-}
-
-function generateAccountDeletionScheduledHtml(restoreUrl: string, scheduledFor: Date): string {
-  const formattedSchedule = formatDeletionSchedule(scheduledFor);
-  return `
-    <h1>Account deletion scheduled</h1>
-    <p>Your account is now deactivated and scheduled for permanent deletion on <strong>${formattedSchedule} UTC</strong>.</p>
-    <p>If this was a mistake, restore your account before then:</p>
-    <p><a href="${restoreUrl}">Restore account</a></p>
-    <p>After the deadline passes, your account and associated data are permanently removed.</p>
-  `;
 }
 
 /**
@@ -786,12 +748,15 @@ export async function requestEmailChange(formData: FormData): Promise<AuthAction
   const verifyUrl = `${appUrl}/verify-email-change?token=${token}`;
 
   // Send verification email to new address
+  const verifyNewEmailTemplate = buildVerifyNewEmailTemplate(verifyUrl, newEmail);
   const emailAdapter = getEmailAdapter();
   await emailAdapter.send({
     to: newEmail,
-    subject: "Verify your new email - SaaS Foundations Demo",
-    html: generateEmailChangeHtml(verifyUrl, newEmail),
-    text: `Verify your new email by visiting: ${verifyUrl}`,
+    subject: verifyNewEmailTemplate.subject,
+    preheader: verifyNewEmailTemplate.preheader,
+    html: verifyNewEmailTemplate.html,
+    text: verifyNewEmailTemplate.text,
+    tags: buildAuthEmailTags("verify_email_change"),
   });
 
   logAuthEvent("change_email_token_sent", { userId: user.id });
@@ -957,14 +922,18 @@ export async function requestAccountDeletion(formData: FormData): Promise<AuthAc
   try {
     const appUrl = getAppUrl();
     const restoreUrl = `${appUrl}/restore-account?token=${restoreToken}`;
+    const deletionScheduledTemplate = buildAccountDeletionScheduledTemplate(
+      restoreUrl,
+      scheduledFor
+    );
     const emailAdapter = getEmailAdapter();
     await emailAdapter.send({
       to: user.email,
-      subject: "Account deletion scheduled - SaaS Foundations Demo",
-      html: generateAccountDeletionScheduledHtml(restoreUrl, scheduledFor),
-      text:
-        `Your account is scheduled for permanent deletion on ${formatDeletionSchedule(scheduledFor)} UTC. ` +
-        `Restore before then: ${restoreUrl}`,
+      subject: deletionScheduledTemplate.subject,
+      preheader: deletionScheduledTemplate.preheader,
+      html: deletionScheduledTemplate.html,
+      text: deletionScheduledTemplate.text,
+      tags: buildAuthEmailTags("account_deletion_scheduled"),
     });
   } catch (error) {
     // Do not block deletion if email delivery fails; account stays deactivated.

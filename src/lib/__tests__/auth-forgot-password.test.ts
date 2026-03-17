@@ -39,7 +39,10 @@ describe("forgotPassword", () => {
     const emails = testEmailHelpers.findByTo(email);
     expect(emails).toHaveLength(1);
     expect(emails[0].subject).toContain("Reset your password");
+    expect(emails[0].preheader).toContain("reset your password");
     expect(emails[0].html).toContain("/reset-password?token=");
+    expect(emails[0].html).toContain("If the button does not work");
+    expect(emails[0].text).toContain("/reset-password?token=");
   });
 
   it("should return generic success and not send email for unknown user", async () => {

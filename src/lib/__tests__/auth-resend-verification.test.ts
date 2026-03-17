@@ -49,6 +49,9 @@ describe("resendVerificationEmail", () => {
     const emails = testEmailHelpers.findByTo(user.email);
     expect(emails).toHaveLength(1);
     expect(emails[0].subject).toContain("Verify your email");
+    expect(emails[0].preheader).toContain("Confirm your email");
+    expect(emails[0].html).toContain("If the button does not work");
+    expect(emails[0].text).toContain("/verify-email?token=");
   });
 
   it("should fail when session user no longer exists", async () => {
@@ -122,5 +125,7 @@ describe("resendVerificationEmail", () => {
     // Verify the email contains a verification link
     const emailHtml = emails[0].html;
     expect(emailHtml).toContain("/verify-email?token=");
+    expect(emailHtml).toContain("If the button does not work");
+    expect(emails[0].text).toContain("/verify-email?token=");
   });
 });

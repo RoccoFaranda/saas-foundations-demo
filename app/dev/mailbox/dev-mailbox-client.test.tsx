@@ -22,6 +22,7 @@ describe("DevMailboxClient", () => {
               id: "message-1",
               to: "user@example.com",
               subject: "Verify your email",
+              preheader: "Confirm your email to finish setup.",
               html: "<p>Body</p>",
               text: "Body",
               createdAt: "2026-02-23T00:00:00.000Z",
@@ -49,6 +50,7 @@ describe("DevMailboxClient", () => {
 
     expect(screen.getByText("user@example.com")).toBeInTheDocument();
     expect(screen.getByText("Verify your email")).toBeInTheDocument();
+    expect(screen.getByText("Confirm your email to finish setup.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Refresh" })).toBeInTheDocument();
   });
 
@@ -76,6 +78,7 @@ describe("DevMailboxClient", () => {
                 id: "message-1",
                 to: "first@example.com",
                 subject: "First",
+                preheader: "First preheader",
                 html: "<p>First</p>",
                 text: "First",
                 createdAt: "2026-02-23T00:00:00.000Z",
@@ -96,6 +99,7 @@ describe("DevMailboxClient", () => {
                 id: "message-2",
                 to: "second@example.com",
                 subject: "Second",
+                preheader: "Second preheader",
                 html: "<p>Second</p>",
                 text: "Second",
                 createdAt: "2026-02-23T00:01:00.000Z",

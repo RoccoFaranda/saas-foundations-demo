@@ -107,6 +107,78 @@ describe("email provider resolution", () => {
     expect(appendDevMailboxMessageMock).not.toHaveBeenCalled();
   });
 
+  it("forwards replyTo and tags to resend when provided in message", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("RESEND_API_KEY", "test-key");
+    vi.stubEnv("EMAIL_FROM", "noreply@example.com");
+    const { getEmailAdapter } = await loadEmailModule();
+
+    const adapter = getEmailAdapter();
+    await adapter.send({
+      to: "metadata@example.com",
+      subject: "Metadata",
+      html: "<p>hello</p>",
+      replyTo: "help@example.com",
+      tags: [
+        { name: "domain", value: "auth" },
+        { name: "message_type", value: "verify_email_signup" },
+      ],
+    });
+
+    expect(mockResendSend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        replyTo: "help@example.com",
+        tags: [
+          { name: "domain", value: "auth" },
+          { name: "message_type", value: "verify_email_signup" },
+        ],
+      })
+    );
+  });
+
+  it("uses EMAIL_REPLY_TO when message replyTo is not provided", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("RESEND_API_KEY", "test-key");
+    vi.stubEnv("EMAIL_FROM", "noreply@example.com");
+    vi.stubEnv("EMAIL_REPLY_TO", "replyto@example.com");
+    vi.stubEnv("SUPPORT_EMAIL", "support@example.com");
+    const { getEmailAdapter } = await loadEmailModule();
+
+    const adapter = getEmailAdapter();
+    await adapter.send({
+      to: "email-reply@example.com",
+      subject: "Reply To",
+      html: "<p>hello</p>",
+    });
+
+    expect(mockResendSend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        replyTo: "replyto@example.com",
+      })
+    );
+  });
+
+  it("falls back to SUPPORT_EMAIL when EMAIL_REPLY_TO is unset", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("RESEND_API_KEY", "test-key");
+    vi.stubEnv("EMAIL_FROM", "noreply@example.com");
+    vi.stubEnv("SUPPORT_EMAIL", "support@example.com");
+    const { getEmailAdapter } = await loadEmailModule();
+
+    const adapter = getEmailAdapter();
+    await adapter.send({
+      to: "support-fallback@example.com",
+      subject: "Support Fallback",
+      html: "<p>hello</p>",
+    });
+
+    expect(mockResendSend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        replyTo: "support@example.com",
+      })
+    );
+  });
+
   it("supports EMAIL_PROVIDER=resend override", async () => {
     vi.stubEnv("NODE_ENV", "development");
     vi.stubEnv("EMAIL_PROVIDER", "resend");

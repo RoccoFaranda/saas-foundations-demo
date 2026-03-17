@@ -72,9 +72,14 @@ For production rate limiting, set `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_RE
 For signed consent replay verification, set `CONSENT_AUDIT_SIGNING_SECRET`.
 `EMAIL_PROVIDER` supports `resend`, `dev-mailbox`, and `resend+dev-mailbox`; if blank, the app auto-selects by environment.
 In `NODE_ENV=production`, providers including `dev-mailbox` require `ALLOW_DEV_MAILBOX_IN_PROD=true`.
-`pnpm test:e2e` sets Playwright-scoped mailbox env overrides and writes to `.dev-mailbox.e2e.json` for deterministic build+start runs.
-Optional: `UPSTASH_RATE_LIMIT_ANALYTICS` (`true`/`false`) controls Upstash analytics; default is enabled in production.
-See `.env.example` for all available environment variables (when available).
+For production transactional email:
+
+- Set `EMAIL_FROM` using a branded format, e.g. `SaaS Foundations Demo <noreply@mail.example.com>`.
+- Optionally set `EMAIL_REPLY_TO`; when omitted, `SUPPORT_EMAIL` is used as the default reply-to when valid.
+- Use a dedicated transactional subdomain and configure DNS authentication records: SPF, DKIM, and DMARC.
+  `pnpm test:e2e` sets Playwright-scoped mailbox env overrides and writes to `.dev-mailbox.e2e.json` for deterministic build+start runs.
+  Optional: `UPSTASH_RATE_LIMIT_ANALYTICS` (`true`/`false`) controls Upstash analytics; default is enabled in production.
+  See `.env.example` for all available environment variables (when available).
 
 ## SEO Metadata
 

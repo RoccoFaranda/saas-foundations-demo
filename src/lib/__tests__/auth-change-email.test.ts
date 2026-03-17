@@ -80,7 +80,10 @@ describe("requestEmailChange", () => {
     const emails = testEmailHelpers.findByTo(newEmail);
     expect(emails).toHaveLength(1);
     expect(emails[0].subject).toContain("Verify your new email");
+    expect(emails[0].preheader).toContain("Confirm your new email address");
     expect(emails[0].html).toContain("/verify-email-change?token=");
+    expect(emails[0].html).toContain("Requested new email:");
+    expect(emails[0].text).toContain("/verify-email-change?token=");
 
     // Email should not have changed yet
     const unchanged = await prisma.user.findUnique({ where: { id: user.id } });

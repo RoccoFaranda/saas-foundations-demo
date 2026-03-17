@@ -1,12 +1,23 @@
 import "server-only";
 import { Resend } from "resend";
 import { appendDevMailboxMessage } from "./dev-mailbox";
+import { getSupportEmail } from "../config/support-email";
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export type EmailTag = {
+  name: string;
+  value: string;
+};
 
 export interface EmailMessage {
   to: string;
   subject: string;
+  preheader?: string;
   html: string;
   text?: string;
+  replyTo?: string;
+  tags?: EmailTag[];
 }
 
 export interface EmailAdapter {
@@ -94,6 +105,32 @@ function parseBooleanEnv(value: string | undefined): boolean {
   return ["1", "true", "yes", "on"].includes(value.trim().toLowerCase());
 }
 
+function normalizeEmailAddress(rawValue: string | undefined): string | null {
+  if (!rawValue) {
+    return null;
+  }
+
+  const trimmed = rawValue.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  return EMAIL_PATTERN.test(trimmed) ? trimmed : null;
+}
+
+function resolveDefaultReplyTo(): string | undefined {
+  const configuredReplyTo = normalizeEmailAddress(process.env.EMAIL_REPLY_TO);
+  if (configuredReplyTo) {
+    return configuredReplyTo;
+  }
+
+  try {
+    return getSupportEmail() ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Resend production adapter
  * Never logs tokens or PII
@@ -112,12 +149,15 @@ function createResendAdapter(): EmailAdapter {
     async send(message: EmailMessage) {
       // Never log tokens or PII - only log subject for debugging
       try {
+        const replyTo = normalizeEmailAddress(message.replyTo) ?? resolveDefaultReplyTo();
         await resend.emails.send({
           from,
           to: message.to,
           subject: message.subject,
           html: message.html,
           text: message.text,
+          replyTo,
+          tags: message.tags,
         });
       } catch (error) {
         // Log error without exposing tokens or PII

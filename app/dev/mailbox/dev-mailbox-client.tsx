@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useTheme } from "next-themes";
 
 type DevMailboxMessage = {
   id: string;
   to: string;
   subject: string;
+  preheader?: string;
   html: string;
   text?: string;
   createdAt: string;
@@ -17,10 +19,35 @@ type DevMailboxResponse = {
 
 const LOAD_ERROR = "Unable to load mailbox messages. Please try again.";
 
+const DEV_MAILBOX_EMAIL_THEME_OVERRIDES = `
+.mailbox-force-light .email-bg { background-color: #f1f5f9 !important; }
+.mailbox-force-light .email-card { background-color: #ffffff !important; border-color: #e2e8f0 !important; }
+.mailbox-force-light .email-brand, .mailbox-force-light .email-link { color: #1f4db8 !important; }
+.mailbox-force-light .email-heading { color: #020617 !important; }
+.mailbox-force-light .email-copy, .mailbox-force-light .email-detail { color: #0f172a !important; }
+.mailbox-force-light .email-security, .mailbox-force-light .email-support, .mailbox-force-light .email-fallback-copy { color: #334155 !important; }
+.mailbox-force-light .email-fallback { background-color: #f8fafc !important; border-color: #e2e8f0 !important; }
+.mailbox-force-light .email-button-cell { background-color: #1f4db8 !important; }
+.mailbox-force-light .email-button { color: #ffffff !important; }
+
+.mailbox-force-dark .email-bg { background-color: #0b1220 !important; }
+.mailbox-force-dark .email-card { background-color: #111827 !important; border-color: #334155 !important; }
+.mailbox-force-dark .email-brand, .mailbox-force-dark .email-link { color: #bfdbfe !important; }
+.mailbox-force-dark .email-heading { color: #f8fafc !important; }
+.mailbox-force-dark .email-copy, .mailbox-force-dark .email-detail { color: #e2e8f0 !important; }
+.mailbox-force-dark .email-security, .mailbox-force-dark .email-support, .mailbox-force-dark .email-fallback-copy { color: #cbd5e1 !important; }
+.mailbox-force-dark .email-fallback { background-color: #1e293b !important; border-color: #334155 !important; }
+.mailbox-force-dark .email-button-cell { background-color: #7fb3e8 !important; }
+.mailbox-force-dark .email-button { color: #0a1324 !important; }
+`;
+
 export default function DevMailboxClient() {
+  const { resolvedTheme } = useTheme();
   const [messages, setMessages] = useState<DevMailboxMessage[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const previewThemeClass = resolvedTheme === "dark" ? "mailbox-force-dark" : "mailbox-force-light";
 
   const loadMessages = useCallback(async (isManualRefresh: boolean) => {
     if (isManualRefresh) {
@@ -60,6 +87,7 @@ export default function DevMailboxClient() {
 
   return (
     <section className="space-y-4">
+      <style>{DEV_MAILBOX_EMAIL_THEME_OVERRIDES}</style>
       <div className="flex items-center justify-end">
         <button
           type="button"
@@ -85,8 +113,14 @@ export default function DevMailboxClient() {
               <div className="mb-3 text-sm font-medium">{message.to}</div>
               <div className="text-sm text-muted-foreground">Subject</div>
               <div className="mb-3 text-sm font-medium">{message.subject}</div>
+              {message.preheader ? (
+                <>
+                  <div className="text-sm text-muted-foreground">Preheader</div>
+                  <div className="mb-3 text-sm font-medium">{message.preheader}</div>
+                </>
+              ) : null}
               {message.html ? (
-                <div className="prose prose-invert max-w-none text-sm">
+                <div className={`prose max-w-none text-sm dark:prose-invert ${previewThemeClass}`}>
                   <div dangerouslySetInnerHTML={{ __html: message.html }} />
                 </div>
               ) : (

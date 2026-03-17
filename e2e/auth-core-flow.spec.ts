@@ -11,7 +11,7 @@ const devMailboxPath = path.isAbsolute(configuredDevMailboxPath)
  * Extract verification token from email HTML
  */
 function extractTokenFromEmail(html: string): string | null {
-  const match = html.match(/verify-email\?token=([^"&]+)/);
+  const match = html.match(/verify-email\?token=([^"&<\s]+)/);
   return match ? match[1] : null;
 }
 

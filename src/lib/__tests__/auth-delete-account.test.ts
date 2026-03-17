@@ -137,7 +137,10 @@ describe("requestAccountDeletion", () => {
     const emails = testEmailHelpers.findByTo(email);
     expect(emails).toHaveLength(1);
     expect(emails[0].subject).toContain("Account deletion scheduled");
+    expect(emails[0].preheader).toContain("scheduled for permanent deletion");
     expect(emails[0].html).toContain("/restore-account?token=");
+    expect(emails[0].html).toContain("Permanent deletion date:");
+    expect(emails[0].text).toContain("/restore-account?token=");
   });
 
   it("fails with incorrect current password", async () => {

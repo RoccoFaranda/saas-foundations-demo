@@ -26,6 +26,7 @@ describe("dev mailbox storage", () => {
     await appendDevMailboxMessage({
       to: "first@example.com",
       subject: "First",
+      preheader: "First preheader",
       html: "<p>First</p>",
       text: "First",
     });
@@ -36,6 +37,7 @@ describe("dev mailbox storage", () => {
       expect.objectContaining({
         to: "first@example.com",
         subject: "First",
+        preheader: "First preheader",
       })
     );
     expect(messages[0].id).toBeTypeOf("string");
@@ -49,18 +51,21 @@ describe("dev mailbox storage", () => {
       appendDevMailboxMessage({
         to: "one@example.com",
         subject: "One",
+        preheader: "One preheader",
         html: "<p>One</p>",
         text: "One",
       }),
       appendDevMailboxMessage({
         to: "two@example.com",
         subject: "Two",
+        preheader: "Two preheader",
         html: "<p>Two</p>",
         text: "Two",
       }),
       appendDevMailboxMessage({
         to: "three@example.com",
         subject: "Three",
+        preheader: "Three preheader",
         html: "<p>Three</p>",
         text: "Three",
       }),
