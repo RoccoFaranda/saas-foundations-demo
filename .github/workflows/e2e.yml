@@ -26,6 +26,7 @@ jobs:
           --health-retries=5
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/saas_foundations_test?schema=public
+      ALLOW_IN_MEMORY_RATE_LIMIT_FALLBACK: "true"
 
     steps:
       - name: Checkout repository
