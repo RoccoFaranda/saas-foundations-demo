@@ -25,6 +25,11 @@ jobs:
           --health-retries=5
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/saas_foundations_test?schema=public
+      NEXT_PUBLIC_APP_URL: http://localhost:3001
+      SUPPORT_EMAIL: support@example.com
+      PUBLIC_CONTACT_EMAIL: public-contact@example.com
+      LEGAL_CONTACT_EMAIL: legal-contact@example.com
+      LEGAL_CONTROLLER_NAME: SaaS Foundations Demo Controller
 
     steps:
       - name: Checkout repository
