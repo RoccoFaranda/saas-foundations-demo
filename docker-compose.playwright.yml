@@ -11,6 +11,7 @@ services:
       NEXT_DIST_DIR: ".next-e2e-linux"
       SNAPSHOT_GREP: "@visual-landing"
       SNAPSHOT_OUTPUT_PREFIX: "test-results-snapshots-linux"
+      SNAPSHOT_UPDATE: "1"
     volumes:
       - ./:/work
       - playwright_node_modules:/work/node_modules
@@ -23,7 +24,7 @@ services:
         corepack prepare pnpm@10.27.0 --activate &&
         pnpm config set store-dir /pnpm-store &&
         pnpm install --frozen-lockfile &&
-        pnpm exec playwright test --project=chromium --grep "$$SNAPSHOT_GREP" --update-snapshots --output="$${SNAPSHOT_OUTPUT_PREFIX}-update" &&
+        if [ "$${SNAPSHOT_UPDATE:-1}" = "1" ]; then pnpm exec playwright test --project=chromium --grep "$$SNAPSHOT_GREP" --update-snapshots --output="$${SNAPSHOT_OUTPUT_PREFIX}-update"; fi &&
         pnpm exec playwright test --project=chromium --grep "$$SNAPSHOT_GREP" --output="$${SNAPSHOT_OUTPUT_PREFIX}-verify"
 
 volumes:

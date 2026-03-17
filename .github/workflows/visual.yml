@@ -1,0 +1,40 @@
+name: Visual Regression
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  visual:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run visual snapshot checks in Playwright Linux container
+        run: >
+          docker compose -f docker-compose.playwright.yml run --rm
+          -e SNAPSHOT_GREP=@visual
+          -e SNAPSHOT_OUTPUT_PREFIX=test-results-snapshots-linux-ci
+          -e SNAPSHOT_UPDATE=0
+          playwright-linux
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-visual
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Upload visual test outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-test-results
+          path: test-results-snapshots-linux-ci-verify/
+          retention-days: 30
