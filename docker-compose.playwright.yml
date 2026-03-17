@@ -9,6 +9,7 @@ services:
     environment:
       SKIP_DOCKER_CHECK: "1"
       NEXT_DIST_DIR: ".next-e2e-linux"
+      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/saas_foundations_test?schema=public"
       SNAPSHOT_GREP: "@visual-landing"
       SNAPSHOT_OUTPUT_PREFIX: "test-results-snapshots-linux"
       SNAPSHOT_UPDATE: "1"
@@ -24,6 +25,7 @@ services:
         corepack prepare pnpm@10.27.0 --activate &&
         pnpm config set store-dir /pnpm-store &&
         pnpm install --frozen-lockfile &&
+        pnpm db:generate &&
         if [ "$${SNAPSHOT_UPDATE:-1}" = "1" ]; then pnpm exec playwright test --project=chromium --grep "$$SNAPSHOT_GREP" --update-snapshots --output="$${SNAPSHOT_OUTPUT_PREFIX}-update"; fi &&
         pnpm exec playwright test --project=chromium --grep "$$SNAPSHOT_GREP" --output="$${SNAPSHOT_OUTPUT_PREFIX}-verify"
 
