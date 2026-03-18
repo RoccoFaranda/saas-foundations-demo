@@ -38,6 +38,7 @@
     "db:reset:test": "node -e \"require('dotenv').config({path:'.env.test'}); const {spawnSync}=require('child_process'); const r=spawnSync('prisma',['migrate','reset'],{stdio:'inherit', env:process.env, shell:true}); if (r.error) { console.error(r.error); } process.exit(r.status ?? (r.error ? 1 : 0));\"",
     "db:seed:test": "node -e \"require('dotenv').config({path:'.env.test'}); const {spawnSync}=require('child_process'); const r=spawnSync('prisma',['db','seed'],{stdio:'inherit', env:process.env, shell:true}); if (r.error) { console.error(r.error); } process.exit(r.status ?? (r.error ? 1 : 0));\"",
     "db:studio:test": "node -e \"require('dotenv').config({path:'.env.test'}); const {spawnSync}=require('child_process'); const r=spawnSync('prisma',['studio'],{stdio:'inherit', env:process.env, shell:true}); if (r.error) { console.error(r.error); } process.exit(r.status ?? (r.error ? 1 : 0));\"",
+    "postinstall": "prisma generate",
     "prepare": "husky"
   },
   "dependencies": {
