@@ -74,12 +74,19 @@ For signed consent replay verification, set `CONSENT_AUDIT_SIGNING_SECRET`.
 In `NODE_ENV=production`, providers including `dev-mailbox` require `ALLOW_DEV_MAILBOX_IN_PROD=true`.
 For production transactional email:
 
-- Set `EMAIL_FROM` using a branded format, e.g. `SaaS Foundations Demo <noreply@mail.example.com>`.
-- Optionally set `EMAIL_REPLY_TO`; when omitted, `SUPPORT_EMAIL` is used as the default reply-to when valid.
-- Use a dedicated transactional subdomain and configure DNS authentication records: SPF, DKIM, and DMARC.
-  `pnpm test:e2e` sets Playwright-scoped mailbox env overrides and writes to `.dev-mailbox.e2e.json` for deterministic build+start runs.
-  Optional: `UPSTASH_RATE_LIMIT_ANALYTICS` (`true`/`false`) controls Upstash analytics; default is enabled in production.
-  See `.env.example` for all available environment variables (when available).
+- Use a dedicated transactional sender subdomain for outbound app emails, for example:
+  `EMAIL_FROM="SaaS Foundations Demo <notifications@mail.saasfoundationsdemo.com>"`.
+- Set `EMAIL_REPLY_TO=support@saasfoundationsdemo.com` so user replies route to your support alias.
+- Set identity/contact envs to aliases on your root domain:
+  - `SUPPORT_EMAIL=support@saasfoundationsdemo.com`
+  - `PUBLIC_CONTACT_EMAIL=hello@saasfoundationsdemo.com`
+  - `LEGAL_CONTACT_EMAIL=legal@saasfoundationsdemo.com`
+- Keep inbound routing (`hello@`, `support@`, `legal@`) separate from transactional sender DNS:
+  - Root-domain aliases -> forwarding provider (for example, ImprovMX -> personal Gmail)
+  - Transactional sender subdomain -> Resend domain verification (SPF, DKIM, DMARC)
+- `pnpm test:e2e` sets Playwright-scoped mailbox env overrides and writes to `.dev-mailbox.e2e.json` for deterministic build+start runs.
+- Optional: `UPSTASH_RATE_LIMIT_ANALYTICS` (`true`/`false`) controls Upstash analytics; default is enabled in production.
+- See `.env.example` for all available environment variables.
 
 ## SEO Metadata
 

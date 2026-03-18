@@ -1,7 +1,7 @@
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const DEFAULT_PUBLIC_CONTACT_EMAIL = "roccofaranda@gmail.com";
-const DEFAULT_LEGAL_CONTACT_EMAIL = "roccofaranda@gmail.com";
+const DEFAULT_PUBLIC_CONTACT_EMAIL = "hello@saasfoundationsdemo.com";
+const DEFAULT_LEGAL_CONTACT_EMAIL = "legal@saasfoundationsdemo.com";
 const DEFAULT_LEGAL_CONTROLLER_NAME = "Rocco Faranda (SaaS Foundations Demo)";
 
 function isProductionEnv(): boolean {

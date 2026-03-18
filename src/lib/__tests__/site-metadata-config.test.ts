@@ -50,8 +50,8 @@ describe("site metadata env config", () => {
     delete process.env.LEGAL_CONTACT_EMAIL;
     delete process.env.LEGAL_CONTROLLER_NAME;
 
-    expect(getPublicContactEmail()).toBe("roccofaranda@gmail.com");
-    expect(getLegalContactEmail()).toBe("roccofaranda@gmail.com");
+    expect(getPublicContactEmail()).toBe("hello@saasfoundationsdemo.com");
+    expect(getLegalContactEmail()).toBe("legal@saasfoundationsdemo.com");
     expect(getLegalControllerName()).toBe("Rocco Faranda (SaaS Foundations Demo)");
   });
 
