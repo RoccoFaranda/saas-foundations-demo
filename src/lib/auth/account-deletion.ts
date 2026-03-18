@@ -31,7 +31,7 @@ export function getAccountDeletionPurgeBatchSize(): number {
   return parsed ?? DEFAULT_ACCOUNT_DELETION_PURGE_BATCH_SIZE;
 }
 
-export function getAccountDeletionCronSecret(): string | null {
-  const secret = process.env.ACCOUNT_DELETION_CRON_SECRET?.trim();
+export function getCronSecret(): string | null {
+  const secret = process.env.CRON_SECRET?.trim();
   return secret ? secret : null;
 }

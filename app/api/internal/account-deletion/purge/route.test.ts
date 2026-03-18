@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const getAccountDeletionCronSecretMock = vi.hoisted(() => vi.fn());
+const getCronSecretMock = vi.hoisted(() => vi.fn());
 const getAccountDeletionPurgeBatchSizeMock = vi.hoisted(() => vi.fn());
 const logAuthEventMock = vi.hoisted(() => vi.fn());
 const userFindManyMock = vi.hoisted(() => vi.fn());
@@ -9,7 +9,7 @@ const userDeleteManyMock = vi.hoisted(() => vi.fn());
 const userCountMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/src/lib/auth/account-deletion", () => ({
-  getAccountDeletionCronSecret: getAccountDeletionCronSecretMock,
+  getCronSecret: getCronSecretMock,
   getAccountDeletionPurgeBatchSize: getAccountDeletionPurgeBatchSizeMock,
 }));
 
@@ -27,18 +27,18 @@ vi.mock("@/src/lib/db", () => ({
   },
 }));
 
-import { POST } from "./route";
+import { GET, POST } from "./route";
 
 describe("POST /api/internal/account-deletion/purge", () => {
   beforeEach(() => {
-    getAccountDeletionCronSecretMock.mockReset();
+    getCronSecretMock.mockReset();
     getAccountDeletionPurgeBatchSizeMock.mockReset();
     logAuthEventMock.mockReset();
     userFindManyMock.mockReset();
     userDeleteManyMock.mockReset();
     userCountMock.mockReset();
 
-    getAccountDeletionCronSecretMock.mockReturnValue("secret-token");
+    getCronSecretMock.mockReturnValue("secret-token");
     getAccountDeletionPurgeBatchSizeMock.mockReturnValue(100);
     userFindManyMock.mockResolvedValue([]);
     userDeleteManyMock.mockResolvedValue({ count: 0 });
@@ -46,7 +46,7 @@ describe("POST /api/internal/account-deletion/purge", () => {
   });
 
   it("returns 503 when cron secret is not configured", async () => {
-    getAccountDeletionCronSecretMock.mockReturnValue(null);
+    getCronSecretMock.mockReturnValue(null);
 
     const response = await POST(
       new Request("https://example.com/api/internal/account-deletion/purge")
@@ -109,6 +109,50 @@ describe("POST /api/internal/account-deletion/purge", () => {
     expect(logAuthEventMock).toHaveBeenCalledWith(
       "delete_account_purged",
       expect.objectContaining({ purged: 2, remainingDue: 5, batchSize: 100 })
+    );
+  });
+});
+
+describe("GET /api/internal/account-deletion/purge", () => {
+  beforeEach(() => {
+    getCronSecretMock.mockReset();
+    getAccountDeletionPurgeBatchSizeMock.mockReset();
+    logAuthEventMock.mockReset();
+    userFindManyMock.mockReset();
+    userDeleteManyMock.mockReset();
+    userCountMock.mockReset();
+
+    getCronSecretMock.mockReturnValue("secret-token");
+    getAccountDeletionPurgeBatchSizeMock.mockReturnValue(100);
+    userFindManyMock.mockResolvedValue([]);
+    userDeleteManyMock.mockResolvedValue({ count: 0 });
+    userCountMock.mockResolvedValue(0);
+  });
+
+  it("returns 401 when authorization is missing", async () => {
+    const response = await GET(
+      new Request("https://example.com/api/internal/account-deletion/purge")
+    );
+
+    expect(response.status).toBe(401);
+  });
+
+  it("allows authorized GET requests for Vercel cron", async () => {
+    const response = await GET(
+      new Request("https://example.com/api/internal/account-deletion/purge", {
+        method: "GET",
+        headers: { Authorization: "Bearer secret-token" },
+      })
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toEqual(
+      expect.objectContaining({
+        purged: 0,
+        remainingDue: 0,
+        batchSize: 100,
+      })
     );
   });
 });

@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/src/lib/db";
 import { logAuthEvent } from "@/src/lib/auth/logging";
-import {
-  getAccountDeletionCronSecret,
-  getAccountDeletionPurgeBatchSize,
-} from "@/src/lib/auth/account-deletion";
+import { getCronSecret, getAccountDeletionPurgeBatchSize } from "@/src/lib/auth/account-deletion";
 
 export const dynamic = "force-dynamic";
 
@@ -18,8 +15,8 @@ function hasValidCronAuthorization(request: Request, expectedSecret: string): bo
   return Boolean(provided) && provided === expectedSecret;
 }
 
-export async function POST(request: Request) {
-  const cronSecret = getAccountDeletionCronSecret();
+async function runPurge(request: Request) {
+  const cronSecret = getCronSecret();
   if (!cronSecret) {
     return NextResponse.json(
       { error: "Account deletion purge is not configured." },
@@ -79,4 +76,12 @@ export async function POST(request: Request) {
     remainingDue,
     batchSize,
   });
+}
+
+export async function GET(request: Request) {
+  return runPurge(request);
+}
+
+export async function POST(request: Request) {
+  return runPurge(request);
 }

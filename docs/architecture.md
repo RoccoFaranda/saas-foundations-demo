@@ -370,7 +370,7 @@ Rate limiting notes:
 - `CONSENT_AUDIT_SIGNING_SECRET` is required for signed consent replay token minting and verification.
 - `ACCOUNT_DELETION_GRACE_DAYS` controls restore window before final purge (default `14`).
 - `ACCOUNT_DELETION_PURGE_BATCH_SIZE` controls the max users purged per cron invocation (default `100`).
-- `ACCOUNT_DELETION_CRON_SECRET` secures `POST /api/internal/account-deletion/purge`.
+- `CRON_SECRET` secures `/api/internal/account-deletion/purge` (Vercel cron uses `GET`; manual triggers can use `POST`).
 
 ### Database Migrations
 
