@@ -1,12 +1,8 @@
 import { ImageResponse } from "next/og";
 import { PUBLIC_PERSON_NAME } from "@/src/content/profile/public-metadata";
-import { SITE_NAME } from "./metadata";
+import { SITE_NAME, SOCIAL_IMAGE_ALT, SOCIAL_IMAGE_SIZE } from "./metadata";
 
-export const SOCIAL_IMAGE_ALT = `${SITE_NAME} social preview`;
-export const SOCIAL_IMAGE_SIZE = {
-  width: 1200,
-  height: 630,
-};
+export { SOCIAL_IMAGE_ALT, SOCIAL_IMAGE_SIZE };
 
 function SocialImageMarkup() {
   return (

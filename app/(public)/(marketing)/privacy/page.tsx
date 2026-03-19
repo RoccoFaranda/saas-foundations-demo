@@ -5,15 +5,18 @@ import { JsonLd } from "@/src/components/seo/json-ld";
 import { buildWebPageJsonLd } from "@/src/lib/seo/json-ld";
 import { buildPublicPageMetadata } from "@/src/lib/seo/metadata";
 
+const privacyDescription =
+  "Privacy policy describing how SaaS Foundations Demo processes account, security, and preference data, including cookies, retention, safeguards, and user rights.";
+
 export const metadata: Metadata = buildPublicPageMetadata({
   title: "Privacy Policy",
-  description: "How SaaS Foundations Demo collects, uses, stores, and protects personal data.",
+  description: privacyDescription,
   path: "/privacy",
 });
 
 const webPageJsonLd = buildWebPageJsonLd({
   title: "Privacy Policy",
-  description: "How SaaS Foundations Demo collects, uses, stores, and protects personal data.",
+  description: privacyDescription,
   path: "/privacy",
 });
 

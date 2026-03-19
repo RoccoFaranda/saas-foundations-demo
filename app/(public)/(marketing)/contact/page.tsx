@@ -12,15 +12,18 @@ import {
 import { buildWebPageJsonLd } from "@/src/lib/seo/json-ld";
 import { buildPublicPageMetadata } from "@/src/lib/seo/metadata";
 
+const contactDescription =
+  "Contact information and engagement details for UK-based freelance and contract SaaS development, including availability and project intake expectations.";
+
 export const metadata: Metadata = buildPublicPageMetadata({
   title: "Contact",
-  description: "Contact details and availability for freelance and contract SaaS development work.",
+  description: contactDescription,
   path: "/contact",
 });
 
 const webPageJsonLd = buildWebPageJsonLd({
   title: "Contact",
-  description: "Contact details and availability for freelance and contract SaaS development work.",
+  description: contactDescription,
   path: "/contact",
 });
 

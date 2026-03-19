@@ -1,7 +1,15 @@
 import type { Metadata } from "next";
 
 export const SITE_NAME = "SaaS Foundations Demo";
-export const SITE_DESCRIPTION = "A production-style SaaS demo showcasing core app and auth flows.";
+export const SITE_DESCRIPTION =
+  "Production-style SaaS demonstration featuring polished dashboard UX, complete authentication lifecycle flows, and production-focused security, testing, and architecture practices.";
+export const SOCIAL_IMAGE_ALT = `${SITE_NAME} social preview`;
+export const SOCIAL_IMAGE_SIZE = {
+  width: 1200,
+  height: 630,
+} as const;
+export const OPEN_GRAPH_IMAGE_PATH = "/opengraph-image";
+export const TWITTER_IMAGE_PATH = "/twitter-image";
 
 const DEV_FALLBACK_SITE_URL = "http://localhost:3000";
 
@@ -58,6 +66,8 @@ export function buildPublicPageMetadata({
   absoluteTitle = false,
 }: PublicPageMetadataOptions): Metadata {
   const canonical = getAbsoluteUrl(path);
+  const openGraphImageUrl = getAbsoluteUrl(OPEN_GRAPH_IMAGE_PATH);
+  const twitterImageUrl = getAbsoluteUrl(TWITTER_IMAGE_PATH);
 
   return {
     title: absoluteTitle ? { absolute: title } : title,
@@ -71,11 +81,25 @@ export function buildPublicPageMetadata({
       title,
       description,
       url: canonical,
+      images: [
+        {
+          url: openGraphImageUrl,
+          width: SOCIAL_IMAGE_SIZE.width,
+          height: SOCIAL_IMAGE_SIZE.height,
+          alt: SOCIAL_IMAGE_ALT,
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
+      images: [
+        {
+          url: twitterImageUrl,
+          alt: SOCIAL_IMAGE_ALT,
+        },
+      ],
     },
   };
 }

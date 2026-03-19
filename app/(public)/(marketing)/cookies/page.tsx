@@ -10,17 +10,18 @@ import {
   COOKIE_DECLARATION_LAST_UPDATED,
 } from "@/src/content/legal/legal-metadata";
 
+const cookiesDescription =
+  "Cookie declaration listing the storage technologies currently used by SaaS Foundations Demo, including essential categories, optional services, purposes, and effective dates.";
+
 export const metadata: Metadata = buildPublicPageMetadata({
   title: "Cookie Declaration",
-  description:
-    "Detailed declaration of cookies and related storage technologies used by SaaS Foundations Demo.",
+  description: cookiesDescription,
   path: "/cookies",
 });
 
 const webPageJsonLd = buildWebPageJsonLd({
   title: "Cookie Declaration",
-  description:
-    "Detailed declaration of cookies and related storage technologies used by SaaS Foundations Demo.",
+  description: cookiesDescription,
   path: "/cookies",
 });
 
