@@ -166,9 +166,13 @@ Readiness auth behavior:
 - In production, invalid/missing bearer token returns `401`.
 - In non-production, missing secret is allowed for local convenience.
 
-## Vercel Firewall (Recommended)
+## Vercel Firewall (Implemented in Production)
 
-Configure a minimal edge rule for public liveness traffic:
+Production status:
+
+- As of March 19, 2026, production enforces an edge rate-limit rule for `GET /api/health` (`30 requests/minute/IP`, response `429` when exceeded).
+
+For new environments, configure the same minimal edge rule for public liveness traffic:
 
 1. In Vercel: `Project -> Firewall -> Add rule`.
 2. Match: method `GET` and path `/api/health`.
