@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security report
+    url: mailto:support@saasfoundationsdemo.com?subject=Security%20report%3A%20SaaS%20Foundations%20Demo
+    about: Report security issues privately instead of opening a public issue.
+  - name: General or commercial enquiry
+    url: mailto:hello@saasfoundationsdemo.com?subject=SaaS%20Foundations%20Demo%20enquiry
+    about: GitHub issues are not used for support requests or feature proposals.

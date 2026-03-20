@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GitHub Social Preview</title>
+    <style>
+      :root {
+        --bg-0: #0f1728;
+        --bg-1: #162238;
+        --bg-2: #22324c;
+        --panel-border: rgba(148, 163, 184, 0.22);
+        --line: rgba(115, 146, 189, 0.16);
+        --text-0: #f8fafc;
+        --text-1: rgba(226, 232, 240, 0.92);
+        --text-2: rgba(191, 209, 233, 0.82);
+        --accent: #8bbdff;
+        --chip-bg: rgba(139, 189, 255, 0.1);
+        --chip-border: rgba(139, 189, 255, 0.22);
+        --panel-bg: linear-gradient(180deg, rgba(18, 28, 46, 0.92), rgba(11, 19, 34, 0.88));
+        --shadow: 0 30px 90px rgba(5, 10, 20, 0.45);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 1280px;
+        height: 640px;
+        overflow: hidden;
+        background: #0b1220;
+        color: var(--text-0);
+        font-family: "Segoe UI Variable Display", "Aptos", "Segoe UI", sans-serif;
+      }
+
+      body {
+        position: relative;
+        background:
+          radial-gradient(circle at 12% 10%, rgba(139, 189, 255, 0.12), transparent 24%),
+          radial-gradient(circle at 84% 18%, rgba(139, 189, 255, 0.08), transparent 22%),
+          linear-gradient(135deg, var(--bg-0) 0%, var(--bg-1) 45%, var(--bg-2) 100%);
+      }
+
+      body::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(to right, var(--line) 1px, transparent 1px),
+          linear-gradient(to bottom, var(--line) 1px, transparent 1px);
+        background-size: 64px 64px;
+        mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.86), rgba(0, 0, 0, 0.44));
+      }
+
+      body::after {
+        content: "";
+        position: absolute;
+        inset: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 32px;
+        pointer-events: none;
+      }
+
+      .frame {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: minmax(0, 1.06fr) minmax(0, 0.94fr);
+        gap: 40px;
+        width: 100%;
+        height: 100%;
+        padding: 52px 58px 72px;
+      }
+
+      .copy {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 24px;
+        color: var(--text-2);
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow::before {
+        content: "";
+        width: 44px;
+        height: 1px;
+        background: rgba(139, 189, 255, 0.65);
+      }
+
+      .eyebrow::after {
+        content: "";
+        width: 44px;
+        height: 1px;
+        background: rgba(139, 189, 255, 0.65);
+      }
+
+      h1 {
+        margin: 0;
+        max-width: 620px;
+        font-size: 62px;
+        line-height: 0.96;
+        letter-spacing: -0.045em;
+        font-weight: 760;
+      }
+
+      .lead {
+        margin: 24px 0 0;
+        max-width: 600px;
+        color: var(--text-1);
+        font-size: 24px;
+        line-height: 1.3;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 24px;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 14px;
+        border-radius: 999px;
+        border: 1px solid var(--chip-border);
+        background: var(--chip-bg);
+        color: var(--text-1);
+        font-size: 16px;
+        font-weight: 600;
+      }
+
+      .meta {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 22px;
+      }
+
+      .meta-card {
+        padding: 14px 16px;
+        border-radius: 18px;
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        background: rgba(10, 18, 31, 0.34);
+        backdrop-filter: blur(8px);
+      }
+
+      .meta-label {
+        color: rgba(191, 209, 233, 0.72);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+
+      .meta-value {
+        margin-top: 8px;
+        color: var(--text-0);
+        font-size: 20px;
+        line-height: 1.14;
+        font-weight: 700;
+      }
+
+      .site-line {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-top: auto;
+        padding-top: 26px;
+        color: rgba(191, 209, 233, 0.76);
+        font-size: 17px;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+      }
+
+      .site-line strong {
+        color: var(--text-0);
+      }
+
+      .preview {
+        position: relative;
+        min-width: 0;
+      }
+
+      .preview-card {
+        position: absolute;
+        inset: 18px 0 28px 0;
+        border-radius: 28px;
+        border: 1px solid var(--panel-border);
+        background: var(--panel-bg);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .preview-top {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 20px;
+        padding: 18px 22px 14px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+      }
+
+      .traffic {
+        display: flex;
+        gap: 8px;
+      }
+
+      .traffic span {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: rgba(203, 213, 225, 0.4);
+      }
+
+      .traffic span:nth-child(1) {
+        background: #ff7a7a;
+      }
+
+      .traffic span:nth-child(2) {
+        background: #ffd166;
+      }
+
+      .traffic span:nth-child(3) {
+        background: #7dd3a4;
+      }
+
+      .preview-url {
+        color: rgba(191, 209, 233, 0.72);
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .preview-inner {
+        position: relative;
+        height: calc(100% - 61px);
+        padding: 18px;
+      }
+
+      .preview-screen {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        border-radius: 20px;
+        overflow: hidden;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        background: #0b1220;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      }
+
+      .preview-image {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: 18% 0%;
+      }
+
+      .preview-screen::after {
+        content: "";
+        position: absolute;
+        inset: auto 0 0 0;
+        height: 140px;
+        background: linear-gradient(to top, rgba(6, 10, 18, 0.74), rgba(6, 10, 18, 0));
+        pointer-events: none;
+      }
+
+      .preview-flags {
+        position: absolute;
+        right: 16px;
+        bottom: 16px;
+        z-index: 1;
+      }
+
+      .preview-flag {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        background: rgba(8, 14, 24, 0.72);
+        backdrop-filter: blur(10px);
+        color: rgba(241, 245, 249, 0.94);
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="frame">
+      <section class="copy">
+        <div>
+          <div class="eyebrow">Repository Preview</div>
+          <h1>SaaS Foundations Demo</h1>
+          <p class="lead">
+            Portfolio-grade Next.js SaaS demo with real auth flows, dashboard UX patterns,
+            production-minded engineering, and reviewable implementation quality.
+          </p>
+
+          <div class="chips">
+            <div class="chip">Next.js</div>
+            <div class="chip">React</div>
+            <div class="chip">TypeScript</div>
+            <div class="chip">PostgreSQL</div>
+            <div class="chip">Node.js</div>
+          </div>
+
+          <div class="meta">
+            <div class="meta-card">
+              <div class="meta-label">Live Demo</div>
+              <div class="meta-value">Guest + Auth</div>
+            </div>
+            <div class="meta-card">
+              <div class="meta-label">Testing</div>
+              <div class="meta-value">Unit + E2E + Visual</div>
+            </div>
+            <div class="meta-card">
+              <div class="meta-label">Repo Posture</div>
+              <div class="meta-value">Review Only</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="site-line">
+          <span><strong>saasfoundationsdemo.com</strong></span>
+          <span>Built by Rocco Faranda</span>
+        </div>
+      </section>
+
+      <section class="preview">
+        <div class="preview-card">
+          <div class="preview-top">
+            <div class="traffic">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <div class="preview-url">github.com/roccofaranda/saas-foundations-demo</div>
+          </div>
+          <div class="preview-inner">
+            <div class="preview-screen">
+              <img
+                class="preview-image"
+                src="./dashboard-preview-dark.png"
+                alt="Dark theme dashboard preview from the live demo"
+              />
+              <div class="preview-flags">
+                <div class="preview-flag">/demo</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
