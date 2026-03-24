@@ -1,6 +1,8 @@
 import "server-only";
 import { Ratelimit, type Duration } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
+import { getDeploymentTarget, isProductionDeployment } from "./config/deployment";
+import { resolveUpstashRedisConfig } from "./config/upstash";
 
 export type AuthRateLimitAction =
   | "signup"
@@ -86,11 +88,8 @@ export function setRateLimiterFactoryForTests(factory: RateLimiterFactory | null
 }
 
 function hasUpstashEnv(): boolean {
-  return Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
-}
-
-function isProduction(): boolean {
-  return process.env.NODE_ENV === "production";
+  const { url, token } = resolveUpstashRedisConfig();
+  return Boolean(url && token);
 }
 
 function isUpstashRateLimitAnalyticsEnabled(): boolean {
@@ -101,11 +100,11 @@ function isUpstashRateLimitAnalyticsEnabled(): boolean {
   if (configured === "false") {
     return false;
   }
-  return isProduction();
+  return isProductionDeployment();
 }
 
 export function isInMemoryRateLimitFallbackEnabled(): boolean {
-  if (!isProduction()) {
+  if (!isProductionDeployment()) {
     return true;
   }
 
@@ -181,8 +180,13 @@ function createUpstashRateLimiter(
   limit: number,
   window: Duration
 ): RateLimiter {
+  const { url, token } = resolveUpstashRedisConfig();
+  if (!url || !token) {
+    throw new Error("Upstash Redis env is incomplete.");
+  }
+
   const ratelimit = new Ratelimit({
-    redis: Redis.fromEnv(),
+    redis: new Redis({ url, token }),
     limiter: Ratelimit.slidingWindow(limit, window),
     prefix: `auth:${action}`,
     analytics: isUpstashRateLimitAnalyticsEnabled(),
@@ -214,7 +218,7 @@ export function getAuthRateLimiter(action: AuthRateLimitAction): RateLimiter {
   const config = AUTH_RATE_LIMITS[action];
   const hasEnv = hasUpstashEnv();
   const allowFallback = isInMemoryRateLimitFallbackEnabled();
-  if (isProduction() && !hasEnv && !warnedMissingUpstashEnv) {
+  if (isProductionDeployment() && !hasEnv && !warnedMissingUpstashEnv) {
     warnedMissingUpstashEnv = true;
     if (allowFallback) {
       console.warn("[rate-limit] Upstash env not configured; falling back to in-memory limiter.");
@@ -225,7 +229,7 @@ export function getAuthRateLimiter(action: AuthRateLimitAction): RateLimiter {
 
   let limiter: RateLimiter;
 
-  if (process.env.NODE_ENV !== "test" && hasEnv) {
+  if (getDeploymentTarget() !== "test" && hasEnv) {
     try {
       limiter = createUpstashRateLimiter(action, config.limit, config.window);
     } catch (error) {

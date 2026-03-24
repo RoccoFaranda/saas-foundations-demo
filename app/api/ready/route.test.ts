@@ -22,6 +22,21 @@ describe("GET /api/ready", () => {
 
   it("returns 503 in production when READINESS_SECRET is missing", async () => {
     vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("READINESS_SECRET", "");
+
+    const response = await GET(new NextRequest("https://example.com/api/ready"));
+    const json = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get("cache-control")).toContain("no-store");
+    expect(json.error).toContain("not configured");
+    expect(getHealthReportMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 503 in preview when READINESS_SECRET is missing", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "preview");
     vi.stubEnv("READINESS_SECRET", "");
 
     const response = await GET(new NextRequest("https://example.com/api/ready"));
@@ -35,6 +50,7 @@ describe("GET /api/ready", () => {
 
   it("returns 401 when bearer token is missing or invalid", async () => {
     vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
     vi.stubEnv("READINESS_SECRET", "secret-token");
 
     const missingToken = await GET(new NextRequest("https://example.com/api/ready"));
@@ -51,6 +67,7 @@ describe("GET /api/ready", () => {
 
   it("returns 200 for healthy report with valid token", async () => {
     vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
     vi.stubEnv("READINESS_SECRET", "secret-token");
 
     const report = {
@@ -77,6 +94,7 @@ describe("GET /api/ready", () => {
 
   it("returns 503 for degraded report with valid token", async () => {
     vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
     vi.stubEnv("READINESS_SECRET", "secret-token");
 
     getHealthReportMock.mockResolvedValue({

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getRequiredSiteUrl } from "../config/deployment";
 
 export const SITE_NAME = "SaaS Foundations Demo";
 export const SITE_DESCRIPTION =
@@ -11,40 +12,13 @@ export const SOCIAL_IMAGE_SIZE = {
 export const OPEN_GRAPH_IMAGE_PATH = "/opengraph-image";
 export const TWITTER_IMAGE_PATH = "/twitter-image";
 
-const DEV_FALLBACK_SITE_URL = "http://localhost:3000";
-
 export const NO_INDEX_ROBOTS: Metadata["robots"] = {
   index: false,
   follow: false,
 };
 
-function isProductionEnv(): boolean {
-  return process.env.NODE_ENV === "production";
-}
-
 export function getSiteUrl(): URL {
-  const rawUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  const isProduction = isProductionEnv();
-
-  if (!rawUrl) {
-    if (isProduction) {
-      throw new Error("[config] NEXT_PUBLIC_APP_URL is required for metadata in production.");
-    }
-    return new URL(DEV_FALLBACK_SITE_URL);
-  }
-
-  try {
-    const parsed = new URL(rawUrl);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      throw new Error("NEXT_PUBLIC_APP_URL must start with http or https.");
-    }
-    return new URL(parsed.origin);
-  } catch {
-    if (isProduction) {
-      throw new Error(`[config] NEXT_PUBLIC_APP_URL is invalid: ${rawUrl}`);
-    }
-    return new URL(DEV_FALLBACK_SITE_URL);
-  }
+  return getRequiredSiteUrl();
 }
 
 export function getAbsoluteUrl(pathname: string): string {

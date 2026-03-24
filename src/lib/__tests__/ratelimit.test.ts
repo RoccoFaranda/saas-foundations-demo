@@ -10,6 +10,7 @@ import {
 describe("getAuthRateLimiter in production", () => {
   beforeEach(() => {
     vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
     vi.stubEnv("UPSTASH_REDIS_REST_URL", "");
     vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "");
     vi.stubEnv("ALLOW_IN_MEMORY_RATE_LIMIT_FALLBACK", "");

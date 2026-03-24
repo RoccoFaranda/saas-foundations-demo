@@ -1,4 +1,5 @@
 import "server-only";
+import { resolveAppUrl } from "./config/deployment";
 
 export type HealthStatus = "ok" | "degraded";
 export type HealthCheckStatus = "ok" | "error";
@@ -46,34 +47,12 @@ export async function checkDatabaseHealth(
   }
 }
 
-function isAbsoluteHttpUrl(value: string): boolean {
-  try {
-    const parsed = new URL(value);
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
-
 export function checkAppUrlHealth(): HealthCheckResult {
-  const rawUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  const isProduction = process.env.NODE_ENV === "production";
-
-  if (!rawUrl) {
-    if (isProduction) {
-      return {
-        status: "error",
-        message: "NEXT_PUBLIC_APP_URL is missing in production.",
-      };
-    }
-
-    return { status: "ok" };
-  }
-
-  if (!isAbsoluteHttpUrl(rawUrl)) {
+  const appUrl = resolveAppUrl();
+  if (!appUrl.ok) {
     return {
       status: "error",
-      message: "NEXT_PUBLIC_APP_URL must be an absolute http(s) URL.",
+      message: appUrl.message,
     };
   }
 

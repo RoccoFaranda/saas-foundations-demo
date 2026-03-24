@@ -1,4 +1,5 @@
 import "server-only";
+import { getDeploymentTarget, isProductionDeployment, parseBooleanEnv } from "../config/deployment";
 
 export type TurnstilePolicy = {
   validSiteKey: boolean;
@@ -11,13 +12,6 @@ export type TurnstilePolicy = {
 
 let warnedTurnstileBypass = false;
 let warnedTurnstileMisconfigured = false;
-
-function parseBooleanEnv(value: string | undefined): boolean {
-  if (!value) {
-    return false;
-  }
-  return ["1", "true", "yes", "on"].includes(value.trim().toLowerCase());
-}
 
 const TEST_SITE_KEYS = new Set([
   "1x00000000000000000000AA",
@@ -58,13 +52,14 @@ function isLikelyTurnstileKey(
 export function getTurnstilePolicy(): TurnstilePolicy {
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() ?? "";
   const secretKey = process.env.TURNSTILE_SECRET_KEY?.trim() ?? "";
-  const allowTestKeys = process.env.NODE_ENV !== "production";
+  const deploymentTarget = getDeploymentTarget();
+  const allowTestKeys = !isProductionDeployment();
   const validSiteKey = isLikelyTurnstileKey(siteKey, 20, TEST_SITE_KEYS, allowTestKeys);
   const validSecretKey = isLikelyTurnstileKey(secretKey, 32, TEST_SECRET_KEYS, allowTestKeys);
   const bypass = parseBooleanEnv(process.env.TURNSTILE_ALLOW_BYPASS);
-  const required = process.env.NODE_ENV === "production" && !bypass;
+  const required = isProductionDeployment() && !bypass;
 
-  if (process.env.NODE_ENV !== "test") {
+  if (deploymentTarget !== "test") {
     if (bypass && !warnedTurnstileBypass) {
       warnedTurnstileBypass = true;
       console.warn("[turnstile] Bypass enabled; verification is disabled.");
@@ -99,7 +94,7 @@ export async function verifyTurnstileToken(token: string | null): Promise<boolea
 
   // If no secret key configured, skip verification (dev/test)
   if (!secretKey) {
-    return process.env.NODE_ENV !== "production";
+    return !isProductionDeployment();
   }
 
   // If no token provided, fail verification

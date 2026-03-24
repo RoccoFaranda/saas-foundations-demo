@@ -109,6 +109,7 @@ For database setup details, see [Architecture Documentation](./docs/architecture
 | -------------------------- | ------------------------------------------------------------------- |
 | `pnpm dev`                 | Start development server                                            |
 | `pnpm build`               | Build for production                                                |
+| `pnpm check:deploy-env`    | Validate preview/production deployment env contract                 |
 | `pnpm start`               | Start production server                                             |
 | `pnpm lint`                | Run ESLint                                                          |
 | `pnpm format`              | Format code with Prettier                                           |
@@ -139,8 +140,12 @@ Production-critical categories include:
 - email and contact metadata: `RESEND_API_KEY`, `EMAIL_FROM`, `SUPPORT_EMAIL`, `PUBLIC_CONTACT_EMAIL`, `LEGAL_CONTACT_EMAIL`
 - readiness and cron protection: `READINESS_SECRET`, `CRON_SECRET`
 - consent signing: `CONSENT_AUDIT_SIGNING_SECRET`
-- rate limiting: `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`
+- rate limiting: `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` (or Vercel/Upstash integration aliases `KV_REST_API_URL`, `KV_REST_API_TOKEN`)
 - bot protection: `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`
+
+The build now validates a shared deployment contract before `next build` completes. In Vercel previews, `NEXT_PUBLIC_APP_URL` can fall back to `VERCEL_URL`; production still expects an explicit canonical `NEXT_PUBLIC_APP_URL`.
+
+Vercel deployments use `pnpm deploy:vercel`, which runs `prisma migrate deploy` before `next build`. Preview deployments should point at isolated databases (for example, Neon branch-per-preview) so schema changes are applied against the preview branch before the app is built.
 
 ## Operations Notes
 
@@ -149,7 +154,7 @@ Production-critical categories include:
 - `GET /api/health`: public liveness check
 - `GET /api/ready`: protected readiness check with dependency probes
 
-In production, `/api/ready` expects `Authorization: Bearer <READINESS_SECRET>`.
+In deployed preview and production environments, `/api/ready` expects `Authorization: Bearer <READINESS_SECRET>`.
 
 ### SEO
 
@@ -179,6 +184,12 @@ pnpm test:e2e:snapshots -- --scope <scope> --target <target>
 ### Vercel Firewall
 
 Production currently enforces an edge rate-limit rule for `GET /api/health` at `30 requests/minute/IP`.
+
+### Vercel Deploys
+
+- Vercel build command: `pnpm deploy:vercel`
+- Deploy order: `prisma migrate deploy` then `next build`
+- Safe rollout expectation: keep Prisma migrations backward-compatible so the previous deployment can keep serving traffic while the new deployment is building
 
 ## Project Structure
 

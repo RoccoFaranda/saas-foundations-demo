@@ -2,6 +2,7 @@ import "server-only";
 import { Resend } from "resend";
 import { appendDevMailboxMessage } from "./dev-mailbox";
 import { getSupportEmail } from "../config/support-email";
+import { getDeploymentTarget, isProductionDeployment, parseBooleanEnv } from "../config/deployment";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -97,14 +98,6 @@ export const testEmailHelpers = {
   reset: () => mailbox.reset(),
 };
 
-function parseBooleanEnv(value: string | undefined): boolean {
-  if (!value) {
-    return false;
-  }
-
-  return ["1", "true", "yes", "on"].includes(value.trim().toLowerCase());
-}
-
 function normalizeEmailAddress(rawValue: string | undefined): string | null {
   if (!rawValue) {
     return null;
@@ -193,8 +186,9 @@ function parseConfiguredEmailProvider(provider: string): EmailProvider {
 }
 
 function resolveEmailProvider(): EmailProvider {
-  // Tests are always isolated to the in-memory adapter.
-  if (process.env.NODE_ENV === "test") {
+  const target = getDeploymentTarget();
+
+  if (target === "test") {
     return "test";
   }
 
@@ -203,7 +197,7 @@ function resolveEmailProvider(): EmailProvider {
     return parseConfiguredEmailProvider(configuredProvider);
   }
 
-  if (process.env.NODE_ENV === "development") {
+  if (target === "development") {
     return "dev-mailbox";
   }
 
@@ -211,7 +205,7 @@ function resolveEmailProvider(): EmailProvider {
 }
 
 function assertProductionDevMailboxGate(provider: EmailProvider): void {
-  if (process.env.NODE_ENV !== "production") {
+  if (!isProductionDeployment()) {
     return;
   }
 
@@ -270,7 +264,7 @@ export function isDevMailboxAccessAllowed(): boolean {
     return false;
   }
 
-  if (process.env.NODE_ENV === "production" && !isDevMailboxAllowedInProduction()) {
+  if (isProductionDeployment() && !isDevMailboxAllowedInProduction()) {
     return false;
   }
 

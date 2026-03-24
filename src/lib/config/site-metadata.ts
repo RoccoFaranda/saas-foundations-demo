@@ -1,12 +1,10 @@
+import { isDeployedEnvironment } from "./deployment";
+
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const DEFAULT_PUBLIC_CONTACT_EMAIL = "hello@saasfoundationsdemo.com";
 const DEFAULT_LEGAL_CONTACT_EMAIL = "legal@saasfoundationsdemo.com";
 const DEFAULT_LEGAL_CONTROLLER_NAME = "Rocco Faranda (SaaS Foundations Demo)";
-
-function isProductionEnv(): boolean {
-  return process.env.NODE_ENV === "production";
-}
 
 function readRequiredTextEnv({
   key,
@@ -24,14 +22,14 @@ function readRequiredTextEnv({
   const value = trimmed && trimmed.length > 0 ? trimmed : null;
 
   if (!value) {
-    if (isProductionEnv()) {
-      throw new Error(`[config] ${key} is required in production.`);
+    if (isDeployedEnvironment()) {
+      throw new Error(`[config] ${key} is required for deployed environments.`);
     }
     return fallback;
   }
 
   if (validator && !validator(value)) {
-    if (isProductionEnv()) {
+    if (isDeployedEnvironment()) {
       throw new Error(validationMessage ?? `[config] ${key} is invalid.`);
     }
     return fallback;

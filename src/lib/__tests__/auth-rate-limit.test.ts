@@ -194,6 +194,7 @@ describe("auth rate limiting", () => {
 
   it("fails closed when limiter throws and fallback is disabled in production", async () => {
     vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
     vi.stubEnv("ALLOW_IN_MEMORY_RATE_LIMIT_FALLBACK", "false");
 
     const throwingLimiter: RateLimiter = {

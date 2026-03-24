@@ -1,4 +1,5 @@
 {
+  "buildCommand": "pnpm deploy:vercel",
   "crons": [
     {
       "path": "/api/internal/account-deletion/purge",
