@@ -345,6 +345,7 @@ export function StickyDashboardStory() {
                 >
                   <div className="w-252 bg-background">
                     <DashboardStoryShell
+                      titleAs="div"
                       title="Dashboard"
                       subtitle="Welcome back! Here's an overview of your projects."
                       kpis={kpis}
