@@ -187,9 +187,23 @@ Production currently enforces an edge rate-limit rule for `GET /api/health` at `
 
 ### Vercel Deploys
 
+- Production branch: `main`
+- Merges to `main` trigger Vercel production deployments
+- Pushes to non-`main` remote branches create Vercel preview deployments by default
 - Vercel build command: `pnpm deploy:vercel`
+- Docs-only changes can be skipped by the repo `ignoreCommand`
 - Deploy order: `prisma migrate deploy` then `next build`
 - Safe rollout expectation: keep Prisma migrations backward-compatible so the previous deployment can keep serving traffic while the new deployment is building
+
+### Rollback And Recovery
+
+- Code backup/source of truth: GitHub history and pull requests
+- Fast code rollback: use Vercel deployment history, Instant Rollback, or promote a known-good deployment
+- Important: Vercel code rollback does not undo Prisma migrations or database data changes
+- Redeploying older code is not a database rollback: `prisma migrate deploy` only applies pending migrations and does not revert already-applied schema changes
+- Database rollback/recovery: use Neon Backup & Restore, point-in-time restore, or snapshots when schema/data changes need to be undone
+- Production migration policy: prefer backward-compatible expand/contract migrations so most app rollbacks can leave the database in place
+- Before risky or destructive migrations: take a Neon restore point or snapshot first
 
 ## Project Structure
 
