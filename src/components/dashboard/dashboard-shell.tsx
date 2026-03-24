@@ -36,6 +36,8 @@ export interface DashboardShellProps {
   testId?: string;
   /** Page title */
   title: string;
+  /** Optional HTML tag for the page title */
+  titleAs?: "h1" | "div";
   /** Page subtitle */
   subtitle: string;
   /** Optional header content (e.g., GuestModeBanner) */
@@ -84,6 +86,7 @@ export interface DashboardShellProps {
 export function DashboardShell({
   testId = "dashboard-page",
   title,
+  titleAs: TitleTag = "h1",
   subtitle,
   headerContent,
   kpis,
@@ -109,7 +112,7 @@ export function DashboardShell({
       {/* Page Header */}
       <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{title}</h1>
+          <TitleTag className="text-2xl font-bold">{title}</TitleTag>
           <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
         </div>
         {headerContent}
