@@ -1,5 +1,6 @@
 {
   "buildCommand": "pnpm deploy:vercel",
+  "ignoreCommand": "node scripts/vercel/ignore-build.mjs",
   "crons": [
     {
       "path": "/api/internal/account-deletion/purge",
