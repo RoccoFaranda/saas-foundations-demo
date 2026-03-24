@@ -17,6 +17,7 @@ describe("GET /api/dev/mailbox", () => {
 
   it("returns 404 when dev mailbox access is not allowed", async () => {
     vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
 
     const response = await GET();
     const payload = await response.json();
@@ -62,6 +63,7 @@ describe("GET /api/dev/mailbox", () => {
 
   it("returns messages in production when explicitly gated on", async () => {
     vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
     vi.stubEnv("EMAIL_PROVIDER", "dev-mailbox");
     vi.stubEnv("ALLOW_DEV_MAILBOX_IN_PROD", "true");
     getDevMailboxMessagesMock.mockResolvedValue([
@@ -88,6 +90,7 @@ describe("GET /api/dev/mailbox", () => {
 
   it("returns 404 in production when provider is dev-mailbox but allow flag is missing", async () => {
     vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
     vi.stubEnv("EMAIL_PROVIDER", "dev-mailbox");
 
     const response = await GET();

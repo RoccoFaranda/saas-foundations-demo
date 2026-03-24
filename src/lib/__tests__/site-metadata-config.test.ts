@@ -57,6 +57,7 @@ describe("site metadata env config", () => {
 
   it("throws in production when required contact values are missing", () => {
     vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
     delete process.env.PUBLIC_CONTACT_EMAIL;
     delete process.env.LEGAL_CONTACT_EMAIL;
     delete process.env.LEGAL_CONTROLLER_NAME;
@@ -80,6 +81,7 @@ describe("site metadata env config", () => {
 
   it("throws in production when required email values are invalid", () => {
     vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
     vi.stubEnv("PUBLIC_CONTACT_EMAIL", "invalid-email");
     vi.stubEnv("LEGAL_CONTACT_EMAIL", "not-an-email");
 
@@ -89,6 +91,7 @@ describe("site metadata env config", () => {
 
   it("treats optional legal address and dpo values as nullable", () => {
     vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
     vi.stubEnv("LEGAL_CONTACT_ADDRESS", "  ");
     delete process.env.LEGAL_DPO_CONTACT;
 

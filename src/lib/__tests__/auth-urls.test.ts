@@ -49,6 +49,7 @@ describe("getAppUrl", () => {
 
   it("throws and logs in production when missing", () => {
     vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
     delete process.env.NEXT_PUBLIC_APP_URL;
 
     expect(() => getAppUrl()).toThrow("NEXT_PUBLIC_APP_URL");
@@ -57,6 +58,7 @@ describe("getAppUrl", () => {
 
   it("throws and logs in production when invalid", () => {
     vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "ftp://example.com");
 
     expect(() => getAppUrl()).toThrow("NEXT_PUBLIC_APP_URL");
@@ -70,6 +72,14 @@ describe("getAppUrl", () => {
     delete process.env.NEXT_PUBLIC_APP_URL;
 
     expect(getAppUrl()).toBe("https://preview-demo.vercel.app");
+    expect(logAuthEventMock).not.toHaveBeenCalled();
+  });
+
+  it("falls back to localhost in generic production-mode builds without Vercel deployment env", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    delete process.env.NEXT_PUBLIC_APP_URL;
+
+    expect(getAppUrl()).toBe("http://localhost:3000");
     expect(logAuthEventMock).not.toHaveBeenCalled();
   });
 });

@@ -31,6 +31,7 @@ import { PRIVACY_VERSION, TERMS_VERSION } from "../../content/legal/legal-metada
 
 describe("signup", () => {
   beforeEach(() => {
+    vi.unstubAllEnvs();
     testEmailHelpers.reset();
     authMock.mockReset();
     signInMock.mockReset();
@@ -204,6 +205,7 @@ describe("signup", () => {
     const originalSecret = process.env.TURNSTILE_SECRET_KEY;
 
     vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
     vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "");
     vi.stubEnv("TURNSTILE_SECRET_KEY", originalSecret ?? "secret-key");
 
@@ -225,6 +227,10 @@ describe("signup", () => {
   });
 
   it("should fail when Turnstile verification fetch errors", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "live_turnstile_site_key_placeholder_123456");
+    vi.stubEnv("TURNSTILE_SECRET_KEY", "live_turnstile_secret_key_placeholder_1234567890");
     fetchMock.mockRejectedValueOnce(new Error("Network error"));
 
     const email = `signup-test-${randomUUID()}@example.com`;
@@ -243,6 +249,10 @@ describe("signup", () => {
   });
 
   it("should fail when Turnstile verification returns non-ok response", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "live_turnstile_site_key_placeholder_123456");
+    vi.stubEnv("TURNSTILE_SECRET_KEY", "live_turnstile_secret_key_placeholder_1234567890");
     fetchMock.mockResolvedValueOnce({
       ok: false,
       status: 500,

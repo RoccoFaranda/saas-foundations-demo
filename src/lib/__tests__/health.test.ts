@@ -41,6 +41,7 @@ describe("checkAppUrlHealth", () => {
 
   it("returns error in production when NEXT_PUBLIC_APP_URL is missing", () => {
     vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
     delete process.env.NEXT_PUBLIC_APP_URL;
 
     expect(checkAppUrlHealth()).toEqual({
@@ -51,6 +52,7 @@ describe("checkAppUrlHealth", () => {
 
   it("returns error when NEXT_PUBLIC_APP_URL is invalid", () => {
     vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "ftp://example.com");
 
     expect(checkAppUrlHealth()).toEqual({
@@ -63,6 +65,13 @@ describe("checkAppUrlHealth", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("VERCEL_ENV", "preview");
     vi.stubEnv("VERCEL_URL", "preview-demo.vercel.app");
+    delete process.env.NEXT_PUBLIC_APP_URL;
+
+    expect(checkAppUrlHealth()).toEqual({ status: "ok" });
+  });
+
+  it("returns ok in generic production-mode builds when no Vercel deployment env is present", () => {
+    vi.stubEnv("NODE_ENV", "production");
     delete process.env.NEXT_PUBLIC_APP_URL;
 
     expect(checkAppUrlHealth()).toEqual({ status: "ok" });

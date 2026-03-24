@@ -91,6 +91,7 @@ describe("email provider resolution", () => {
 
   it("defaults to resend adapter in production", async () => {
     vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
     vi.stubEnv("RESEND_API_KEY", "test-key");
     vi.stubEnv("EMAIL_FROM", "noreply@example.com");
     const { getEmailAdapter } = await loadEmailModule();
@@ -109,6 +110,7 @@ describe("email provider resolution", () => {
 
   it("forwards replyTo and tags to resend when provided in message", async () => {
     vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
     vi.stubEnv("RESEND_API_KEY", "test-key");
     vi.stubEnv("EMAIL_FROM", "noreply@example.com");
     const { getEmailAdapter } = await loadEmailModule();
@@ -138,6 +140,7 @@ describe("email provider resolution", () => {
 
   it("uses EMAIL_REPLY_TO when message replyTo is not provided", async () => {
     vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
     vi.stubEnv("RESEND_API_KEY", "test-key");
     vi.stubEnv("EMAIL_FROM", "noreply@example.com");
     vi.stubEnv("EMAIL_REPLY_TO", "replyto@example.com");
@@ -160,6 +163,7 @@ describe("email provider resolution", () => {
 
   it("falls back to SUPPORT_EMAIL when EMAIL_REPLY_TO is unset", async () => {
     vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
     vi.stubEnv("RESEND_API_KEY", "test-key");
     vi.stubEnv("EMAIL_FROM", "noreply@example.com");
     vi.stubEnv("SUPPORT_EMAIL", "support@example.com");
@@ -207,6 +211,7 @@ describe("email provider resolution", () => {
 
   it("fails closed in production when EMAIL_PROVIDER=dev-mailbox and allow flag is missing", async () => {
     vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
     vi.stubEnv("EMAIL_PROVIDER", "dev-mailbox");
     const { getEmailAdapter } = await loadEmailModule();
 
@@ -215,6 +220,7 @@ describe("email provider resolution", () => {
 
   it("allows EMAIL_PROVIDER=dev-mailbox in production with allow flag", async () => {
     vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
     vi.stubEnv("EMAIL_PROVIDER", "dev-mailbox");
     vi.stubEnv("ALLOW_DEV_MAILBOX_IN_PROD", "true");
     const { getEmailAdapter } = await loadEmailModule();
@@ -232,6 +238,7 @@ describe("email provider resolution", () => {
 
   it("attempts both sends in resend+dev-mailbox mode", async () => {
     vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
     vi.stubEnv("EMAIL_PROVIDER", "resend+dev-mailbox");
     vi.stubEnv("ALLOW_DEV_MAILBOX_IN_PROD", "true");
     vi.stubEnv("RESEND_API_KEY", "test-key");
@@ -251,6 +258,7 @@ describe("email provider resolution", () => {
 
   it("keeps resend authoritative in dual mode when mailbox append fails", async () => {
     vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
     vi.stubEnv("EMAIL_PROVIDER", "resend+dev-mailbox");
     vi.stubEnv("ALLOW_DEV_MAILBOX_IN_PROD", "true");
     vi.stubEnv("RESEND_API_KEY", "test-key");
@@ -284,6 +292,7 @@ describe("email provider resolution", () => {
 
   it("still attempts mailbox append when resend fails, then throws resend error", async () => {
     vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
     vi.stubEnv("EMAIL_PROVIDER", "resend+dev-mailbox");
     vi.stubEnv("ALLOW_DEV_MAILBOX_IN_PROD", "true");
     vi.stubEnv("RESEND_API_KEY", "test-key");
@@ -321,6 +330,7 @@ describe("email provider resolution", () => {
 
   it("returns true for production dev-mailbox override only when allow flag is set", async () => {
     vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
     vi.stubEnv("EMAIL_PROVIDER", "dev-mailbox");
     const { isDevMailboxAccessAllowed } = await loadEmailModule();
 

@@ -48,6 +48,10 @@ export function parseBooleanEnv(value: string | undefined): boolean {
   return ["1", "true", "yes", "on"].includes(value.trim().toLowerCase());
 }
 
+function hasVercelDeploymentSignal(env: EnvironmentMap = process.env): boolean {
+  return parseBooleanEnv(env.VERCEL) || Boolean(normalizeEnvValue(env.VERCEL_ENV));
+}
+
 export function getDeploymentTarget(env: EnvironmentMap = process.env): DeploymentTarget {
   const nodeEnv = normalizeEnvValue(env.NODE_ENV)?.toLowerCase();
   const vercelEnv = normalizeEnvValue(env.VERCEL_ENV)?.toLowerCase();
@@ -64,7 +68,7 @@ export function getDeploymentTarget(env: EnvironmentMap = process.env): Deployme
     return "preview";
   }
 
-  if (nodeEnv === "production") {
+  if (nodeEnv === "production" && hasVercelDeploymentSignal(env)) {
     return "production";
   }
 
@@ -76,6 +80,10 @@ export function isProductionDeployment(env: EnvironmentMap = process.env): boole
 }
 
 export function isDeployedEnvironment(env: EnvironmentMap = process.env): boolean {
+  if (!hasVercelDeploymentSignal(env)) {
+    return false;
+  }
+
   const target = getDeploymentTarget(env);
   return target === "preview" || target === "production";
 }
