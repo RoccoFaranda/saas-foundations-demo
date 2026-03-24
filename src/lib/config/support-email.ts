@@ -1,3 +1,5 @@
+import { isDeployedEnvironment } from "./deployment";
+
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function normalizeSupportEmail(rawValue: string | undefined): string | null {
@@ -11,7 +13,7 @@ function normalizeSupportEmail(rawValue: string | undefined): string | null {
   }
 
   if (!EMAIL_PATTERN.test(trimmed)) {
-    if (process.env.NODE_ENV === "production") {
+    if (isDeployedEnvironment()) {
       throw new Error("[config] SUPPORT_EMAIL must be a valid email address.");
     }
     return null;
@@ -26,8 +28,8 @@ export function getSupportEmail(): string | null {
     return supportEmail;
   }
 
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("[config] SUPPORT_EMAIL is required in production.");
+  if (isDeployedEnvironment()) {
+    throw new Error("[config] SUPPORT_EMAIL is required for deployed environments.");
   }
 
   return null;

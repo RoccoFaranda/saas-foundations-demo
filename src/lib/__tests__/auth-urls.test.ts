@@ -62,4 +62,14 @@ describe("getAppUrl", () => {
     expect(() => getAppUrl()).toThrow("NEXT_PUBLIC_APP_URL");
     expect(logAuthEventMock).toHaveBeenCalledWith("app_url_missing");
   });
+
+  it("uses the preview deployment URL when NEXT_PUBLIC_APP_URL is unset in preview", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "preview");
+    vi.stubEnv("VERCEL_URL", "preview-demo.vercel.app");
+    delete process.env.NEXT_PUBLIC_APP_URL;
+
+    expect(getAppUrl()).toBe("https://preview-demo.vercel.app");
+    expect(logAuthEventMock).not.toHaveBeenCalled();
+  });
 });

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isDeployedEnvironment } from "@/src/lib/config/deployment";
 import { getHealthReport } from "@/src/lib/health";
 
 export const dynamic = "force-dynamic";
@@ -21,10 +22,9 @@ function getBearerToken(request: Request): string | null {
 
 export async function GET(request: Request) {
   const readinessSecret = process.env.READINESS_SECRET?.trim() ?? "";
-  const isProduction = process.env.NODE_ENV === "production";
   const bearerToken = getBearerToken(request);
 
-  if (isProduction && !readinessSecret) {
+  if (isDeployedEnvironment() && !readinessSecret) {
     return NextResponse.json(
       { error: "Readiness endpoint is not configured." },
       { status: 503, headers: noStoreHeaders() }

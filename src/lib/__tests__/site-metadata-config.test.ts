@@ -66,6 +66,18 @@ describe("site metadata env config", () => {
     expect(() => getLegalControllerName()).toThrow("LEGAL_CONTROLLER_NAME");
   });
 
+  it("throws in preview deployments when required contact values are missing", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "preview");
+    delete process.env.PUBLIC_CONTACT_EMAIL;
+    delete process.env.LEGAL_CONTACT_EMAIL;
+    delete process.env.LEGAL_CONTROLLER_NAME;
+
+    expect(() => getPublicContactEmail()).toThrow("PUBLIC_CONTACT_EMAIL");
+    expect(() => getLegalContactEmail()).toThrow("LEGAL_CONTACT_EMAIL");
+    expect(() => getLegalControllerName()).toThrow("LEGAL_CONTROLLER_NAME");
+  });
+
   it("throws in production when required email values are invalid", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("PUBLIC_CONTACT_EMAIL", "invalid-email");

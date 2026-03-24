@@ -45,7 +45,7 @@ describe("checkAppUrlHealth", () => {
 
     expect(checkAppUrlHealth()).toEqual({
       status: "error",
-      message: "NEXT_PUBLIC_APP_URL is missing in production.",
+      message: "NEXT_PUBLIC_APP_URL is required for production deployments.",
     });
   });
 
@@ -57,6 +57,15 @@ describe("checkAppUrlHealth", () => {
       status: "error",
       message: "NEXT_PUBLIC_APP_URL must be an absolute http(s) URL.",
     });
+  });
+
+  it("returns ok in preview when VERCEL_URL is available", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "preview");
+    vi.stubEnv("VERCEL_URL", "preview-demo.vercel.app");
+    delete process.env.NEXT_PUBLIC_APP_URL;
+
+    expect(checkAppUrlHealth()).toEqual({ status: "ok" });
   });
 });
 
