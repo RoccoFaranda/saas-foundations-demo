@@ -1,0 +1,38 @@
+name: PR Title
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, edited, reopened, synchronize, ready_for_review]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  pr-title:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate PR title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          node <<'EOF'
+          const title = process.env.PR_TITLE ?? "";
+          const conventionalTitle =
+            /^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([^)]+\))?!?: .+$/;
+
+          if (!conventionalTitle.test(title)) {
+            console.error("Pull request titles must follow Conventional Commits.");
+            console.error("Expected: type(scope): summary");
+            console.error("Example: fix(auth): handle expired session");
+            console.error(`Received: ${title}`);
+            process.exit(1);
+          }
+
+          console.log(`Valid PR title: ${title}`);
+          EOF
