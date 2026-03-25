@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { verifyEmailChange } from "@/src/lib/auth/actions";
+import { useSessionRefreshOnVisible } from "@/src/lib/auth/use-session-refresh-on-visible";
 import { AuthWordmark } from "@/src/components/auth/auth-wordmark";
 import { LegalInlineLinks } from "@/src/components/legal/legal-inline-links";
 import { GENERIC_ACTION_ERROR } from "@/src/lib/ui/messages";
@@ -16,6 +17,7 @@ type VerifyEmailChangeClientProps = {
 export default function VerifyEmailChangeClient({ token }: VerifyEmailChangeClientProps) {
   const router = useRouter();
   const { update, data: session } = useSession();
+  useSessionRefreshOnVisible();
   const [verifyState, setVerifyState] = useState<"success" | "error" | null>(
     token ? null : "error"
   );

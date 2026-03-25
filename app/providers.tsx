@@ -16,7 +16,7 @@ export function Providers({
   initialConsentState: ConsentState | null;
 }) {
   return (
-    <SessionProvider>
+    <SessionProvider refetchOnWindowFocus={false}>
       <ThemeProvider attribute="class" defaultTheme={defaultTheme} enableSystem>
         <ConsentProvider initialConsentState={initialConsentState}>
           <ToastProvider>{children}</ToastProvider>
