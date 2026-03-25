@@ -170,10 +170,8 @@ function Draw-Icon {
     $graphics.Clear([System.Drawing.Color]::Transparent)
 
     if ($Shape -eq "circle") {
-      $margin = [Math]::Round($Size * 0.07)
-      $diameter = $Size - ($margin * 2)
-      $graphics.FillEllipse((New-Object System.Drawing.SolidBrush($blue)), $margin, $margin, $diameter, $diameter)
-      $textPath = Get-TextPath -Text "SF" -CanvasSize $Size -TargetWidth ($Size * 0.50) -TargetHeight ($Size * 0.29)
+      $graphics.FillEllipse((New-Object System.Drawing.SolidBrush($blue)), 0, 0, $Size, $Size)
+      $textPath = Get-TextPath -Text "SF" -CanvasSize $Size -TargetWidth ($Size * 0.54) -TargetHeight ($Size * 0.31)
     }
     else {
       $graphics.FillRectangle((New-Object System.Drawing.SolidBrush($blue)), 0, 0, $Size, $Size)
@@ -207,9 +205,9 @@ function Draw-Favicon {
   try {
     Set-GraphicsQuality -Graphics $graphics
     $graphics.Clear([System.Drawing.Color]::Transparent)
-    $graphics.FillEllipse((New-Object System.Drawing.SolidBrush($blue)), 4, 4, 56, 56)
+    $graphics.FillEllipse((New-Object System.Drawing.SolidBrush($blue)), 0, 0, 64, 64)
 
-    $textPath = Get-TextPath -Text "SF" -CanvasSize 64 -TargetWidth 31 -TargetHeight 18
+    $textPath = Get-TextPath -Text "SF" -CanvasSize 64 -TargetWidth 34 -TargetHeight 20
     $textBrush = New-Object System.Drawing.SolidBrush($white)
     $graphics.FillPath($textBrush, $textPath)
 
