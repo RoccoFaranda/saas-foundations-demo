@@ -357,7 +357,7 @@ function EditItemForm({
                         checked={item.done}
                         onChange={() => toggleChecklistItem(item.id)}
                         disabled={isFormLocked}
-                        className="focus-ring mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-border-strong"
+                        className="form-checkbox focus-ring mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-border-strong"
                         data-testid={`checklist-checkbox-${item.id}`}
                       />
                       <span

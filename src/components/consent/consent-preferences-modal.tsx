@@ -153,7 +153,7 @@ function ConsentPreferencesModalBody({
               type="checkbox"
               checked
               disabled
-              className="mt-1 h-4 w-4 rounded border-border text-primary"
+              className="form-checkbox mt-1 h-4 w-4 rounded border-border text-primary"
               aria-label="Necessary cookies"
             />
             <span>
@@ -177,7 +177,7 @@ function ConsentPreferencesModalBody({
               checked={functional}
               disabled={isActionsDisabled || gpcLocked}
               onChange={(event) => setFunctional(event.currentTarget.checked)}
-              className="mt-1 h-4 w-4 rounded border-border text-primary focus-ring"
+              className="form-checkbox mt-1 h-4 w-4 rounded border-border text-primary focus-ring"
               aria-label="Functional cookies"
             />
             <span>
@@ -201,7 +201,7 @@ function ConsentPreferencesModalBody({
               checked={analytics}
               disabled={isActionsDisabled || gpcLocked}
               onChange={(event) => setAnalytics(event.currentTarget.checked)}
-              className="mt-1 h-4 w-4 rounded border-border text-primary focus-ring"
+              className="form-checkbox mt-1 h-4 w-4 rounded border-border text-primary focus-ring"
               aria-label="Analytics cookies"
             />
             <span>
@@ -225,7 +225,7 @@ function ConsentPreferencesModalBody({
               checked={marketing}
               disabled={isActionsDisabled || gpcLocked}
               onChange={(event) => setMarketing(event.currentTarget.checked)}
-              className="mt-1 h-4 w-4 rounded border-border text-primary focus-ring"
+              className="form-checkbox mt-1 h-4 w-4 rounded border-border text-primary focus-ring"
               aria-label="Marketing cookies"
             />
             <span>

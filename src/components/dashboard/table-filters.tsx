@@ -158,7 +158,7 @@ export function TableFilters({
             type="checkbox"
             checked={showArchived}
             onChange={(e) => onShowArchivedChange(e.target.checked)}
-            className="h-3.5 w-3.5 cursor-pointer rounded-sm focus-ring-inset"
+            className="form-checkbox h-3.5 w-3.5 cursor-pointer rounded-sm focus-ring-inset"
           />
           <span className="whitespace-nowrap text-xs sm:text-sm">Show archived</span>
         </label>
