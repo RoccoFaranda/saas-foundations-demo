@@ -166,7 +166,7 @@ export default function SignupClient({
               value="true"
               required
               disabled={isPending}
-              className="mt-1 h-4 w-4 rounded border-border text-primary focus-ring"
+              className="form-checkbox mt-1 h-4 w-4 rounded border-border text-primary focus-ring"
             />
             <label htmlFor="termsAccepted" className="text-sm leading-5 text-muted-foreground">
               By creating an account, I confirm I have read and agree to the{" "}
