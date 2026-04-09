@@ -307,4 +307,43 @@ describe("api/consent/audit route", () => {
     expect(body.persisted).toBe(false);
     expect(body.reason).toBe("retry_later");
   });
+
+  it("accepts duplicate replay when the adapter surfaces a Postgres unique violation", async () => {
+    const duplicatePrimaryKeyError = new Error("Unique constraint failed on the fields: (`id`)");
+    Object.assign(duplicatePrimaryKeyError, {
+      code: "P2002",
+      meta: {
+        modelName: "CookieConsentEvent",
+        driverAdapterError: {
+          cause: {
+            originalCode: "23505",
+            originalMessage:
+              'duplicate key value violates unique constraint "cookie_consent_events_pkey"',
+            constraint: { fields: ["id"] },
+          },
+        },
+      },
+    });
+    createConsentEventMock.mockRejectedValue(duplicatePrimaryKeyError);
+
+    const state = createReplayState("consent-1");
+    const replayToken = buildReplayToken({ state });
+
+    const response = await POST(
+      new Request("https://example.com/api/consent/audit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `sf_consent=${serializeConsentStateForCookie(state)}`,
+        },
+        body: JSON.stringify({ replayToken }),
+      })
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.auditAccepted).toBe(true);
+    expect(body.persisted).toBe(false);
+    expect(body.reason).toBe("duplicate_event");
+  });
 });
