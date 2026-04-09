@@ -90,6 +90,15 @@ function isDuplicateAuditEventError(error: unknown): boolean {
     message?: string;
     meta?: {
       target?: string[] | string;
+      driverAdapterError?: {
+        cause?: {
+          originalCode?: string;
+          originalMessage?: string;
+          constraint?: {
+            fields?: unknown;
+          };
+        };
+      };
     };
   };
 
@@ -98,14 +107,32 @@ function isDuplicateAuditEventError(error: unknown): boolean {
   }
 
   const target = maybeError.meta?.target;
-  if (Array.isArray(target) && target.includes("id")) {
-    return true;
-  }
-  if (typeof target === "string" && target.includes("id")) {
+  if (Array.isArray(target) ? target.includes("id") : target === "id") {
     return true;
   }
 
-  return typeof maybeError.message === "string" && maybeError.message.includes("pkey");
+  if (
+    typeof maybeError.message === "string" &&
+    /unique constraint failed on the fields:\s*\(`id`\)/i.test(maybeError.message)
+  ) {
+    return true;
+  }
+
+  const driverCause = maybeError.meta?.driverAdapterError?.cause;
+  if (!driverCause || driverCause.originalCode !== "23505") {
+    return false;
+  }
+
+  if (
+    typeof driverCause.originalMessage === "string" &&
+    driverCause.originalMessage.includes("cookie_consent_events_pkey")
+  ) {
+    return true;
+  }
+
+  return (
+    Array.isArray(driverCause.constraint?.fields) && driverCause.constraint.fields.includes("id")
+  );
 }
 
 function isRetryableAuditError(error: unknown): boolean {
