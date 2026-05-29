@@ -22,6 +22,9 @@ test.describe("Technical page", () => {
     await expect(
       page.getByRole("heading", { level: 2, name: "Test and release discipline" })
     ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 2, name: "Validate the product surface" })
+    ).toBeVisible();
 
     await expect(page.getByRole("link", { name: "Try Signup Flow" }).first()).toHaveAttribute(
       "href",
