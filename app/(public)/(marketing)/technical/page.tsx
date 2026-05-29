@@ -13,12 +13,6 @@ type AuditLink = {
   href: string;
 };
 
-type TechnicalHighlight = {
-  eyebrow: string;
-  title: string;
-  description: string;
-};
-
 type TechnicalArea = {
   id: string;
   navLabel: string;
@@ -62,33 +56,6 @@ const platformServices = [
   "Upstash Redis",
   "Resend email delivery",
   "Cloudflare Turnstile",
-];
-
-const technicalHighlights: TechnicalHighlight[] = [
-  {
-    eyebrow: "Auth",
-    title: "Real auth lifecycle",
-    description:
-      "Signup, verification, login gating, reset password, change email/password, and scheduled account deletion with restore are implemented as real product flows.",
-  },
-  {
-    eyebrow: "Security",
-    title: "Public request hardening",
-    description:
-      "Zod validation, Cloudflare Turnstile on signup, and shared rate limiting across auth, consent, export, and health routes.",
-  },
-  {
-    eyebrow: "Ops",
-    title: "Operational safeguards",
-    description:
-      "Deployed environment validation blocks missing critical settings, production can fail closed, and readiness is bearer-protected.",
-  },
-  {
-    eyebrow: "Verification",
-    title: "Verification and release discipline",
-    description:
-      "The repo includes architecture docs, ADRs, targeted tests, CI, separate E2E, and visual regression workflows.",
-  },
 ];
 
 const technicalAreas: TechnicalArea[] = [
@@ -364,27 +331,6 @@ export default function TechnicalPage() {
           </PageContainer>
         </section>
 
-        <section className="border-b border-border py-14 sm:py-16">
-          <PageContainer>
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              {technicalHighlights.map((question) => (
-                <article
-                  key={question.title}
-                  className="rounded-2xl border border-border bg-surface p-5"
-                >
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                    {question.eyebrow}
-                  </p>
-                  <h2 className="mt-2 text-lg font-semibold tracking-tight">{question.title}</h2>
-                  <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                    {question.description}
-                  </p>
-                </article>
-              ))}
-            </div>
-          </PageContainer>
-        </section>
-
         <section className="py-16 sm:py-20">
           <PageContainer>
             <div className="max-w-3xl">
@@ -436,6 +382,31 @@ export default function TechnicalPage() {
                   </div>
                 </article>
               ))}
+            </div>
+          </PageContainer>
+        </section>
+
+        <section className="border-t border-border py-14 sm:py-16">
+          <PageContainer>
+            <div className="surface-card-elevated mx-auto max-w-4xl rounded-3xl p-6 sm:p-8">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                Next step
+              </p>
+              <h2 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">
+                Validate the product surface
+              </h2>
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
+                After reviewing the implementation, test the public flows directly in the demo and
+                signup experience.
+              </p>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Link href="/demo" className="btn-primary btn-md">
+                  Open Demo App
+                </Link>
+                <Link href="/signup" className="btn-secondary btn-md">
+                  Try Signup Flow
+                </Link>
+              </div>
             </div>
           </PageContainer>
         </section>
