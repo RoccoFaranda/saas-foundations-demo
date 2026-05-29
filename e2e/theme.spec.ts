@@ -133,4 +133,33 @@ test.describe("Theme toggle", () => {
       maxDiffPixelRatio: 0.015,
     });
   });
+
+  test("technical page visual baselines remain stable in light and dark @visual @visual-technical", async ({
+    page,
+  }) => {
+    await page.goto("/technical");
+
+    const themeToggle = page.getByTestId(PUBLIC_THEME_TOGGLE_TEST_ID);
+    await expect(themeToggle).toBeVisible();
+    await expect(page.locator("main")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Proof for the boring parts that matter." })
+    ).toBeVisible();
+
+    await themeToggle.selectOption("light");
+    await expect(page).toHaveScreenshot("technical-light.png", {
+      animations: "disabled",
+      caret: "hide",
+      fullPage: false,
+      maxDiffPixelRatio: 0.015,
+    });
+
+    await themeToggle.selectOption("dark");
+    await expect(page).toHaveScreenshot("technical-dark.png", {
+      animations: "disabled",
+      caret: "hide",
+      fullPage: false,
+      maxDiffPixelRatio: 0.015,
+    });
+  });
 });

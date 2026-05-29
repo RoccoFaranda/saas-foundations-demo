@@ -20,6 +20,9 @@ test.describe("Marketing home page @landing-ui", () => {
     await expect(exploreCta).toHaveAttribute("href", "/demo");
     await expect(technicalCta).toHaveAttribute("href", "/technical");
     await expect(contactCta).toHaveAttribute("href", "/contact");
+    await expect(
+      heroSection.getByText("Built with Next.js, React, TypeScript, Prisma, and Postgres.")
+    ).toBeVisible();
 
     await expect(page.locator('[data-testid^="proof-chip-"]')).toHaveCount(6);
   });

@@ -235,7 +235,7 @@ export default function MarketingHomePage() {
               </div>
 
               <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs font-medium text-muted-foreground lg:justify-start lg:text-sm">
-                <p>No signup required for demo access.</p>
+                <p>Built with Next.js, React, TypeScript, Prisma, and Postgres.</p>
                 <a
                   href={GITHUB_REPO_URL}
                   target="_blank"
