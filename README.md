@@ -156,6 +156,13 @@ Vercel deployments use `pnpm deploy:vercel`, which runs `prisma migrate deploy` 
 
 In deployed preview and production environments, `/api/ready` expects `Authorization: Bearer <READINESS_SECRET>`.
 
+### Internal Cron Jobs
+
+- `GET /api/internal/account-deletion/purge`: purges due account-deletion records
+- `GET /api/internal/redis/keepalive`: touches Upstash Redis daily to avoid free-tier inactivity archival notices
+
+Both internal cron routes expect `Authorization: Bearer <CRON_SECRET>`.
+
 ### SEO
 
 - dynamic metadata via App Router metadata exports

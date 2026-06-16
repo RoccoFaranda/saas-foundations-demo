@@ -370,7 +370,7 @@ Rate limiting notes:
 - `CONSENT_AUDIT_SIGNING_SECRET` is required for signed consent replay token minting and verification.
 - `ACCOUNT_DELETION_GRACE_DAYS` controls restore window before final purge (default `14`).
 - `ACCOUNT_DELETION_PURGE_BATCH_SIZE` controls the max users purged per cron invocation (default `100`).
-- `CRON_SECRET` secures `/api/internal/account-deletion/purge` (Vercel cron uses `GET`; manual triggers can use `POST`).
+- `CRON_SECRET` secures internal cron routes, including `/api/internal/account-deletion/purge` and `/api/internal/redis/keepalive` (Vercel cron uses `GET`; manual triggers can use `POST`).
 
 ### Database Migrations
 
@@ -429,3 +429,4 @@ Target deployment shape (MVP):
 - secrets: environment variables only (never committed)
 - provide `.env.example` listing required environment variables
 - provide `/api/health` (public liveness) and `/api/ready` (protected readiness) for health checks
+- run a protected daily Redis keepalive cron so the free-tier Upstash rate-limit store still receives traffic when the public demo is idle
