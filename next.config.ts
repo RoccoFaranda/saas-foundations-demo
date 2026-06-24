@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { assertValidDeployEnvironment } from "./src/lib/config/deploy-env";
+import { SECURITY_RESPONSE_HEADERS } from "./src/lib/security-headers";
 
 const supportEmail = process.env.SUPPORT_EMAIL?.trim();
 
@@ -14,6 +15,14 @@ const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR ?? ".next",
   env: {
     SUPPORT_EMAIL: supportEmail,
+  },
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: SECURITY_RESPONSE_HEADERS,
+      },
+    ];
   },
 };
 
